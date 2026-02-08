@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Folkpresso | The Community Coffee</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/751/751621.png">    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] } 
+                } 
+            }
+        }
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS ASLI LU (GAK GUA UBAH) */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 80% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes brewBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        .app-page { display: none; }
+        .app-page.active { display: block; animation: slideUp 0.4s ease-out; }
+        .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .dark .glass-nav { background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        
+        .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 20s linear infinite; }
+        .anim-brew { animation: brewBounce 1s infinite ease-in-out; }
+        
+        .member-card-gold { background: linear-gradient(135deg, #FFD700, #B8860B); color: #FFF; }
+        .member-card-silver { background: linear-gradient(135deg, #E0E0E0, #9E9E9E); color: #333; }
+        .member-card-bronze { background: linear-gradient(135deg, #CD7F32, #8B4513); color: #FFF; }
+        .grayscale-mode { filter: grayscale(100%); pointer-events: none; opacity: 0.6; }
+
+        /* GUA PASTIKAN POPUP DI ATAS SEMUANYA (z-index 9999) */
+        #universal-popup { z-index: 9999; }
+        #login-modal { z-index: 5000; }
+        
+        #toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 6000; pointer-events: none; width: 100%; display: flex; flex-direction: column; items-center; }
+        .toast { background: #1e3a8a; color: white; padding: 12px 24px; border-radius: 50px; margin-top: 10px; font-size: 12px; font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: popIn 0.3s forwards; }
+    </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-900 pb-32 dark:bg-slate-950 dark:text-white transition-colors duration-300">
+
+    <div id="universal-popup" class="fixed inset-0 hidden items-center justify-center p-6 backdrop-blur-md bg-black/40">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl transform scale-50 opacity-0 transition-all duration-300" id="popup-content">
+            <div id="popup-icon" class="text-5xl text-center mb-4">✨</div>
+            <h3 id="popup-title" class="text-xl font-black text-center text-blue-900 dark:text-white italic mb-2">Pemberitahuan</h3>
+            <p id="popup-message" class="text-sm text-center text-slate-500 dark:text-slate-400 mb-6 font-medium">Pesan di sini...</p>
+            <div id="popup-actions" class="w-full"></div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <div id="login-modal" class="fixed inset-0 bg-blue-900 flex flex-col items-center justify-center p-8 text-white transition-all duration-500">
+        <div class="text-6xl mb-6 animate-bounce">☕</div>
+        <h1 class="text-3xl font-black mb-2 italic tracking-tighter">FOLKPRESSO</h1>
+        <p class="text-sm opacity-80 mb-8 text-center">Masuk untuk simpan Poin & Level Member!</p>
+        
+        <div class="w-full max-w-xs bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 shadow-2xl">
+            <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Nama Pengguna</label>
+            <input type="text" id="username-input" placeholder="Contoh: Budi" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-4 border border-transparent focus:border-white/50 transition-colors">
+            
+            <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Password</label>
+            <input type="password" id="password-input" placeholder="Rahasia123" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-6 border border-transparent focus:border-white/50 transition-colors">
+            
+            <button onclick="handleLogin()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">MASUK / DAFTAR</button>
+        </div>
+    </div>
+
+    <header class="glass-nav sticky top-0 z-[60]">
+        <div class="px-6 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 tracking-tighter italic">FOLKPRESSO</h1>
+                <div id="store-status-badge" class="flex items-center gap-1.5 mt-1">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Open Now</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="window.showToast('🎵 Now Playing: ' + currentVibe)" class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl text-xs animate-pulse">🎵</button>
+                <button onclick="toggleDark()" class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl">🌙</button>
+                <button onclick="window.showPage('admin')" class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl text-blue-600 dark:text-blue-400">📊</button>
+            </div>
+        </div>
+        
+        <div class="px-6 pb-4">
+            <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1">
+                <span class="text-blue-900 dark:text-blue-300">Community Goal 🎯</span>
+                <span id="goal-counter" class="text-slate-400">0 / 20 Cups</span>
+            </div>
+            <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div id="goal-bar" class="h-full bg-blue-600 w-0 transition-all duration-1000"></div>
+            </div>
+        </div>
+    </header>
+
+    <main id="home-page" class="app-page active">
+        <div class="px-6 mt-4 flex items-center justify-between">
+            <div>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Halo, Barista Friend!</p>
+                <h2 id="home-username" class="text-xl font-black text-blue-900 dark:text-white truncate max-w-[150px]">Guest</h2>
+            </div>
+            <div onclick="window.showPage('profile')" class="bg-blue-100 dark:bg-slate-800 px-3 py-1 rounded-full flex items-center gap-1 cursor-pointer hover:bg-blue-200 transition-colors">
+                <span class="text-xs">⭐</span>
+                <span id="home-points" class="text-xs font-bold text-blue-800 dark:text-blue-300">0</span>
+            </div>
+        </div>
+
+        <div class="bg-blue-900 dark:bg-blue-950 py-2 mt-4 overflow-hidden relative border-y border-blue-800">
+            <div class="animate-marquee text-xs font-bold text-blue-200 tracking-wide">
+                🔥 "Aren Latte-nya juara!" - Andi &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; 🚀 "Thanks buat bonusnya kak!" - Siti &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!
+            </div>
+        </div>
+
+        <div class="px-6 mt-6">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Lagi mood apa?</p>
+            <div class="flex gap-3 overflow-x-auto no-scrollbar">
+                <button onclick="filterMood('sleepy')" class="mood-btn min-w-[80px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">😴</div><span class="text-[10px] font-bold">Ngantuk</span></button>
+                <button onclick="filterMood('hot')" class="mood-btn min-w-[80px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">🥵</div><span class="text-[10px] font-bold">Gerah</span></button>
+                <button onclick="filterMood('sad')" class="mood-btn min-w-[80px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">🥀</div><span class="text-[10px] font-bold">Galau</span></button>
+                <button onclick="filterMood('all')" class="mood-btn min-w-[80px] bg-blue-100 dark:bg-blue-900 p-3 rounded-2xl border border-blue-200 dark:border-blue-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">👀</div><span class="text-[10px] font-bold">Semua</span></button>
+            </div>
+        </div>
+
+        <div class="px-6 mt-6 grid grid-cols-2 gap-3">
+            <div onclick="mysteryBrew()" class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[2rem] p-5 text-white shadow-lg relative overflow-hidden active:scale-95 transition-transform">
+                 <h4 class="font-black text-sm relative z-10">Mystery Brew 🎲</h4>
+                 <p class="text-[10px] opacity-80 relative z-10">Biarkan kami pilih!</p>
+                 <span class="absolute -bottom-2 -right-2 text-5xl opacity-20">❓</span>
+            </div>
+            
+            <div onclick="claimQuest()" id="quest-card" class="bg-gradient-to-br from-pink-500 to-orange-500 rounded-[2rem] p-5 text-white shadow-lg relative overflow-hidden active:scale-95 transition-transform">
+                <h4 class="font-black text-sm relative z-10">Daily Quest ⚔️</h4>
+                <p id="quest-status" class="text-[10px] opacity-80 relative z-10">Klaim +50 Poin</p>
+                <span class="absolute -bottom-2 -right-2 text-5xl opacity-20">🎁</span>
+            </div>
+        </div>
+
+        <div class="px-6 mt-8 pb-10 space-y-4" id="product-list"></div>
+    </main>
+
+    <main id="cart-page" class="app-page px-6 pt-8">
+        <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 italic text-center">Keranjang</h2>
+        
+        <div class="mb-6 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800 p-4 rounded-2xl flex items-center gap-3">
+            <div class="bg-pink-100 dark:bg-pink-800 p-2 rounded-xl text-xl">🎁</div>
+            <div class="flex-1">
+                <p class="text-xs font-bold text-pink-700 dark:text-pink-300">Traktir Teman?</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400">Beli voucher digital</p>
+            </div>
+            <button onclick="generateVoucher()" class="bg-pink-500 text-white px-3 py-2 rounded-xl text-[10px] font-bold">Beli</button>
+        </div>
+        
+        <div id="reorder-section" class="hidden mb-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800 text-center">
+            <p class="text-xs text-blue-800 dark:text-blue-300 font-bold mb-3">Mau pesan yang kemarin?</p>
+            <button onclick="loadLastOrder()" class="bg-blue-600 text-white px-6 py-2 rounded-xl text-xs font-bold shadow-lg active:scale-95">Ulangi Pesanan Terakhir</button>
+        </div>
+
+        <div id="cart-items" class="space-y-3 min-h-[100px]"><p class="text-center text-slate-400 text-xs py-10">Belum ada pesanan.</p></div>
+        
+        <div class="mt-8 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
+            <div class="flex justify-between items-center mb-4"><span class="font-bold text-slate-400 uppercase text-xs">Total</span><span id="cart-total" class="text-xl font-black text-blue-900 dark:text-white">Rp 0</span></div>
+            <button onclick="openPayment()" class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">Checkout</button>
+        </div>
+    </main>
+
+    <main id="profile-page" class="app-page px-6 pt-8">
+        <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 text-center italic">My Profile</h2>
+        
+        <div id="member-card" class="member-card-bronze rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+            <div class="flex justify-between items-start">
+                <h3 id="tier-name" class="font-bold tracking-widest text-sm uppercase">Bronze Member</h3>
+                <span class="text-2xl">✨</span>
+            </div>
+            <div>
+                <p class="text-[10px] opacity-60 uppercase tracking-widest mb-1">Account</p>
+                <p id="profile-username" class="font-bold text-lg mb-1">Guest</p>
+                <p class="text-[10px] opacity-60 uppercase tracking-widest mb-1">Total Points</p>
+                <p id="display-points" class="text-3xl font-black">0</p>
+            </div>
+            <div class="flex justify-between items-end">
+                <div class="w-full mr-4">
+                    <p class="text-[10px] opacity-60 uppercase tracking-widest mb-1">Next Level</p>
+                    <div class="w-full h-1.5 bg-black/20 rounded-full overflow-hidden"><div id="level-bar" class="h-full bg-white w-[10%]"></div></div>
+                </div>
+                <div onclick="handleLogout()" class="w-10 h-10 bg-red-500 p-2 rounded-lg shrink-0 flex items-center justify-center cursor-pointer shadow-lg active:scale-90 transition-transform">
+                    🚪
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+            <h4 class="font-bold text-sm dark:text-white mb-4">⚡ Caffeine Meter</h4>
+            <div class="flex items-end gap-2 h-24">
+                <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-t-xl relative overflow-hidden group">
+                    <div id="caffeine-bar" class="absolute bottom-0 w-full bg-orange-400 transition-all duration-1000" style="height: 0%"></div>
+                </div>
+                <div class="text-right">
+                    <h5 id="caffeine-mg" class="text-2xl font-black text-orange-500">0<span class="text-xs text-slate-400">mg</span></h5>
+                    <p class="text-[10px] text-slate-400">Weekly Intake</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main id="admin-page" class="app-page px-6 pt-8">
+        <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-8 italic text-center">Owner Dashboard</h2>
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl mb-4 flex justify-between items-center shadow-lg">
+            <div><h4 class="font-bold text-sm dark:text-white">Status Toko</h4><p id="admin-status-text" class="text-[10px] text-green-500 font-bold uppercase mt-1">Buka</p></div>
+            <button onclick="toggleStoreStatus()" id="btn-store-toggle" class="bg-red-500 text-white px-4 py-2 rounded-xl font-bold text-xs">TUTUP TOKO</button>
+        </div>
+        <div class="grid grid-cols-2 gap-4 text-white">
+            <div class="bg-blue-800 p-5 rounded-3xl"><p class="text-[10px] font-bold opacity-80 uppercase">Omzet</p><h4 id="admin-sales" class="text-lg font-black mt-1">Rp 0</h4></div>
+            <div class="bg-indigo-600 p-5 rounded-3xl"><p class="text-[10px] font-bold opacity-80 uppercase">Cups</p><h4 id="admin-cups" class="text-lg font-black mt-1">0</h4></div>
+        </div>
+    </main>
+
+    <div id="payment-modal" class="fixed inset-0 bg-black/60 z-[100] hidden flex-col items-center justify-end backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 w-full rounded-t-[3rem] p-8 animate-slide-up max-h-[90vh] overflow-y-auto">
+            <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 mx-auto mb-6 rounded-full"></div>
+            <h3 class="text-xl font-black text-blue-900 dark:text-blue-400 mb-6 text-center">Pembayaran</h3>
+
+            <div class="mb-6">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3 ml-2">Waktu Ambil ⏰</label>
+                <div class="grid grid-cols-2 gap-3" id="pickup-options">
+                    <div onclick="selectPickup('ASAP')" id="time-ASAP" class="pickup-card bg-blue-50 dark:bg-blue-900/40 border-2 border-blue-500 p-4 rounded-2xl cursor-pointer transition-all">
+                        <p class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">Sekarang</p>
+                        <p class="text-sm font-black dark:text-white">±15 Menit</p>
+                    </div>
+                    <div onclick="selectPickup('Sore')" id="time-Sore" class="pickup-card bg-slate-50 dark:bg-slate-800 border-2 border-transparent p-4 rounded-2xl cursor-pointer transition-all">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Nanti Sore</p>
+                        <p class="text-sm font-black dark:text-white">17:00 WIB</p>
+                    </div>
+                </div>
+                <input type="hidden" id="pickup-time" value="ASAP">
+            </div>
+
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 ml-2">E-Money</label>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <button onclick="processPayment('GoPay')" class="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-4 rounded-2xl font-bold text-sm hover:scale-95 transition-transform">GoPay</button>
+                <button onclick="processPayment('OVO')" class="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-4 rounded-2xl font-bold text-sm hover:scale-95 transition-transform">OVO</button>
+                <button onclick="processPayment('DANA')" class="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-4 rounded-2xl font-bold text-sm hover:scale-95 transition-transform">DANA</button>
+                <button onclick="processPayment('ShopeePay')" class="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-4 rounded-2xl font-bold text-sm hover:scale-95 transition-transform">ShopeePay</button>
+            </div>
+            
+            <button onclick="processPayment('Tunai')" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 p-4 rounded-2xl font-bold text-sm mb-4">Bayar Tunai</button>
+
+            <button onclick="document.getElementById('payment-modal').classList.add('hidden')" class="w-full text-slate-400 font-bold text-xs">Batal</button>
+        </div>
+    </div>
+
+    <div id="tracking-modal" class="fixed inset-0 bg-blue-900/95 z-[110] hidden flex-col items-center justify-center p-8 backdrop-blur-md text-white">
+        <div id="brew-state" class="flex flex-col items-center w-full">
+            <div class="text-6xl mb-4 anim-brew">☕</div>
+            <h2 id="track-title" class="text-2xl font-black mb-2">Memproses...</h2>
+            <p id="track-desc" class="text-sm opacity-80 text-center">Mohon tunggu sebentar</p>
+            <div class="w-full max-w-xs bg-blue-800 h-2 rounded-full mt-8 overflow-hidden">
+                <div id="anim-bar" class="h-full bg-blue-400 w-0 transition-all duration-[2000ms] ease-linear"></div>
+            </div>
+        </div>
+
+        <div id="finish-state" class="hidden flex-col items-center w-full max-w-xs animate-slide-up">
+            <p class="text-sm font-bold mb-4">Gimana pelayanan kami?</p>
+            <div class="flex gap-2 justify-center mb-6">
+                <button onclick="rate(1)" class="text-2xl hover:scale-125 transition-transform">⭐</button>
+                <button onclick="rate(2)" class="text-2xl hover:scale-125 transition-transform">⭐</button>
+                <button onclick="rate(3)" class="text-2xl hover:scale-125 transition-transform">⭐</button>
+                <button onclick="rate(4)" class="text-2xl hover:scale-125 transition-transform">⭐</button>
+                <button onclick="rate(5)" class="text-2xl hover:scale-125 transition-transform">⭐</button>
+            </div>
+            <button onclick="finishOrder()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black">Selesai</button>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav p-4 flex justify-around">
+        <button onclick="showPage('home')" id="btn-home" class="flex flex-col items-center text-blue-900 dark:text-blue-400">🏠<span class="text-[10px] font-bold mt-1">Menu</span></button>
+        <button onclick="showPage('cart')" id="btn-cart" class="flex flex-col items-center text-slate-400">🛒<span class="text-[10px] font-bold mt-1">Cart</span></button>
+        <button onclick="showPage('profile')" id="btn-profile" class="flex flex-col items-center text-slate-400">😎<span class="text-[10px] font-bold mt-1">Member</span></button>
+    </nav>
+    
+    <script>
+        // --- BAGIAN 1: INISIALISASI SUPABASE (VERSI ANTI-CRASH) ---
+        // Kita gunakan 'var' atau window check agar tidak error jika script ganda
+        var SB_URL = "https://gfmvigkhflkqetbftttr.supabase.co"; 
+        var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXZpZ2toZmxrcWV0YmZ0dHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTQ3NDAsImV4cCI6MjA4NTYzMDc0MH0.dGq7S_3y2nG8Nrl_ZpzLVuncoedp2rlIzb2u4cZ44Fg";
+        
+        // Cek dulu apakah supabase sudah ada? Kalau belum, baru buat.
+        if (typeof window.supabaseClient === 'undefined') {
+            if (typeof window.supabase !== 'undefined') {
+                window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+                console.log("Supabase Berhasil Dimuat.");
+            } else {
+                console.error("Library Supabase Gagal Dimuat. Cek CDN di <head>.");
+                // Fallback agar tidak crash total
+                window.supabaseClient = null; 
+            }
+        }
+    
+        // --- BAGIAN 2: FUNGSI LOGIN (DITARUH DI ATAS BIAR TERBACA) ---
+        // Fungsi ini dipanggil tombol MASUK / DAFTAR
+        window.handleLogin = function() {
+            console.log("Tombol Login Ditekan"); // Cek di console apakah muncul
+            
+            var usernameInput = document.getElementById('username-input');
+            var passwordInput = document.getElementById('password-input');
+            
+            if (!usernameInput || !passwordInput) {
+                alert("Error: Elemen input tidak ditemukan!");
+                return;
+            }
+    
+            var username = usernameInput.value.trim();
+            var password = passwordInput.value.trim();
+    
+            if(!username || !password) {
+                showPopup("Peringatan", "Isi Nama & Password!", "⚠️");
+                return;
+            }
+    
+            // Ambil database lokal
+            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
+            var oldData = db[username] || { points: 0, caffeine: 0 };
+            
+            // Simpan User Baru / Update User Lama
+            db[username] = { 
+                password: password, 
+                points: oldData.points, 
+                caffeine: oldData.caffeine 
+            };
+            
+            localStorage.setItem('folkpresso_users_db', JSON.stringify(db));
+            
+            // Login Sukses
+            localStorage.setItem('folkpresso_current_user', username);
+            loadUserData(username);
+            
+            document.getElementById('login-modal').classList.add('hidden');
+            showToast("Login Berhasil! Halo " + username);
+        };
+    
+        // --- BAGIAN 3: DATA PRODUK ---
+        // --- BAGIAN 3: DATA PRODUK (FOTO LOKAL SATU FOLDER) ---
+    var products = [
+        { 
+            name: "Aren Coffee", 
+            price: 15000, 
+            cost: 9000, 
+            type: "sleepy", 
+            mg: 80, 
+            image: "img/gula aren.png" // Pastikan ada file bernama 'aren.jpg' di folder yang sama
+        },
+        { 
+            name: "Salted Caramel", 
+            price: 15000, 
+            cost: 9000, 
+            type: "sad", 
+            mg: 60, 
+            image: "img/salted.png" // Pastikan ada file bernama 'salted.jpg'
+        },
+        { 
+            name: "Caramel Macchiato", 
+            price: 15000, 
+            cost: 9000, 
+            type: "sleepy", 
+            mg: 120, 
+            image: "img/maciato.png" // Contoh jika pakai file PNG
+        },
+        // ... Lanjutkan untuk produk lain
+        { name: "Spanish Coffee", price: 15000, cost: 9000, type: "hot", mg: 100, image: "img/spanish.png" },
+        { name: "Tiramisu", price: 15000, cost: 9000, type: "sweet", mg: 50, image: "img/tiramisu.png" },
+        { name: "Butterscotch", price: 15000, cost: 9000, type: "sad", mg: 70, image: "butterscotch.jpg" },
+        { name: "Hazelnut", price: 15000, cost: 9000, type: "sweet", mg: 60, image: "img/hazelnut.png" },
+        { name: "Matcha Latte", price: 15000, cost: 9000, type: "sleepy", mg: 40, image: "img/matcha.png" },
+        { name: "Chocolate", price: 15000, cost: 9000, type: "sleepy", mg: 10, image: "img/coklat.png" },
+        { name: "Klepon", price: 15000, cost: 9000, type: "sweet", mg: 50, image: "klepon.jpg" },
+        { name: "Vanilla", price: 15000, cost: 9000, type: "sweet", mg: 50, image: "img/vanilla.png" }
+    ];
+    
+        // --- BAGIAN 4: STATE & INIT ---
+        var cart = [];
+        var isStoreOpen = true;
+        var currentUser = null;
+        var userPoints = 0;
+        var userCaffeine = 0;
+        var communityGoal = 0;
+    
+        // Config Tailwind
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: 'class',
+                theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] } } }
+            }
+        }
+    
+        window.onload = function() {
+            renderProducts(products);
+            var savedUser = localStorage.getItem('folkpresso_current_user');
+            if (savedUser) {
+                loadUserData(savedUser);
+                document.getElementById('login-modal').classList.add('hidden');
+            }
+        };
+    
+        function toggleDark() { document.documentElement.classList.toggle('dark'); }
+    
+        // --- BAGIAN 5: NAVIGASI & LOGIC LAINNYA ---
+        window.showPage = function(id) {
+            if(id === 'admin') {
+                if(prompt("PIN Owner:") !== "1234") return alert("Salah PIN!");
+            }
+            document.querySelectorAll('.app-page').forEach(function(p) { p.classList.remove('active'); });
+            document.getElementById(id + '-page').classList.add('active');
+            document.querySelectorAll('nav button').forEach(function(b) { 
+                b.classList.remove('text-blue-900', 'dark:text-blue-400'); b.classList.add('text-slate-400'); 
+            });
+            document.getElementById('btn-' + id).classList.add('text-blue-900', 'dark:text-blue-400');
+            if(id === 'cart') renderCart();
+        };
+    
+        window.handleLogout = function() {
+            showPopup("Mau Keluar?", "Yakin mau keluar akun?", "🚪");
+            var actionArea = document.getElementById('popup-actions');
+            actionArea.innerHTML = `
+                <div class="flex gap-3 w-full">
+                    <button onclick="executeLogout()" class="flex-1 bg-red-500 text-white py-4 rounded-2xl font-black shadow-lg">YA</button>
+                    <button onclick="closePopup()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 py-4 rounded-2xl font-black">BATAL</button>
+                </div>`;
+        };
+    
+        window.executeLogout = function() {
+            localStorage.removeItem('folkpresso_current_user');
+            location.reload(); 
+        };
+    
+        function loadUserData(username) {
+            currentUser = username;
+            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
+            var userData = db[username] || { points: 0, caffeine: 0 };
+            userPoints = userData.points || 0;
+            userCaffeine = userData.caffeine || 0;
+            
+            if(document.getElementById('home-username')) document.getElementById('home-username').innerText = username;
+            if(document.getElementById('profile-username')) document.getElementById('profile-username').innerText = username;
+            if(document.getElementById('home-points')) document.getElementById('home-points').innerText = userPoints.toLocaleString();
+            
+            updateMemberUI();
+            
+            if(localStorage.getItem('lastOrder_' + username)) {
+                document.getElementById('reorder-section').classList.remove('hidden');
+            }
+        }
+    
+        function saveUserData() {
+            if(!currentUser) return;
+            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
+            if(db[currentUser]) {
+                db[currentUser].points = userPoints;
+                db[currentUser].caffeine = userCaffeine;
+            }
+            localStorage.setItem('folkpresso_users_db', JSON.stringify(db));
+        }
+    
+        window.filterMood = function(mood) {
+            if(mood === 'all') return renderProducts(products);
+            var filtered = products.filter(function(p) { return p.type === mood; });
+            renderProducts(filtered);
+            showToast("Filter: " + mood.toUpperCase() + " Mode Aktif!");
+        };
+    
+        function renderProducts(list) {
+        var container = document.getElementById('product-list');
+        var grayscale = isStoreOpen ? '' : 'grayscale-mode';
+        container.innerHTML = '';
+        
+        list.forEach(function(p) {
+            // Jika Anda lupa menaruh foto, otomatis pakai gambar gelas default
+            var imgSource = p.image || "https://cdn-icons-png.flaticon.com/512/751/751621.png";
+
+            container.innerHTML += `
+            <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center gap-4 ${grayscale}">
+                
+                <div class="w-16 h-16 shrink-0">
+                    <img src="${imgSource}" alt="${p.name}" class="w-full h-full object-cover rounded-2xl shadow-sm bg-slate-50">
+                </div>
+
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-sm dark:text-white truncate">${p.name}</h4>
+                    <p class="text-blue-600 dark:text-blue-400 font-black text-xs">Rp ${p.price.toLocaleString()}</p>
+                </div>
+                
+                <button onclick="shareLink('${p.name}')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs shrink-0">🔗</button>
+                <button onclick="addToCart('${p.name}', ${p.price}, ${p.mg || 0}, ${p.cost || 0})" class="bg-blue-900 dark:bg-blue-600 text-white w-10 h-10 rounded-xl font-bold shrink-0 shadow-lg active:scale-90 transition-transform">+</button>
+            </div>`;
+        });
+    }
+    
+        window.addToCart = function(name, price, mg, cost) {
+            if(!isStoreOpen) return showPopup("Toko Tutup", "Maaf kak, toko sedang tutup.", "🔒");
+            var existingItem = cart.find(function(item) { return item.name === name; });
+            if (existingItem) { existingItem.quantity += 1; } 
+            else { cart.push({ name: name, price: price, mg: mg, cost: cost || 0, quantity: 1 }); }
+            showToast(name + " berhasil ditambahkan!");
+            if(navigator.vibrate) navigator.vibrate(20);
+            renderCart(); 
+        };
+    
+        window.updateQuantity = function(index, delta) {
+            cart[index].quantity += delta;
+            if (cart[index].quantity < 1) { cart.splice(index, 1); showToast("Item dihapus"); }
+            renderCart();
+        };
+    
+        function renderCart() {
+            var list = document.getElementById('cart-items');
+            list.innerHTML = cart.length ? '' : '<p class="text-center text-slate-400 text-xs py-10 italic">Keranjangmu masih kosong nih...</p>';
+            var total = 0;
+            cart.forEach(function(item, index) {
+                var itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                list.innerHTML += `
+                <div class="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 mb-3">
+                    <div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-xl shadow-inner">☕</div>
+                    <div class="flex-1"><h4 class="font-extrabold text-sm text-slate-800 dark:text-white leading-tight">${item.name}</h4><p class="text-blue-600 dark:text-blue-400 font-black text-xs mt-0.5">Rp ${itemTotal.toLocaleString()}</p></div>
+                    <div class="flex items-center bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <button onclick="updateQuantity(${index}, -1)" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 text-slate-600 dark:text-white rounded-xl shadow-sm"><span class="font-bold">-</span></button>
+                        <span class="px-4 text-sm font-black text-blue-900 dark:text-white min-w-[40px] text-center">${item.quantity}</span>
+                        <button onclick="updateQuantity(${index}, 1)" class="w-8 h-8 flex items-center justify-center bg-blue-900 dark:bg-blue-600 text-white rounded-xl shadow-md"><span class="font-bold">+</span></button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('cart-total').innerText = 'Rp ' + total.toLocaleString();
+        }
+    
+        // --- BAGIAN 6: PEMBAYARAN KE SUPABASE ---
+        window.openPayment = function() {
+            if(!cart.length) return showToast("Keranjang kosong!");
+            document.getElementById('payment-modal').classList.remove('hidden');
+            document.getElementById('payment-modal').classList.add('flex');
+        };
+    
+        window.processPayment = async function(method) {
+            document.getElementById('payment-modal').classList.add('hidden');
+            document.getElementById('payment-modal').classList.remove('flex');
+            
+            var totalOrder = cart.reduce(function(a, b) { return a + (b.price * b.quantity); }, 0);
+            var caffeineAdd = cart.reduce(function(a, b) { return a + (b.mg * b.quantity); }, 0);
+            var cupsCount = cart.reduce(function(a, b) { return a + b.quantity; }, 0);
+    
+            // --- KIRIM KE SUPABASE ---
+            var now = new Date();
+            var dateStamp = now.toISOString().split('T')[0];
+            var fullTimeStr = now.toLocaleDateString('id-ID') + " | " + now.toLocaleTimeString('id-ID');
+    
+            var payload = cart.map(function(item) {
+                return {
+                    date: dateStamp,
+                    full_time: fullTimeStr,
+                    name: item.name,
+                    type: 'in',
+                    qty: item.quantity,
+                    unit_price: item.price,
+                    unit_cost: item.cost || 0,
+                    total: item.price * item.quantity,
+                    method: method,
+                    payment_status: 'success',
+                    location: '-',
+                    netto: '-',
+                    notes: '-'
+                };
+            });
+    
+            if (window.supabaseClient) {
+                try {
+                    console.log("Mengirim data...", payload);
+                    const { error } = await window.supabaseClient.from('transactions').insert(payload);
+                    if (error) {
+                        console.error("Supabase Error:", error);
+                        alert("Gagal kirim data: " + error.message);
+                    } else {
+                        console.log("Sukses Sync Database!");
+                    }
+                } catch (err) {
+                    console.error("Koneksi Error: " + err);
+                }
+            } else {
+                console.log("Mode Offline / Supabase belum siap.");
+            }
+    
+            // Update Lokal UI
+            userPoints += Math.floor(totalOrder / 1000);
+            userCaffeine += caffeineAdd;
+            saveUserData(); 
+            
+            communityGoal += cupsCount; 
+            var goalPercent = Math.min((communityGoal / 20) * 100, 100);
+            document.getElementById('goal-bar').style.width = goalPercent + "%";
+            document.getElementById('goal-counter').innerText = communityGoal + " / 20 Cups";
+            
+            updateMemberUI();
+            
+            if(currentUser) {
+                localStorage.setItem('lastOrder_' + currentUser, JSON.stringify(cart));
+                document.getElementById('reorder-section').classList.remove('hidden');
+            }
+    
+            // Animasi
+            var modal = document.getElementById('tracking-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.getElementById('brew-state').classList.remove('hidden');
+            document.getElementById('finish-state').classList.remove('flex');
+            document.getElementById('finish-state').classList.add('hidden');
+            document.getElementById('anim-bar').style.width = "0%";
+            document.getElementById('track-title').innerText = "Memproses...";
+            document.getElementById('track-desc').innerText = "Via " + method;
+    
+            setTimeout(function() {
+                document.getElementById('anim-bar').style.width = "100%";
+                setTimeout(function() {
+                    document.getElementById('brew-state').classList.add('hidden');
+                    document.getElementById('finish-state').classList.remove('hidden');
+                    document.getElementById('finish-state').classList.add('flex');
+                }, 500);
+            }, 3000);
+        };
+    
+        window.finishOrder = function() {
+            document.getElementById('tracking-modal').classList.remove('flex');
+            document.getElementById('tracking-modal').classList.add('hidden');
+            cart = [];
+            renderCart(); 
+            showToast("Pesanan Selesai!");
+            showPage('home');
+        };
+    
+        // --- BAGIAN 7: UTILITIES ---
+        function updateMemberUI() {
+            var card = document.getElementById('member-card');
+            var tierName = document.getElementById('tier-name');
+            var bar = document.getElementById('level-bar');
+            
+            if(document.getElementById('display-points')) document.getElementById('display-points').innerText = userPoints.toLocaleString();
+            if(document.getElementById('home-points')) document.getElementById('home-points').innerText = userPoints.toLocaleString();
+            
+            if(userPoints > 5000) {
+                card.className = "member-card-gold rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500";
+                tierName.innerText = "GOLD MEMBER 👑"; bar.style.width = "100%";
+            } else if (userPoints > 1000) {
+                card.className = "member-card-silver rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500";
+                tierName.innerText = "SILVER MEMBER ⚔️"; bar.style.width = (userPoints / 5000 * 100) + "%";
+            } else {
+                card.className = "member-card-bronze rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500";
+                tierName.innerText = "BRONZE MEMBER"; bar.style.width = (userPoints / 1000 * 100) + "%";
+            }
+            document.getElementById('caffeine-mg').innerHTML = userCaffeine + '<span class="text-xs">mg</span>';
+            document.getElementById('caffeine-bar').style.height = Math.min((userCaffeine / 500) * 100, 100) + "%";
+        }
+    
+        window.toggleStoreStatus = function() {
+            isStoreOpen = !isStoreOpen;
+            var statusText = document.getElementById('admin-status-text');
+            var btn = document.getElementById('btn-store-toggle');
+            var badge = document.getElementById('store-status-badge');
+            if(isStoreOpen) {
+                statusText.innerText = "Buka"; statusText.className = "text-[10px] text-green-500 font-bold uppercase mt-1";
+                btn.innerText = "TUTUP TOKO"; btn.className = "bg-red-500 text-white px-4 py-2 rounded-xl font-bold text-xs";
+                badge.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span><p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Open Now</p>`;
+            } else {
+                statusText.innerText = "Tutup"; statusText.className = "text-[10px] text-red-500 font-bold uppercase mt-1";
+                btn.innerText = "BUKA TOKO"; btn.className = "bg-green-500 text-white px-4 py-2 rounded-xl font-bold text-xs";
+                badge.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span><p class="text-[10px] text-red-400 font-bold uppercase tracking-widest">Closed</p>`;
+            }
+            renderProducts(products); 
+        };
+    
+        window.rate = function(stars) { showToast("Terima kasih rating " + stars + " bintangnya!"); };
+    
+        function showToast(msg) {
+            var toast = document.createElement('div');
+            toast.className = 'toast'; toast.innerText = msg;
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(function() { toast.remove(); }, 2500);
+        }
+    
+        window.selectPickup = function(value) {
+            document.getElementById('pickup-time').value = value;
+            document.querySelectorAll('.pickup-card').forEach(function(card) {
+                card.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/40');
+                card.classList.add('border-transparent', 'bg-slate-50', 'dark:bg-slate-800');
+                card.querySelector('p:first-child').classList.replace('text-blue-600', 'text-slate-400');
+            });
+            var activeCard = document.getElementById('time-' + value);
+            activeCard.classList.replace('border-transparent', 'border-blue-500');
+            activeCard.classList.replace('bg-slate-50', 'bg-blue-50');
+            activeCard.querySelector('p:first-child').classList.replace('text-slate-400', 'text-blue-600');
+            if(navigator.vibrate) navigator.vibrate(10); 
+        };
+    
+        window.showPopup = function(title, message, icon) {
+            if (!icon) icon = "☕";
+            var popup = document.getElementById('universal-popup');
+            var content = document.getElementById('popup-content');
+            var actionArea = document.getElementById('popup-actions');
+            
+            document.getElementById('popup-title').innerText = title;
+            document.getElementById('popup-message').innerText = message;
+            document.getElementById('popup-icon').innerText = icon;
+            actionArea.innerHTML = `<button onclick="closePopup()" class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-transform">OKE!</button>`;
+    
+            popup.classList.remove('hidden');
+            popup.classList.add('flex');
+            
+            setTimeout(function() {
+                content.classList.remove('scale-50', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        };
+    
+        window.closePopup = function() {
+            var content = document.getElementById('popup-content');
+            content.classList.add('scale-50', 'opacity-0');
+            setTimeout(function() {
+                document.getElementById('universal-popup').classList.add('hidden');
+            }, 300);
+        };
+    
+        window.shareLink = function(item) {
+            if(navigator.share) { navigator.share({title: 'Titip Folkpresso', text: "Nitip " + item + " dong!"}); } 
+            else { showToast("Link Titip Beli disalin!"); }
+        };
+        
+        window.mysteryBrew = function() {
+            if(!isStoreOpen) return showToast("Toko Tutup.");
+            var random = products[Math.floor(Math.random() * products.length)];
+            addToCart(random.name, random.price, random.mg, random.cost);
+            showToast("✨ Magic! " + random.name + " terpilih!");
+        };
+        
+        window.claimQuest = function() {
+            var btn = document.getElementById('quest-card');
+            if(btn.classList.contains('opacity-50')) return showToast("Sudah diklaim hari ini!");
+            showPopup("Hooray!", "Kamu baru saja mendapatkan +50 Poin Folkpresso!", "🎁");
+            userPoints += 50;
+            saveUserData();
+            updateMemberUI();
+            document.getElementById('quest-status').innerText = "Terklaim ✅";
+            btn.classList.add('opacity-50');
+        };
+        
+        window.generateVoucher = function() { addToCart("Voucher Traktir", 20000, 0, 0); };
+        window.loadLastOrder = function() {
+            if(!currentUser) return;
+            var saved = localStorage.getItem('lastOrder_' + currentUser);
+            if(saved) {
+                var items = JSON.parse(saved);
+                items.forEach(function(i) { addToCart(i.name, i.price, i.mg, i.cost); });
+                showToast("Pesanan terakhir dimuat!");
+            }
+        };
+        // Register Service Worker untuk PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Aplikasi Siap Di-install:', reg.scope))
+                .catch(err => console.log('Gagal Register SW:', err));
+        });
+    }
+    
+    // Tombol Install Manual (Opsional, bisa ditaruh di menu)
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Simpan event ini jika ingin membuat tombol "Install Aplikasi" nanti
+        console.log("Aplikasi bisa di-install sekarang!");
+    });
+    </script>
+</body>
+</html>
