@@ -131,12 +131,12 @@
         </div>
 
         <div class="px-6 mt-6">
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Lagi mood apa?</p>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pilih Kategori</p>
             <div class="flex gap-3 overflow-x-auto no-scrollbar">
-                <button onclick="filterMood('sleepy')" class="mood-btn min-w-[80px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">😴</div><span class="text-[10px] font-bold">Ngantuk</span></button>
-                <button onclick="filterMood('hot')" class="mood-btn min-w-[80px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">🥵</div><span class="text-[10px] font-bold">Gerah</span></button>
-                <button onclick="filterMood('sad')" class="mood-btn min-w-[80px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">🥀</div><span class="text-[10px] font-bold">Galau</span></button>
-                <button onclick="filterMood('all')" class="mood-btn min-w-[80px] bg-blue-100 dark:bg-blue-900 p-3 rounded-2xl border border-blue-200 dark:border-blue-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">👀</div><span class="text-[10px] font-bold">Semua</span></button>
+                <button onclick="filterMood('signature')" class="mood-btn min-w-[100px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">🌟</div><span class="text-[10px] font-bold">Signature</span></button>
+                <button onclick="filterMood('classic')" class="mood-btn min-w-[100px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">☕</div><span class="text-[10px] font-bold">Classic</span></button>
+                <button onclick="filterMood('non-coffee')" class="mood-btn min-w-[100px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">🍵</div><span class="text-[10px] font-bold">Non-Coffee</span></button>
+                <button onclick="filterMood('all')" class="mood-btn min-w-[100px] bg-blue-100 dark:bg-blue-900 p-3 rounded-2xl border border-blue-200 dark:border-blue-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">👀</div><span class="text-[10px] font-bold">Semua</span></button>
             </div>
         </div>
 
@@ -303,20 +303,6 @@
         var SB_URL = "https://gfmvigkhflkqetbftttr.supabase.co"; 
         var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXZpZ2toZmxrcWV0YmZ0dHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTQ3NDAsImV4cCI6MjA4NTYzMDc0MH0.dGq7S_3y2nG8Nrl_ZpzLVuncoedp2rlIzb2u4cZ44Fg";
         
-        // Cek dulu apakah supabase sudah ada? Kalau belum, baru buat.
-        if (typeof window.supabaseClient === 'undefined') {
-            if (typeof window.supabase !== 'undefined') {
-                window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
-                console.log("Supabase Berhasil Dimuat.");
-            } else {
-                console.error("Library Supabase Gagal Dimuat. Cek CDN di <head>.");
-                // Fallback agar tidak crash total
-                window.supabaseClient = null; 
-            }
-        }
-    
-        // --- BAGIAN 2: FUNGSI LOGIN (DITARUH DI ATAS BIAR TERBACA) ---
-        // Fungsi ini dipanggil tombol MASUK / DAFTAR
         window.handleLogin = function() {
             console.log("Tombol Login Ditekan"); // Cek di console apakah muncul
             
@@ -335,6 +321,35 @@
                 showPopup("Peringatan", "Isi Nama & Password!", "⚠️");
                 return;
             }
+        
+            // Cek dulu apakah supabase sudah ada? Kalau belum, baru buat.
+            if (typeof window.supabaseClient === 'undefined') {
+                if (typeof window.supabase !== 'undefined') {
+                    window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+                    console.log("Supabase Berhasil Dimuat.");
+                } else {
+                    console.error("Library Supabase Gagal Dimuat. Cek CDN di <head>.");
+                    // Fallback agar tidak crash total
+                    window.supabaseClient = null; 
+                }
+                // Inisialisasi Channel Supabase untuk Broadcast
+                window.marqueeChannel = supabase.channel('folkpresso-marquee', {
+                    config: {
+                        broadcast: { self: true }, // Agar pengirim juga melihat pesannya sendiri
+                    },
+                });
+
+                // Listener: Menerima pesan dari user lain
+                window.marqueeChannel
+                    .on('broadcast', { event: 'announcement' }, (payload) => {
+                        displayMarqueeMessage(payload.payload.message);
+                    })
+                    .subscribe();
+            }
+    
+            // --- BAGIAN 2: FUNGSI LOGIN (DITARUH DI ATAS BIAR TERBACA) ---
+            // Fungsi ini dipanggil tombol MASUK / DAFTAR
+       
     
             // Ambil database lokal
             var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
@@ -358,43 +373,39 @@
         };
     
         // --- BAGIAN 3: DATA PRODUK ---
-        // --- BAGIAN 3: DATA PRODUK (FOTO LOKAL SATU FOLDER) ---
-    var products = [
-        { 
-            name: "Aren Coffee", 
-            price: 15000, 
-            cost: 9000, 
-            type: "sleepy", 
-            mg: 80, 
-            image: "img/gula aren.png" // Pastikan ada file bernama 'aren.jpg' di folder yang sama
-        },
-        { 
-            name: "Salted Caramel", 
-            price: 15000, 
-            cost: 9000, 
-            type: "sad", 
-            mg: 60, 
-            image: "img/salted.png" // Pastikan ada file bernama 'salted.jpg'
-        },
-        { 
-            name: "Caramel Macchiato", 
-            price: 15000, 
-            cost: 9000, 
-            type: "sleepy", 
-            mg: 120, 
-            image: "img/maciato.png" // Contoh jika pakai file PNG
-        },
-        // ... Lanjutkan untuk produk lain
-        { name: "Spanish Coffee", price: 15000, cost: 9000, type: "hot", mg: 100, image: "img/spanish.png" },
-        { name: "Tiramisu", price: 15000, cost: 9000, type: "sweet", mg: 50, image: "img/tiramisu.png" },
-        { name: "Butterscotch", price: 15000, cost: 9000, type: "sad", mg: 70, image: "butterscotch.jpg" },
-        { name: "Hazelnut", price: 15000, cost: 9000, type: "sweet", mg: 60, image: "img/hazelnut.png" },
-        { name: "Matcha Latte", price: 15000, cost: 9000, type: "sleepy", mg: 40, image: "img/matcha.png" },
-        { name: "Chocolate", price: 15000, cost: 9000, type: "sleepy", mg: 10, image: "img/coklat.png" },
-        { name: "Klepon", price: 15000, cost: 9000, type: "sweet", mg: 50, image: "klepon.jpg" },
-        { name: "Vanilla", price: 15000, cost: 9000, type: "sweet", mg: 50, image: "img/vanilla.png" }
+        var products = [
+        { name: "Aren Coffee", price: 15000, cost: 9000, type: "signature", mg: 80, image: "img/gula aren.png" },
+        { name: "Salted Caramel", price: 15000, cost: 9000, type: "signature", mg: 60, image: "img/salted.png" },
+        { name: "Caramel Macchiato", price: 15000, cost: 9000, type: "signature", mg: 120, image: "img/maciato.png" },
+        { name: "Spanish Coffee", price: 15000, cost: 9000, type: "classic", mg: 100, image: "img/spanish.png" },
+        { name: "Tiramisu", price: 15000, cost: 9000, type: "non-coffee", mg: 50, image: "img/tiramisu.png" },
+        { name: "Hazelnut", price: 15000, cost: 9000, type: "non-coffee", mg: 60, image: "img/hazelnut.png" },
+        { name: "Matcha Latte", price: 15000, cost: 9000, type: "non-coffee", mg: 40, image: "img/matcha.png" },
+        { name: "Chocolate", price: 15000, cost: 9000, type: "non-coffee", mg: 10, image: "img/coklat.png" },
+        { name: "Vanilla", price: 15000, cost: 9000, type: "non-coffee", mg: 50, image: "img/vanilla.png" }
     ];
     
+        // Simpan teks asli marquee agar bisa dikembalikan
+        var defaultMarquee = `🔥 "Aren Latte-nya juara!" - Andi &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; 🚀 "Thanks buat bonusnya kak!" - Siti &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!`;
+        var marqueeTimer; // Untuk menghapus pesan setelah muncul sekali
+        var currentTierStatus = ""; // Untuk mengecek kenaikan level
+        
+        function broadcastToMarquee(message) {
+        var marqueeEl = document.querySelector('.animate-marquee');
+        if (!marqueeEl) return;
+
+         // Hentikan timer sebelumnya jika ada pesan baru masuk cepat
+        clearTimeout(marqueeTimer);
+
+        // Set pesan baru (dengan style khusus agar menonjol)
+        marqueeEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${message} &nbsp;&nbsp; • &nbsp;&nbsp; ${defaultMarquee}`;
+
+        // Kembalikan ke teks asli setelah 20 detik (durasi 1x animasi marquee)
+         marqueeTimer = setTimeout(function() {
+        marqueeEl.innerHTML = defaultMarquee;
+        }, 20000);
+    }
+
         // --- BAGIAN 4: STATE & INIT ---
         var cart = [];
         var isStoreOpen = true;
@@ -412,14 +423,25 @@
         }
     
         window.onload = function() {
-            renderProducts(products);
-            var savedUser = localStorage.getItem('folkpresso_current_user');
-            if (savedUser) {
-                loadUserData(savedUser);
-                document.getElementById('login-modal').classList.add('hidden');
-            }
-        };
+        renderProducts(products);
+        
+        // Memuat Community Goal dari Storage
+        communityGoal = parseInt(localStorage.getItem('folkpresso_community_goal')) || 0;
+        updateGoalUI();
+
+        var savedUser = localStorage.getItem('folkpresso_current_user');
+        if (savedUser) {
+            loadUserData(savedUser);
+            document.getElementById('login-modal').classList.add('hidden');
+        }
+    };
     
+    function updateGoalUI() {
+        var goalPercent = Math.min((communityGoal / 20) * 100, 100);
+        if(document.getElementById('goal-bar')) document.getElementById('goal-bar').style.width = goalPercent + "%";
+        if(document.getElementById('goal-counter')) document.getElementById('goal-counter').innerText = communityGoal + " / 20 Cups";
+    }
+
         function toggleDark() { document.documentElement.classList.toggle('dark'); }
     
         // --- BAGIAN 5: NAVIGASI & LOGIC LAINNYA ---
@@ -452,32 +474,46 @@
         };
     
         function loadUserData(username) {
-            currentUser = username;
-            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
-            var userData = db[username] || { points: 0, caffeine: 0 };
-            userPoints = userData.points || 0;
-            userCaffeine = userData.caffeine || 0;
-            
-            if(document.getElementById('home-username')) document.getElementById('home-username').innerText = username;
-            if(document.getElementById('profile-username')) document.getElementById('profile-username').innerText = username;
-            if(document.getElementById('home-points')) document.getElementById('home-points').innerText = userPoints.toLocaleString();
-            
-            updateMemberUI();
-            
-            if(localStorage.getItem('lastOrder_' + username)) {
-                document.getElementById('reorder-section').classList.remove('hidden');
-            }
+        currentUser = username;
+        var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
+        var userData = db[username] || { points: 0, caffeine: 0, lastQuestDate: "" };
+        
+        userPoints = userData.points || 0;
+        userCaffeine = userData.caffeine || 0;
+        
+        // Cek apakah quest sudah diambil hari ini
+        var today = new Date().toDateString();
+        if(userData.lastQuestDate === today) {
+            var btn = document.getElementById('quest-card');
+            document.getElementById('quest-status').innerText = "Terklaim ✅";
+            btn.classList.add('opacity-50');
+        } else {
+            // Reset tampilan jika hari baru
+            var btn = document.getElementById('quest-card');
+            document.getElementById('quest-status').innerText = "Klaim +50 Poin";
+            btn.classList.remove('opacity-50');
         }
-    
-        function saveUserData() {
-            if(!currentUser) return;
-            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
-            if(db[currentUser]) {
-                db[currentUser].points = userPoints;
-                db[currentUser].caffeine = userCaffeine;
-            }
-            localStorage.setItem('folkpresso_users_db', JSON.stringify(db));
+
+        if(document.getElementById('home-username')) document.getElementById('home-username').innerText = username;
+        if(document.getElementById('profile-username')) document.getElementById('profile-username').innerText = username;
+        if(document.getElementById('home-points')) document.getElementById('home-points').innerText = userPoints.toLocaleString();
+        
+        updateMemberUI();
+    }
+    function saveUserData() {
+        if(!currentUser) return;
+        var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
+        var today = new Date().toDateString();
+        var isClaimed = document.getElementById('quest-card').classList.contains('opacity-50');
+
+        if(db[currentUser]) {
+            db[currentUser].points = userPoints;
+            db[currentUser].caffeine = userCaffeine;
+            // Simpan status quest
+            if(isClaimed) db[currentUser].lastQuestDate = today;
         }
+        localStorage.setItem('folkpresso_users_db', JSON.stringify(db));
+    }
     
         window.filterMood = function(mood) {
             if(mood === 'all') return renderProducts(products);
@@ -558,13 +594,20 @@
         };
     
         window.processPayment = async function(method) {
-            document.getElementById('payment-modal').classList.add('hidden');
-            document.getElementById('payment-modal').classList.remove('flex');
-            
-            var totalOrder = cart.reduce(function(a, b) { return a + (b.price * b.quantity); }, 0);
-            var caffeineAdd = cart.reduce(function(a, b) { return a + (b.mg * b.quantity); }, 0);
-            var cupsCount = cart.reduce(function(a, b) { return a + b.quantity; }, 0);
-    
+            var username = localStorage.getItem('folkpresso_current_user') || "Guest";
+        
+        // Memanggil fungsi kirim pesan setelah pembayaran
+        var payMsg = `🚀 ${username} baru saja memesan via ${method}!`;
+        window.sendGlobalMessage(payMsg);
+
+        // Lanjutkan proses tracking order...
+        document.getElementById('payment-modal').classList.add('hidden');
+        document.getElementById('tracking-modal').classList.remove('hidden');
+        
+        var totalOrder = cart.reduce(function(a, b) { return a + (b.price * b.quantity); }, 0);
+        var caffeineAdd = cart.reduce(function(a, b) { return a + (b.mg * b.quantity); }, 0);
+        var cupsCount = cart.reduce(function(a, b) { return a + b.quantity; }, 0);
+        sendGlobalMessage(`${currentUser} baru saja memesan kopi! 🔥`);
             // --- KIRIM KE SUPABASE ---
             var now = new Date();
             var dateStamp = now.toISOString().split('T')[0];
@@ -609,13 +652,11 @@
             userPoints += Math.floor(totalOrder / 1000);
             userCaffeine += caffeineAdd;
             saveUserData(); 
-            
-            communityGoal += cupsCount; 
-            var goalPercent = Math.min((communityGoal / 20) * 100, 100);
-            document.getElementById('goal-bar').style.width = goalPercent + "%";
-            document.getElementById('goal-counter').innerText = communityGoal + " / 20 Cups";
-            
             updateMemberUI();
+            
+            communityGoal += cupsCount;
+        localStorage.setItem('folkpresso_community_goal', communityGoal);
+        updateGoalUI();
             
             if(currentUser) {
                 localStorage.setItem('lastOrder_' + currentUser, JSON.stringify(cart));
@@ -642,6 +683,35 @@
                 }, 500);
             }, 3000);
         };
+
+        // Fungsi untuk kirim pesan ke semua orang
+        window.sendGlobalMessage = function(msg) {
+        // Cek apakah channel sudah siap sebelum mengirim
+        if (window.marqueeChannel) {
+            window.marqueeChannel.send({
+                type: 'broadcast',
+                event: 'announcement',
+                payload: { message: msg }
+            });
+        } else {
+            console.error("Gagal mengirim: marqueeChannel belum siap.");
+        }
+    };
+// Fungsi untuk mengubah tampilan Marquee di layar
+window.displayMarqueeMessage = function(message) {
+    var marqueeEl = document.querySelector('.animate-marquee');
+    if (!marqueeEl) return;
+
+    clearTimeout(marqueeTimer);
+    
+    // Set pesan baru
+    marqueeEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${message} &nbsp;&nbsp; • &nbsp;&nbsp; ${defaultMarquee}`;
+
+    // Balikin ke normal setelah 20 detik
+    marqueeTimer = setTimeout(function() {
+        marqueeEl.innerHTML = defaultMarquee;
+    }, 20000);
+};
     
         window.finishOrder = function() {
             document.getElementById('tracking-modal').classList.remove('flex');
@@ -657,6 +727,14 @@
             var card = document.getElementById('member-card');
             var tierName = document.getElementById('tier-name');
             var bar = document.getElementById('level-bar');
+            var tierName = document.getElementById('tier-name').innerText;
+    
+            // Cek jika tier berubah dari status sebelumnya
+            if (currentTierStatus !== "" && currentTierStatus !== tierName) {
+                sendGlobalMessage(`Hore! ${currentUser} sekarang sudah jadi member ${tierName}! 👑`);
+            currentTierStatus = tierName; // Update status sekarang
+            // ... sisa kode updateMemberUI ...
+
             
             if(document.getElementById('display-points')) document.getElementById('display-points').innerText = userPoints.toLocaleString();
             if(document.getElementById('home-points')) document.getElementById('home-points').innerText = userPoints.toLocaleString();
@@ -673,7 +751,8 @@
             }
             document.getElementById('caffeine-mg').innerHTML = userCaffeine + '<span class="text-xs">mg</span>';
             document.getElementById('caffeine-bar').style.height = Math.min((userCaffeine / 500) * 100, 100) + "%";
-        }
+        }}
+
     
         window.toggleStoreStatus = function() {
             isStoreOpen = !isStoreOpen;
@@ -756,16 +835,23 @@
         };
         
         window.claimQuest = function() {
-            var btn = document.getElementById('quest-card');
-            if(btn.classList.contains('opacity-50')) return showToast("Sudah diklaim hari ini!");
-            showPopup("Hooray!", "Kamu baru saja mendapatkan +50 Poin Folkpresso!", "🎁");
-            userPoints += 50;
-            saveUserData();
-            updateMemberUI();
-            document.getElementById('quest-status').innerText = "Terklaim ✅";
-            btn.classList.add('opacity-50');
-        };
+        if(!currentUser) return showToast("Login dulu kak!");
+        var btn = document.getElementById('quest-card');
+        var today = new Date().toDateString();
         
+        if(btn.classList.contains('opacity-50')) return showToast("Sudah diklaim hari ini!");
+        
+        showPopup("Hooray!", "Kamu baru saja mendapatkan +50 Poin Folkpresso!", "🎁");
+        userPoints += 50;
+        sendGlobalMessage(`${currentUser} baru saja menyelesaikan Daily Quest! 🎁`);
+        
+        // Tandai sebagai sudah diklaim
+        btn.classList.add('opacity-50');
+        document.getElementById('quest-status').innerText = "Terklaim ✅";
+        
+        saveUserData();
+        updateMemberUI();
+    };
         window.generateVoucher = function() { addToCart("Voucher Traktir", 20000, 0, 0); };
         window.loadLastOrder = function() {
             if(!currentUser) return;
