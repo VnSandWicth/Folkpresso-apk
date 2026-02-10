@@ -9,27 +9,26 @@
     <meta name="theme-color" content="#1e3a8a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/751/751621.png">    
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/751/751621.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: { 
-                extend: { 
-                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] } 
-                } 
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
+                }
             }
         }
     </script>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    
+
     <style>
-        /* CSS ASLI LU (GAK GUA UBAH) */
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
+
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 80% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
@@ -39,19 +38,18 @@
         .app-page.active { display: block; animation: slideUp 0.4s ease-out; }
         .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); }
         .dark .glass-nav { background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255,255,255,0.1); }
-        
+
         .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 20s linear infinite; }
         .anim-brew { animation: brewBounce 1s infinite ease-in-out; }
-        
+
         .member-card-gold { background: linear-gradient(135deg, #FFD700, #B8860B); color: #FFF; }
         .member-card-silver { background: linear-gradient(135deg, #E0E0E0, #9E9E9E); color: #333; }
         .member-card-bronze { background: linear-gradient(135deg, #CD7F32, #8B4513); color: #FFF; }
         .grayscale-mode { filter: grayscale(100%); pointer-events: none; opacity: 0.6; }
 
-        /* GUA PASTIKAN POPUP DI ATAS SEMUANYA (z-index 9999) */
         #universal-popup { z-index: 9999; }
         #login-modal { z-index: 5000; }
-        
+
         #toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 6000; pointer-events: none; width: 100%; display: flex; flex-direction: column; items-center; }
         .toast { background: #1e3a8a; color: white; padding: 12px 24px; border-radius: 50px; margin-top: 10px; font-size: 12px; font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: popIn 0.3s forwards; }
     </style>
@@ -69,19 +67,80 @@
 
     <div id="toast-container"></div>
 
-    <div id="login-modal" class="fixed inset-0 bg-blue-900 flex flex-col items-center justify-center p-8 text-white transition-all duration-500">
-        <div class="text-6xl mb-6 animate-bounce">☕</div>
+    <div id="login-modal" class="fixed inset-0 bg-blue-900 flex flex-col items-center justify-center p-8 text-white transition-all duration-500 overflow-y-auto">
+        <div class="text-6xl mb-4 animate-bounce">☕</div>
         <h1 class="text-3xl font-black mb-2 italic tracking-tighter">FOLKPRESSO</h1>
-        <p class="text-sm opacity-80 mb-8 text-center">Masuk untuk simpan Poin & Level Member!</p>
-        
-        <div class="w-full max-w-xs bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 shadow-2xl">
+        <p class="text-sm opacity-80 mb-6 text-center">Masuk untuk simpan Poin & Level Member!</p>
+
+        <!-- Tab Switcher -->
+        <div class="w-full max-w-xs flex mb-4 bg-white/10 rounded-2xl p-1 backdrop-blur-md border border-white/20">
+            <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-3 rounded-xl font-black text-sm transition-all bg-white text-blue-900">MASUK</button>
+            <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-3 rounded-xl font-black text-sm transition-all text-white/70">DAFTAR</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div id="form-login" class="w-full max-w-xs bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 shadow-2xl">
             <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Nama Pengguna</label>
-            <input type="text" id="username-input" placeholder="Contoh: Budi" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-4 border border-transparent focus:border-white/50 transition-colors">
-            
+            <input type="text" id="login-username" placeholder="Contoh: Budi" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-4 border border-transparent focus:border-white/50 transition-colors">
+
             <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Password</label>
-            <input type="password" id="password-input" placeholder="Rahasia123" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-6 border border-transparent focus:border-white/50 transition-colors">
-            
-            <button onclick="handleLogin()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">MASUK / DAFTAR</button>
+            <input type="password" id="login-password" placeholder="Masukkan password" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-6 border border-transparent focus:border-white/50 transition-colors">
+
+            <button onclick="handleLoginOnly()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">MASUK</button>
+            <p class="text-center text-[11px] opacity-60 mt-4">Belum punya akun? <span onclick="switchAuthTab('register')" class="underline cursor-pointer opacity-100 font-bold">Daftar di sini</span></p>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="form-register" class="w-full max-w-xs bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 shadow-2xl hidden">
+            <!-- Step 1: Data Diri -->
+            <div id="register-step1">
+                <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Nama Pengguna</label>
+                <input type="text" id="register-username" placeholder="Contoh: Budi" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-4 border border-transparent focus:border-white/50 transition-colors">
+
+                <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Password</label>
+                <input type="password" id="register-password" placeholder="Min. 6 karakter" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-4 border border-transparent focus:border-white/50 transition-colors">
+
+                <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Konfirmasi Password</label>
+                <input type="password" id="register-password-confirm" placeholder="Ulangi password" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-4 border border-transparent focus:border-white/50 transition-colors">
+
+                <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">No. HP (WhatsApp)</label>
+                <div class="flex mb-6">
+                    <span class="bg-white/30 p-4 rounded-l-2xl text-white font-bold text-sm flex items-center">+62</span>
+                    <input type="tel" id="register-phone" placeholder="81234567890" class="w-full bg-white/20 p-4 rounded-r-2xl text-white font-bold placeholder-white/50 outline-none text-center border border-transparent focus:border-white/50 transition-colors">
+                </div>
+
+                <button onclick="handleRegisterStep1()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">KIRIM KODE OTP</button>
+            </div>
+
+            <!-- Step 2: Verifikasi OTP -->
+            <div id="register-step2" class="hidden">
+                <div class="text-center mb-4">
+                    <div class="text-4xl mb-2">📲</div>
+                    <p class="text-sm font-bold">Kode OTP telah dikirim!</p>
+                    <p id="otp-phone-display" class="text-[11px] opacity-70 mt-1">ke +62 ...</p>
+                </div>
+
+                <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2 text-center">Masukkan 6 Digit Kode OTP</label>
+                <div class="flex justify-center gap-2 mb-4" id="otp-inputs">
+                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 0)" onkeydown="otpBackspace(event, 0)">
+                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 1)" onkeydown="otpBackspace(event, 1)">
+                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 2)" onkeydown="otpBackspace(event, 2)">
+                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 3)" onkeydown="otpBackspace(event, 3)">
+                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 4)" onkeydown="otpBackspace(event, 4)">
+                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 5)" onkeydown="otpBackspace(event, 5)">
+                </div>
+
+                <div class="flex justify-between items-center mb-6 px-2">
+                    <p id="otp-timer" class="text-[11px] opacity-70">Berlaku 02:00</p>
+                    <button id="btn-resend-otp" onclick="resendOTP()" class="text-[11px] font-bold underline opacity-50 cursor-not-allowed" disabled>Kirim Ulang</button>
+                </div>
+
+                <button onclick="verifyOTP()" id="btn-verify-otp" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">VERIFIKASI & DAFTAR</button>
+
+                <button onclick="backToStep1()" class="w-full text-white/60 font-bold text-xs mt-3 py-2">Kembali</button>
+            </div>
+
+            <p class="text-center text-[11px] opacity-60 mt-4" id="register-switch-text">Sudah punya akun? <span onclick="switchAuthTab('login')" class="underline cursor-pointer opacity-100 font-bold">Masuk di sini</span></p>
         </div>
     </div>
 
@@ -100,7 +159,7 @@
                 <button onclick="window.showPage('admin')" class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl text-blue-600 dark:text-blue-400">📊</button>
             </div>
         </div>
-        
+
         <div class="px-6 pb-4">
             <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1">
                 <span class="text-blue-900 dark:text-blue-300">Community Goal 🎯</span>
@@ -146,7 +205,7 @@
                  <p class="text-[10px] opacity-80 relative z-10">Biarkan kami pilih!</p>
                  <span class="absolute -bottom-2 -right-2 text-5xl opacity-20">❓</span>
             </div>
-            
+
             <div onclick="claimQuest()" id="quest-card" class="bg-gradient-to-br from-pink-500 to-orange-500 rounded-[2rem] p-5 text-white shadow-lg relative overflow-hidden active:scale-95 transition-transform">
                 <h4 class="font-black text-sm relative z-10">Daily Quest ⚔️</h4>
                 <p id="quest-status" class="text-[10px] opacity-80 relative z-10">Klaim +50 Poin</p>
@@ -159,7 +218,7 @@
 
     <main id="cart-page" class="app-page px-6 pt-8">
         <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 italic text-center">Keranjang</h2>
-        
+
         <div class="mb-6 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800 p-4 rounded-2xl flex items-center gap-3">
             <div class="bg-pink-100 dark:bg-pink-800 p-2 rounded-xl text-xl">🎁</div>
             <div class="flex-1">
@@ -168,14 +227,14 @@
             </div>
             <button onclick="generateVoucher()" class="bg-pink-500 text-white px-3 py-2 rounded-xl text-[10px] font-bold">Beli</button>
         </div>
-        
+
         <div id="reorder-section" class="hidden mb-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800 text-center">
             <p class="text-xs text-blue-800 dark:text-blue-300 font-bold mb-3">Mau pesan yang kemarin?</p>
             <button onclick="loadLastOrder()" class="bg-blue-600 text-white px-6 py-2 rounded-xl text-xs font-bold shadow-lg active:scale-95">Ulangi Pesanan Terakhir</button>
         </div>
 
         <div id="cart-items" class="space-y-3 min-h-[100px]"><p class="text-center text-slate-400 text-xs py-10">Belum ada pesanan.</p></div>
-        
+
         <div class="mt-8 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
             <div class="flex justify-between items-center mb-4"><span class="font-bold text-slate-400 uppercase text-xs">Total</span><span id="cart-total" class="text-xl font-black text-blue-900 dark:text-white">Rp 0</span></div>
             <button onclick="openPayment()" class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">Checkout</button>
@@ -184,7 +243,7 @@
 
     <main id="profile-page" class="app-page px-6 pt-8">
         <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 text-center italic">My Profile</h2>
-        
+
         <div id="member-card" class="member-card-bronze rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500">
             <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
             <div class="flex justify-between items-start">
@@ -261,7 +320,7 @@
                 <button onclick="processPayment('DANA')" class="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-4 rounded-2xl font-bold text-sm hover:scale-95 transition-transform">DANA</button>
                 <button onclick="processPayment('ShopeePay')" class="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-4 rounded-2xl font-bold text-sm hover:scale-95 transition-transform">ShopeePay</button>
             </div>
-            
+
             <button onclick="processPayment('Tunai')" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 p-4 rounded-2xl font-bold text-sm mb-4">Bayar Tunai</button>
 
             <button onclick="document.getElementById('payment-modal').classList.add('hidden')" class="w-full text-slate-400 font-bold text-xs">Batal</button>
@@ -294,170 +353,400 @@
     <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav p-4 flex justify-around">
         <button onclick="showPage('home')" id="btn-home" class="flex flex-col items-center text-blue-900 dark:text-blue-400">🏠<span class="text-[10px] font-bold mt-1">Menu</span></button>
         <button onclick="showPage('cart')" id="btn-cart" class="flex flex-col items-center text-slate-400">🛒<span class="text-[10px] font-bold mt-1">Cart</span></button>
-        <button onclick="showPage('profile')" id="btn-profile" class="flex flex-col items-center text-slate-400">😎<span class="text-[10px] font-bold mt-1">Member</span></button>
+        <button onclick="showPage('profile')" id="btn-profile" class="flex flex-col items-center text-slate-400">😎<span class="text-[10px] font-bold mt-1">Profile</span></button>
     </nav>
-    
+
     <script>
-        // --- BAGIAN 1: INISIALISASI SUPABASE (VERSI ANTI-CRASH) ---
-        // Kita gunakan 'var' atau window check agar tidak error jika script ganda
-        var SB_URL = "https://gfmvigkhflkqetbftttr.supabase.co"; 
+        var SB_URL = "https://gfmvigkhflkqetbftttr.supabase.co";
         var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXZpZ2toZmxrcWV0YmZ0dHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTQ3NDAsImV4cCI6MjA4NTYzMDc0MH0.dGq7S_3y2nG8Nrl_ZpzLVuncoedp2rlIzb2u4cZ44Fg";
-        
-        window.handleLogin = function() {
-            console.log("Tombol Login Ditekan"); // Cek di console apakah muncul
-            
-            var usernameInput = document.getElementById('username-input');
-            var passwordInput = document.getElementById('password-input');
-            
-            if (!usernameInput || !passwordInput) {
-                alert("Error: Elemen input tidak ditemukan!");
-                return;
+
+        var defaultMarquee = `🔥 "Aren Latte-nya juara!" - Andi &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; 🚀 "Thanks buat bonusnya kak!" - Siti &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!`;
+        var marqueeTimer;
+
+        window.displayMarqueeMessage = function(message) {
+            var marqueeEl = document.querySelector('.animate-marquee');
+            if (!marqueeEl) return;
+            clearTimeout(marqueeTimer);
+            marqueeEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${message} &nbsp;&nbsp; • &nbsp;&nbsp; ${defaultMarquee}`;
+            marqueeTimer = setTimeout(function() {
+                marqueeEl.innerHTML = defaultMarquee;
+            }, 20000);
+        };
+
+        function initSupabase() {
+            if (typeof window.supabase !== 'undefined' && !window.supabaseClient) {
+                try {
+                    window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+                    console.log("✅ Supabase Client berhasil dibuat");
+                    return true;
+                } catch(e) {
+                    console.error("❌ Error inisialisasi Supabase:", e);
+                    return false;
+                }
             }
-    
-            var username = usernameInput.value.trim();
-            var password = passwordInput.value.trim();
-    
-            if(!username || !password) {
+            return !!window.supabaseClient;
+        }
+
+        function initMarqueeChannel() {
+            if (!window.supabaseClient) {
+                if (!initSupabase()) return false;
+            }
+
+            if (!window.marqueeChannel) {
+                try {
+                    window.marqueeChannel = window.supabaseClient.channel('folkpresso-marquee', {
+                        config: { broadcast: { self: true } }
+                    });
+
+                    window.marqueeChannel.on('broadcast', { event: 'announcement' }, function(payload) {
+                        if (window.displayMarqueeMessage && payload.payload) {
+                            window.displayMarqueeMessage(payload.payload.message);
+                        }
+                    }).subscribe(function(status) {
+                        if (status === 'SUBSCRIBED') {
+                            console.log("✅ Channel berhasil ter-subscribe!");
+                        }
+                    });
+                    return true;
+                } catch(e) {
+                    console.warn("⚠️ Error inisialisasi channel:", e);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        var initAttempts = 0;
+        var initInterval = setInterval(function() {
+            initAttempts++;
+            if (initSupabase() && initMarqueeChannel()) {
+                clearInterval(initInterval);
+                console.log("✅ Supabase & Channel berhasil diinisialisasi");
+            } else if (initAttempts >= 10) {
+                clearInterval(initInterval);
+                console.warn("⚠️ Gagal inisialisasi setelah 10 percobaan");
+            }
+        }, 500);
+
+        /* ============================================ */
+        /*  AUTH SYSTEM - Login & Register terpisah     */
+        /*  + Verifikasi OTP via No. HP                 */
+        /* ============================================ */
+
+        var generatedOTP = "";
+        var otpTimerInterval = null;
+        var pendingRegister = {};
+
+        // Tab Switcher
+        window.switchAuthTab = function(tab) {
+            var tabLogin = document.getElementById('tab-login');
+            var tabRegister = document.getElementById('tab-register');
+            var formLogin = document.getElementById('form-login');
+            var formRegister = document.getElementById('form-register');
+
+            if (tab === 'login') {
+                tabLogin.classList.add('bg-white', 'text-blue-900');
+                tabLogin.classList.remove('text-white/70');
+                tabRegister.classList.remove('bg-white', 'text-blue-900');
+                tabRegister.classList.add('text-white/70');
+                formLogin.classList.remove('hidden');
+                formRegister.classList.add('hidden');
+            } else {
+                tabRegister.classList.add('bg-white', 'text-blue-900');
+                tabRegister.classList.remove('text-white/70');
+                tabLogin.classList.remove('bg-white', 'text-blue-900');
+                tabLogin.classList.add('text-white/70');
+                formRegister.classList.remove('hidden');
+                formLogin.classList.add('hidden');
+                // Reset to step 1
+                document.getElementById('register-step1').classList.remove('hidden');
+                document.getElementById('register-step2').classList.add('hidden');
+                document.getElementById('register-switch-text').classList.remove('hidden');
+            }
+        };
+
+        // LOGIN ONLY - akun harus sudah terdaftar
+        window.handleLoginOnly = function() {
+            var username = document.getElementById('login-username').value.trim();
+            var password = document.getElementById('login-password').value.trim();
+
+            if (!username || !password) {
                 showPopup("Peringatan", "Isi Nama & Password!", "⚠️");
                 return;
             }
-        
-            // Cek dulu apakah supabase sudah ada? Kalau belum, baru buat.
-            if (typeof window.supabaseClient === 'undefined') {
-                if (typeof window.supabase !== 'undefined') {
-                    window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
-                    console.log("Supabase Berhasil Dimuat.");
-                } else {
-                    console.error("Library Supabase Gagal Dimuat. Cek CDN di <head>.");
-                    // Fallback agar tidak crash total
-                    window.supabaseClient = null; 
-                }
-                // Inisialisasi Channel Supabase untuk Broadcast
-                window.marqueeChannel = supabase.channel('folkpresso-marquee', {
-                    config: {
-                        broadcast: { self: true }, // Agar pengirim juga melihat pesannya sendiri
-                    },
-                });
 
-                // Listener: Menerima pesan dari user lain
-                window.marqueeChannel
-                    .on('broadcast', { event: 'announcement' }, (payload) => {
-                        displayMarqueeMessage(payload.payload.message);
-                    })
-                    .subscribe();
-            }
-    
-            // --- BAGIAN 2: FUNGSI LOGIN (DITARUH DI ATAS BIAR TERBACA) ---
-            // Fungsi ini dipanggil tombol MASUK / DAFTAR
-       
-    
-            // Ambil database lokal
             var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
-            var oldData = db[username] || { points: 0, caffeine: 0 };
-            
-            // Simpan User Baru / Update User Lama
-            db[username] = { 
-                password: password, 
-                points: oldData.points, 
-                caffeine: oldData.caffeine 
-            };
-            
-            localStorage.setItem('folkpresso_users_db', JSON.stringify(db));
-            
-            // Login Sukses
+
+            // Cek apakah akun ada
+            if (!db[username]) {
+                showPopup("Akun Tidak Ditemukan", "Username belum terdaftar. Silakan daftar terlebih dahulu.", "❌");
+                return;
+            }
+
+            // Cek password
+            if (db[username].password !== password) {
+                showPopup("Password Salah", "Password yang kamu masukkan salah. Coba lagi!", "🔒");
+                return;
+            }
+
+            // Login berhasil
             localStorage.setItem('folkpresso_current_user', username);
             loadUserData(username);
-            
             document.getElementById('login-modal').classList.add('hidden');
             showToast("Login Berhasil! Halo " + username);
         };
-    
-        // --- BAGIAN 3: DATA PRODUK ---
+
+        // REGISTER Step 1 - Validasi data & kirim OTP
+        window.handleRegisterStep1 = function() {
+            var username = document.getElementById('register-username').value.trim();
+            var password = document.getElementById('register-password').value.trim();
+            var confirmPw = document.getElementById('register-password-confirm').value.trim();
+            var phone = document.getElementById('register-phone').value.trim().replace(/\D/g, '');
+
+            if (!username || !password || !confirmPw || !phone) {
+                showPopup("Peringatan", "Semua field harus diisi!", "⚠️");
+                return;
+            }
+
+            if (username.length < 3) {
+                showPopup("Peringatan", "Nama pengguna minimal 3 karakter!", "⚠️");
+                return;
+            }
+
+            if (password.length < 6) {
+                showPopup("Peringatan", "Password minimal 6 karakter!", "⚠️");
+                return;
+            }
+
+            if (password !== confirmPw) {
+                showPopup("Peringatan", "Password dan konfirmasi tidak cocok!", "⚠️");
+                return;
+            }
+
+            if (phone.length < 9 || phone.length > 13) {
+                showPopup("Peringatan", "Nomor HP tidak valid! Masukkan 9-13 digit.", "📱");
+                return;
+            }
+
+            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
+
+            // Cek username sudah dipakai
+            if (db[username]) {
+                showPopup("Username Sudah Digunakan", "Nama pengguna '" + username + "' sudah terdaftar. Silakan gunakan nama lain atau langsung login.", "⚠️");
+                return;
+            }
+
+            // Cek no HP sudah dipakai user lain
+            var phoneFormatted = "+62" + phone;
+            for (var key in db) {
+                if (db[key].phone === phoneFormatted) {
+                    showPopup("Nomor HP Sudah Terdaftar", "Nomor " + phoneFormatted + " sudah digunakan akun lain. Satu nomor hanya bisa untuk satu akun.", "📱");
+                    return;
+                }
+            }
+
+            // Simpan data pending
+            pendingRegister = {
+                username: username,
+                password: password,
+                phone: phoneFormatted
+            };
+
+            // Generate OTP
+            generatedOTP = String(Math.floor(100000 + Math.random() * 900000));
+            console.log("🔐 OTP Generated:", generatedOTP);
+
+            // Tampilkan OTP via popup (simulasi kirim SMS)
+            showPopup("Kode OTP Terkirim!", "Kode OTP kamu: " + generatedOTP + " (Simulasi - di produksi akan dikirim via SMS/WA ke " + phoneFormatted + ")", "📲");
+
+            // Tampilkan nomor di step 2
+            document.getElementById('otp-phone-display').innerText = "ke " + phoneFormatted;
+
+            // Pindah ke step 2
+            document.getElementById('register-step1').classList.add('hidden');
+            document.getElementById('register-step2').classList.remove('hidden');
+            document.getElementById('register-switch-text').classList.add('hidden');
+
+            // Reset OTP inputs
+            var otpBoxes = document.querySelectorAll('.otp-box');
+            otpBoxes.forEach(function(box) { box.value = ''; });
+            otpBoxes[0].focus();
+
+            // Start timer
+            startOTPTimer();
+        };
+
+        // OTP Auto Focus & Backspace
+        window.otpAutoFocus = function(el, index) {
+            el.value = el.value.replace(/\D/g, '');
+            if (el.value && index < 5) {
+                document.querySelectorAll('.otp-box')[index + 1].focus();
+            }
+        };
+
+        window.otpBackspace = function(e, index) {
+            if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                document.querySelectorAll('.otp-box')[index - 1].focus();
+            }
+        };
+
+        // OTP Timer (2 menit)
+        function startOTPTimer() {
+            var seconds = 120;
+            var timerEl = document.getElementById('otp-timer');
+            var resendBtn = document.getElementById('btn-resend-otp');
+
+            resendBtn.disabled = true;
+            resendBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            resendBtn.classList.remove('opacity-100', 'cursor-pointer');
+
+            clearInterval(otpTimerInterval);
+            otpTimerInterval = setInterval(function() {
+                seconds--;
+                var m = Math.floor(seconds / 60);
+                var s = seconds % 60;
+                timerEl.innerText = "Berlaku " + String(m).padStart(2, '0') + ":" + String(s).padStart(2, '0');
+
+                if (seconds <= 0) {
+                    clearInterval(otpTimerInterval);
+                    timerEl.innerText = "Kode kedaluwarsa";
+                    generatedOTP = "";
+                    resendBtn.disabled = false;
+                    resendBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    resendBtn.classList.add('opacity-100', 'cursor-pointer');
+                }
+            }, 1000);
+        }
+
+        // Resend OTP
+        window.resendOTP = function() {
+            generatedOTP = String(Math.floor(100000 + Math.random() * 900000));
+            console.log("🔐 OTP Re-Generated:", generatedOTP);
+            showPopup("Kode OTP Baru!", "Kode OTP baru: " + generatedOTP + " (Simulasi SMS ke " + pendingRegister.phone + ")", "📲");
+            startOTPTimer();
+
+            // Reset OTP inputs
+            var otpBoxes = document.querySelectorAll('.otp-box');
+            otpBoxes.forEach(function(box) { box.value = ''; });
+            otpBoxes[0].focus();
+        };
+
+        // Verify OTP & Complete Registration
+        window.verifyOTP = function() {
+            var otpBoxes = document.querySelectorAll('.otp-box');
+            var enteredOTP = '';
+            otpBoxes.forEach(function(box) { enteredOTP += box.value; });
+
+            if (enteredOTP.length !== 6) {
+                showPopup("Peringatan", "Masukkan 6 digit kode OTP!", "⚠️");
+                return;
+            }
+
+            if (!generatedOTP) {
+                showPopup("Kode Kedaluwarsa", "Kode OTP sudah kedaluwarsa. Silakan kirim ulang.", "⏰");
+                return;
+            }
+
+            if (enteredOTP !== generatedOTP) {
+                showPopup("OTP Salah", "Kode OTP yang kamu masukkan salah. Coba lagi!", "❌");
+                // Clear inputs
+                otpBoxes.forEach(function(box) { box.value = ''; });
+                otpBoxes[0].focus();
+                return;
+            }
+
+            // OTP Benar! Simpan akun baru
+            clearInterval(otpTimerInterval);
+
+            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
+            db[pendingRegister.username] = {
+                password: pendingRegister.password,
+                phone: pendingRegister.phone,
+                points: 0,
+                caffeine: 0,
+                registeredAt: new Date().toISOString()
+            };
+
+            localStorage.setItem('folkpresso_users_db', JSON.stringify(db));
+            localStorage.setItem('folkpresso_current_user', pendingRegister.username);
+            loadUserData(pendingRegister.username);
+
+            document.getElementById('login-modal').classList.add('hidden');
+            showToast("Pendaftaran Berhasil! Selamat datang, " + pendingRegister.username + "!");
+
+            // Reset
+            generatedOTP = "";
+            pendingRegister = {};
+        };
+
+        // Back to Step 1
+        window.backToStep1 = function() {
+            clearInterval(otpTimerInterval);
+            generatedOTP = "";
+            document.getElementById('register-step1').classList.remove('hidden');
+            document.getElementById('register-step2').classList.add('hidden');
+            document.getElementById('register-switch-text').classList.remove('hidden');
+        };
+
+        // Backward compatibility: keep handleLogin for any external calls
+        window.handleLogin = function() {
+            window.handleLoginOnly();
+        };
+
         var products = [
-        { name: "Aren Coffee", price: 15000, cost: 9000, type: "signature", mg: 80, image: "img/gula aren.png" },
-        { name: "Salted Caramel", price: 15000, cost: 9000, type: "signature", mg: 60, image: "img/salted.png" },
-        { name: "Caramel Macchiato", price: 15000, cost: 9000, type: "signature", mg: 120, image: "img/maciato.png" },
-        { name: "Spanish Coffee", price: 15000, cost: 9000, type: "classic", mg: 100, image: "img/spanish.png" },
-        { name: "Tiramisu", price: 15000, cost: 9000, type: "non-coffee", mg: 50, image: "img/tiramisu.png" },
-        { name: "Hazelnut", price: 15000, cost: 9000, type: "non-coffee", mg: 60, image: "img/hazelnut.png" },
-        { name: "Matcha Latte", price: 15000, cost: 9000, type: "non-coffee", mg: 40, image: "img/matcha.png" },
-        { name: "Chocolate", price: 15000, cost: 9000, type: "non-coffee", mg: 10, image: "img/coklat.png" },
-        { name: "Vanilla", price: 15000, cost: 9000, type: "non-coffee", mg: 50, image: "img/vanilla.png" }
-    ];
-    
-        // Simpan teks asli marquee agar bisa dikembalikan
-        var defaultMarquee = `🔥 "Aren Latte-nya juara!" - Andi &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; 🚀 "Thanks buat bonusnya kak!" - Siti &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!`;
-        var marqueeTimer; // Untuk menghapus pesan setelah muncul sekali
-        var currentTierStatus = ""; // Untuk mengecek kenaikan level
-        
-        function broadcastToMarquee(message) {
-        var marqueeEl = document.querySelector('.animate-marquee');
-        if (!marqueeEl) return;
+            { name: "Aren Coffee", price: 15000, cost: 9000, type: "signature", mg: 80, image: "img/gula aren.png" },
+            { name: "Salted Caramel", price: 15000, cost: 9000, type: "signature", mg: 60, image: "img/salted.png" },
+            { name: "Caramel Macchiato", price: 15000, cost: 9000, type: "signature", mg: 120, image: "img/maciato.png" },
+            { name: "Spanish Coffee", price: 15000, cost: 9000, type: "classic", mg: 100, image: "img/spanish.png" },
+            { name: "Tiramisu", price: 15000, cost: 9000, type: "non-coffee", mg: 50, image: "img/tiramisu.png" },
+            { name: "Hazelnut", price: 15000, cost: 9000, type: "non-coffee", mg: 60, image: "img/hazelnut.png" },
+            { name: "Matcha Latte", price: 15000, cost: 9000, type: "non-coffee", mg: 40, image: "img/matcha.png" },
+            { name: "Chocolate", price: 15000, cost: 9000, type: "non-coffee", mg: 10, image: "img/coklat.png" },
+            { name: "Vanilla", price: 15000, cost: 9000, type: "non-coffee", mg: 50, image: "img/vanilla.png" }
+        ];
 
-         // Hentikan timer sebelumnya jika ada pesan baru masuk cepat
-        clearTimeout(marqueeTimer);
-
-        // Set pesan baru (dengan style khusus agar menonjol)
-        marqueeEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${message} &nbsp;&nbsp; • &nbsp;&nbsp; ${defaultMarquee}`;
-
-        // Kembalikan ke teks asli setelah 20 detik (durasi 1x animasi marquee)
-         marqueeTimer = setTimeout(function() {
-        marqueeEl.innerHTML = defaultMarquee;
-        }, 20000);
-    }
-
-        // --- BAGIAN 4: STATE & INIT ---
+        var currentTierStatus = "";
         var cart = [];
         var isStoreOpen = true;
         var currentUser = null;
         var userPoints = 0;
         var userCaffeine = 0;
         var communityGoal = 0;
-    
-        // Config Tailwind
-        if (typeof tailwind !== 'undefined') {
-            tailwind.config = {
-                darkMode: 'class',
-                theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] } } }
-            }
-        }
-    
-        window.onload = function() {
-        renderProducts(products);
-        
-        // Memuat Community Goal dari Storage
-        communityGoal = parseInt(localStorage.getItem('folkpresso_community_goal')) || 0;
-        updateGoalUI();
 
-        var savedUser = localStorage.getItem('folkpresso_current_user');
-        if (savedUser) {
-            loadUserData(savedUser);
-            document.getElementById('login-modal').classList.add('hidden');
+        window.onload = function() {
+            renderProducts(products);
+
+            communityGoal = parseInt(localStorage.getItem('folkpresso_community_goal')) || 0;
+            updateGoalUI();
+
+            var savedUser = localStorage.getItem('folkpresso_current_user');
+            if (savedUser) {
+                loadUserData(savedUser);
+                document.getElementById('login-modal').classList.add('hidden');
+            }
+        };
+
+        function updateGoalUI() {
+            var goalPercent = Math.min((communityGoal / 20) * 100, 100);
+            if(document.getElementById('goal-bar')) document.getElementById('goal-bar').style.width = goalPercent + "%";
+            if(document.getElementById('goal-counter')) document.getElementById('goal-counter').innerText = communityGoal + " / 20 Cups";
         }
-    };
-    
-    function updateGoalUI() {
-        var goalPercent = Math.min((communityGoal / 20) * 100, 100);
-        if(document.getElementById('goal-bar')) document.getElementById('goal-bar').style.width = goalPercent + "%";
-        if(document.getElementById('goal-counter')) document.getElementById('goal-counter').innerText = communityGoal + " / 20 Cups";
-    }
 
         function toggleDark() { document.documentElement.classList.toggle('dark'); }
-    
-        // --- BAGIAN 5: NAVIGASI & LOGIC LAINNYA ---
+
         window.showPage = function(id) {
             if(id === 'admin') {
                 if(prompt("PIN Owner:") !== "1234") return alert("Salah PIN!");
             }
             document.querySelectorAll('.app-page').forEach(function(p) { p.classList.remove('active'); });
             document.getElementById(id + '-page').classList.add('active');
-            document.querySelectorAll('nav button').forEach(function(b) { 
-                b.classList.remove('text-blue-900', 'dark:text-blue-400'); b.classList.add('text-slate-400'); 
+            document.querySelectorAll('nav button').forEach(function(b) {
+                b.classList.remove('text-blue-900', 'dark:text-blue-400'); b.classList.add('text-slate-400');
             });
             document.getElementById('btn-' + id).classList.add('text-blue-900', 'dark:text-blue-400');
             if(id === 'cart') renderCart();
         };
-    
+
         window.handleLogout = function() {
             showPopup("Mau Keluar?", "Yakin mau keluar akun?", "🚪");
             var actionArea = document.getElementById('popup-actions');
@@ -467,104 +756,100 @@
                     <button onclick="closePopup()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 py-4 rounded-2xl font-black">BATAL</button>
                 </div>`;
         };
-    
+
         window.executeLogout = function() {
             localStorage.removeItem('folkpresso_current_user');
-            location.reload(); 
+            location.reload();
         };
-    
+
         function loadUserData(username) {
-        currentUser = username;
-        var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
-        var userData = db[username] || { points: 0, caffeine: 0, lastQuestDate: "" };
-        
-        userPoints = userData.points || 0;
-        userCaffeine = userData.caffeine || 0;
-        
-        // Cek apakah quest sudah diambil hari ini
-        var today = new Date().toDateString();
-        if(userData.lastQuestDate === today) {
-            var btn = document.getElementById('quest-card');
-            document.getElementById('quest-status').innerText = "Terklaim ✅";
-            btn.classList.add('opacity-50');
-        } else {
-            // Reset tampilan jika hari baru
-            var btn = document.getElementById('quest-card');
-            document.getElementById('quest-status').innerText = "Klaim +50 Poin";
-            btn.classList.remove('opacity-50');
+            currentUser = username;
+            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
+            var userData = db[username] || { points: 0, caffeine: 0, lastQuestDate: "" };
+
+            userPoints = userData.points || 0;
+            userCaffeine = userData.caffeine || 0;
+
+            var today = new Date().toDateString();
+            if(userData.lastQuestDate === today) {
+                var btn = document.getElementById('quest-card');
+                document.getElementById('quest-status').innerText = "Terklaim ✅";
+                btn.classList.add('opacity-50');
+            } else {
+                var btn = document.getElementById('quest-card');
+                document.getElementById('quest-status').innerText = "Klaim +50 Poin";
+                btn.classList.remove('opacity-50');
+            }
+
+            if(document.getElementById('home-username')) document.getElementById('home-username').innerText = username;
+            if(document.getElementById('profile-username')) document.getElementById('profile-username').innerText = username;
+            if(document.getElementById('home-points')) document.getElementById('home-points').innerText = userPoints.toLocaleString();
+
+            updateMemberUI();
         }
 
-        if(document.getElementById('home-username')) document.getElementById('home-username').innerText = username;
-        if(document.getElementById('profile-username')) document.getElementById('profile-username').innerText = username;
-        if(document.getElementById('home-points')) document.getElementById('home-points').innerText = userPoints.toLocaleString();
-        
-        updateMemberUI();
-    }
-    function saveUserData() {
-        if(!currentUser) return;
-        var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
-        var today = new Date().toDateString();
-        var isClaimed = document.getElementById('quest-card').classList.contains('opacity-50');
+        function saveUserData() {
+            if(!currentUser) return;
+            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
+            var today = new Date().toDateString();
+            var isClaimed = document.getElementById('quest-card').classList.contains('opacity-50');
 
-        if(db[currentUser]) {
-            db[currentUser].points = userPoints;
-            db[currentUser].caffeine = userCaffeine;
-            // Simpan status quest
-            if(isClaimed) db[currentUser].lastQuestDate = today;
+            if(db[currentUser]) {
+                db[currentUser].points = userPoints;
+                db[currentUser].caffeine = userCaffeine;
+                if(isClaimed) db[currentUser].lastQuestDate = today;
+            }
+            localStorage.setItem('folkpresso_users_db', JSON.stringify(db));
         }
-        localStorage.setItem('folkpresso_users_db', JSON.stringify(db));
-    }
-    
+
         window.filterMood = function(mood) {
             if(mood === 'all') return renderProducts(products);
             var filtered = products.filter(function(p) { return p.type === mood; });
             renderProducts(filtered);
-            showToast("Filter: " + mood.toUpperCase() + " Mode Aktif!");
         };
-    
+
         function renderProducts(list) {
-        var container = document.getElementById('product-list');
-        var grayscale = isStoreOpen ? '' : 'grayscale-mode';
-        container.innerHTML = '';
-        
-        list.forEach(function(p) {
-            // Jika Anda lupa menaruh foto, otomatis pakai gambar gelas default
-            var imgSource = p.image || "https://cdn-icons-png.flaticon.com/512/751/751621.png";
+            var container = document.getElementById('product-list');
+            var grayscale = isStoreOpen ? '' : 'grayscale-mode';
+            container.innerHTML = '';
 
-            container.innerHTML += `
-            <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center gap-4 ${grayscale}">
-                
-                <div class="w-16 h-16 shrink-0">
-                    <img src="${imgSource}" alt="${p.name}" class="w-full h-full object-cover rounded-2xl shadow-sm bg-slate-50">
-                </div>
+            list.forEach(function(p) {
+                var imgSource = p.image || "https://cdn-icons-png.flaticon.com/512/751/751621.png";
 
-                <div class="flex-1 min-w-0">
-                    <h4 class="font-bold text-sm dark:text-white truncate">${p.name}</h4>
-                    <p class="text-blue-600 dark:text-blue-400 font-black text-xs">Rp ${p.price.toLocaleString()}</p>
-                </div>
-                
-                <button onclick="shareLink('${p.name}')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs shrink-0">🔗</button>
-                <button onclick="addToCart('${p.name}', ${p.price}, ${p.mg || 0}, ${p.cost || 0})" class="bg-blue-900 dark:bg-blue-600 text-white w-10 h-10 rounded-xl font-bold shrink-0 shadow-lg active:scale-90 transition-transform">+</button>
-            </div>`;
-        });
-    }
-    
+                container.innerHTML += `
+                <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center gap-4 ${grayscale}">
+
+                    <div class="w-16 h-16 shrink-0">
+                        <img src="${imgSource}" alt="${p.name}" class="w-full h-full object-cover rounded-2xl shadow-sm bg-slate-50">
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-sm dark:text-white truncate">${p.name}</h4>
+                        <p class="text-blue-600 dark:text-blue-400 font-black text-xs">Rp ${p.price.toLocaleString()}</p>
+                    </div>
+
+                    <button onclick="shareLink('${p.name}')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs shrink-0">🔗</button>
+                    <button onclick="addToCart('${p.name}', ${p.price}, ${p.mg || 0}, ${p.cost || 0})" class="bg-blue-900 dark:bg-blue-600 text-white w-10 h-10 rounded-xl font-bold shrink-0 shadow-lg active:scale-90 transition-transform">+</button>
+                </div>`;
+            });
+        }
+
         window.addToCart = function(name, price, mg, cost) {
             if(!isStoreOpen) return showPopup("Toko Tutup", "Maaf kak, toko sedang tutup.", "🔒");
             var existingItem = cart.find(function(item) { return item.name === name; });
-            if (existingItem) { existingItem.quantity += 1; } 
+            if (existingItem) { existingItem.quantity += 1; }
             else { cart.push({ name: name, price: price, mg: mg, cost: cost || 0, quantity: 1 }); }
             showToast(name + " berhasil ditambahkan!");
             if(navigator.vibrate) navigator.vibrate(20);
-            renderCart(); 
+            renderCart();
         };
-    
+
         window.updateQuantity = function(index, delta) {
             cart[index].quantity += delta;
             if (cart[index].quantity < 1) { cart.splice(index, 1); showToast("Item dihapus"); }
             renderCart();
         };
-    
+
         function renderCart() {
             var list = document.getElementById('cart-items');
             list.innerHTML = cart.length ? '' : '<p class="text-center text-slate-400 text-xs py-10 italic">Keranjangmu masih kosong nih...</p>';
@@ -585,34 +870,33 @@
             });
             document.getElementById('cart-total').innerText = 'Rp ' + total.toLocaleString();
         }
-    
-        // --- BAGIAN 6: PEMBAYARAN KE SUPABASE ---
+
         window.openPayment = function() {
             if(!cart.length) return showToast("Keranjang kosong!");
             document.getElementById('payment-modal').classList.remove('hidden');
             document.getElementById('payment-modal').classList.add('flex');
         };
-    
+
         window.processPayment = async function(method) {
             var username = localStorage.getItem('folkpresso_current_user') || "Guest";
-        
-        // Memanggil fungsi kirim pesan setelah pembayaran
-        var payMsg = `🚀 ${username} baru saja memesan via ${method}!`;
-        window.sendGlobalMessage(payMsg);
 
-        // Lanjutkan proses tracking order...
-        document.getElementById('payment-modal').classList.add('hidden');
-        document.getElementById('tracking-modal').classList.remove('hidden');
-        
-        var totalOrder = cart.reduce(function(a, b) { return a + (b.price * b.quantity); }, 0);
-        var caffeineAdd = cart.reduce(function(a, b) { return a + (b.mg * b.quantity); }, 0);
-        var cupsCount = cart.reduce(function(a, b) { return a + b.quantity; }, 0);
-        sendGlobalMessage(`${currentUser} baru saja memesan kopi! 🔥`);
-            // --- KIRIM KE SUPABASE ---
+            document.getElementById('payment-modal').classList.add('hidden');
+            document.getElementById('tracking-modal').classList.remove('hidden');
+
+            var totalOrder = cart.reduce(function(a, b) { return a + (b.price * b.quantity); }, 0);
+            var caffeineAdd = cart.reduce(function(a, b) { return a + (b.mg * b.quantity); }, 0);
+            var cupsCount = cart.reduce(function(a, b) { return a + b.quantity; }, 0);
+
+            var orderDetails = cart.map(function(item) {
+                return item.quantity + "x " + item.name;
+            }).join(", ");
+
+            sendGlobalMessage(`☕ ${username} baru saja memesan ${orderDetails} via ${method}!`);
+
             var now = new Date();
             var dateStamp = now.toISOString().split('T')[0];
             var fullTimeStr = now.toLocaleDateString('id-ID') + " | " + now.toLocaleTimeString('id-ID');
-    
+
             var payload = cart.map(function(item) {
                 return {
                     date: dateStamp,
@@ -630,40 +914,41 @@
                     notes: '-'
                 };
             });
-    
+
             if (window.supabaseClient) {
                 try {
-                    console.log("Mengirim data...", payload);
-                    const { error } = await window.supabaseClient.from('transactions').insert(payload);
+                    console.log("📤 Mengirim data ke Supabase...", payload);
+                    const { data, error } = await window.supabaseClient.from('transactions').insert(payload);
                     if (error) {
-                        console.error("Supabase Error:", error);
-                        alert("Gagal kirim data: " + error.message);
+                        console.error("❌ Supabase Error:", error);
+                        showToast("⚠️ Gagal sync database: " + error.message);
                     } else {
-                        console.log("Sukses Sync Database!");
+                        console.log("✅ Data berhasil dikirim ke Supabase!");
+                        
                     }
                 } catch (err) {
-                    console.error("Koneksi Error: " + err);
+                    console.error("❌ Error saat kirim data:", err);
+                    showToast("⚠️ Error koneksi: " + err.message);
                 }
             } else {
-                console.log("Mode Offline / Supabase belum siap.");
+                console.warn("⚠️ Supabase client belum siap, data hanya tersimpan lokal");
+                showToast("⚠️ Mode offline - data tersimpan lokal");
             }
-    
-            // Update Lokal UI
+
             userPoints += Math.floor(totalOrder / 1000);
             userCaffeine += caffeineAdd;
-            saveUserData(); 
+            saveUserData();
             updateMemberUI();
-            
+
             communityGoal += cupsCount;
-        localStorage.setItem('folkpresso_community_goal', communityGoal);
-        updateGoalUI();
-            
+            localStorage.setItem('folkpresso_community_goal', communityGoal);
+            updateGoalUI();
+
             if(currentUser) {
                 localStorage.setItem('lastOrder_' + currentUser, JSON.stringify(cart));
                 document.getElementById('reorder-section').classList.remove('hidden');
             }
-    
-            // Animasi
+
             var modal = document.getElementById('tracking-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -673,7 +958,7 @@
             document.getElementById('anim-bar').style.width = "0%";
             document.getElementById('track-title').innerText = "Memproses...";
             document.getElementById('track-desc').innerText = "Via " + method;
-    
+
             setTimeout(function() {
                 document.getElementById('anim-bar').style.width = "100%";
                 setTimeout(function() {
@@ -684,76 +969,88 @@
             }, 3000);
         };
 
-        // Fungsi untuk kirim pesan ke semua orang
         window.sendGlobalMessage = function(msg) {
-        // Cek apakah channel sudah siap sebelum mengirim
-        if (window.marqueeChannel) {
-            window.marqueeChannel.send({
-                type: 'broadcast',
-                event: 'announcement',
-                payload: { message: msg }
-            });
-        } else {
-            console.error("Gagal mengirim: marqueeChannel belum siap.");
-        }
-    };
-// Fungsi untuk mengubah tampilan Marquee di layar
-window.displayMarqueeMessage = function(message) {
-    var marqueeEl = document.querySelector('.animate-marquee');
-    if (!marqueeEl) return;
+            if (window.marqueeChannel) {
+                try {
+                    window.marqueeChannel.send({
+                        type: 'broadcast',
+                        event: 'announcement',
+                        payload: { message: msg }
+                    });
+                    console.log("📤 Pesan broadcast terkirim:", msg);
+                } catch(e) {
+                    console.error("❌ Error saat kirim broadcast:", e);
+                    if (window.displayMarqueeMessage) {
+                        window.displayMarqueeMessage(msg);
+                    }
+                }
+            } else {
+                console.warn("⚠️ Channel belum siap");
+                if (initMarqueeChannel()) {
+                    setTimeout(function() {
+                        if (window.marqueeChannel) {
+                            try {
+                                window.marqueeChannel.send({
+                                    type: 'broadcast',
+                                    event: 'announcement',
+                                    payload: { message: msg }
+                                });
+                            } catch(e) {
+                                console.error("❌ Gagal kirim pesan:", e);
+                            }
+                        }
+                    }, 200);
+                } else {
+                    if (window.displayMarqueeMessage) {
+                        window.displayMarqueeMessage(msg);
+                    }
+                }
+            }
+        };
 
-    clearTimeout(marqueeTimer);
-    
-    // Set pesan baru
-    marqueeEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${message} &nbsp;&nbsp; • &nbsp;&nbsp; ${defaultMarquee}`;
-
-    // Balikin ke normal setelah 20 detik
-    marqueeTimer = setTimeout(function() {
-        marqueeEl.innerHTML = defaultMarquee;
-    }, 20000);
-};
-    
         window.finishOrder = function() {
             document.getElementById('tracking-modal').classList.remove('flex');
             document.getElementById('tracking-modal').classList.add('hidden');
             cart = [];
-            renderCart(); 
+            renderCart();
             showToast("Pesanan Selesai!");
             showPage('home');
         };
-    
-        // --- BAGIAN 7: UTILITIES ---
+
         function updateMemberUI() {
             var card = document.getElementById('member-card');
             var tierName = document.getElementById('tier-name');
             var bar = document.getElementById('level-bar');
-            var tierName = document.getElementById('tier-name').innerText;
-    
-            // Cek jika tier berubah dari status sebelumnya
-            if (currentTierStatus !== "" && currentTierStatus !== tierName) {
-                sendGlobalMessage(`Hore! ${currentUser} sekarang sudah jadi member ${tierName}! 👑`);
-            currentTierStatus = tierName; // Update status sekarang
-            // ... sisa kode updateMemberUI ...
+            var currentTier = tierName.innerText;
 
-            
+            if (currentTierStatus !== "" && currentTierStatus !== currentTier) {
+                sendGlobalMessage(`Hore! ${currentUser} sekarang sudah jadi member ${currentTier}! 👑`);
+            }
+
             if(document.getElementById('display-points')) document.getElementById('display-points').innerText = userPoints.toLocaleString();
             if(document.getElementById('home-points')) document.getElementById('home-points').innerText = userPoints.toLocaleString();
-            
+
             if(userPoints > 5000) {
                 card.className = "member-card-gold rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500";
-                tierName.innerText = "GOLD MEMBER 👑"; bar.style.width = "100%";
+                tierName.innerText = "GOLD MEMBER 👑";
+                bar.style.width = "100%";
+                currentTierStatus = "GOLD MEMBER 👑";
             } else if (userPoints > 1000) {
                 card.className = "member-card-silver rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500";
-                tierName.innerText = "SILVER MEMBER ⚔️"; bar.style.width = (userPoints / 5000 * 100) + "%";
+                tierName.innerText = "SILVER MEMBER ⚔️";
+                bar.style.width = (userPoints / 5000 * 100) + "%";
+                currentTierStatus = "SILVER MEMBER ⚔️";
             } else {
                 card.className = "member-card-bronze rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500";
-                tierName.innerText = "BRONZE MEMBER"; bar.style.width = (userPoints / 1000 * 100) + "%";
+                tierName.innerText = "BRONZE MEMBER";
+                bar.style.width = (userPoints / 1000 * 100) + "%";
+                currentTierStatus = "BRONZE MEMBER";
             }
-            document.getElementById('caffeine-mg').innerHTML = userCaffeine + '<span class="text-xs">mg</span>';
-            document.getElementById('caffeine-bar').style.height = Math.min((userCaffeine / 500) * 100, 100) + "%";
-        }}
 
-    
+            document.getElementById('caffeine-mg').innerHTML = userCaffeine + '<span class="text-xs text-slate-400">mg</span>';
+            document.getElementById('caffeine-bar').style.height = Math.min((userCaffeine / 500) * 100, 100) + "%";
+        }
+
         window.toggleStoreStatus = function() {
             isStoreOpen = !isStoreOpen;
             var statusText = document.getElementById('admin-status-text');
@@ -768,18 +1065,18 @@ window.displayMarqueeMessage = function(message) {
                 btn.innerText = "BUKA TOKO"; btn.className = "bg-green-500 text-white px-4 py-2 rounded-xl font-bold text-xs";
                 badge.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span><p class="text-[10px] text-red-400 font-bold uppercase tracking-widest">Closed</p>`;
             }
-            renderProducts(products); 
+            renderProducts(products);
         };
-    
+
         window.rate = function(stars) { showToast("Terima kasih rating " + stars + " bintangnya!"); };
-    
+
         function showToast(msg) {
             var toast = document.createElement('div');
             toast.className = 'toast'; toast.innerText = msg;
             document.getElementById('toast-container').appendChild(toast);
             setTimeout(function() { toast.remove(); }, 2500);
         }
-    
+
         window.selectPickup = function(value) {
             document.getElementById('pickup-time').value = value;
             document.querySelectorAll('.pickup-card').forEach(function(card) {
@@ -791,29 +1088,29 @@ window.displayMarqueeMessage = function(message) {
             activeCard.classList.replace('border-transparent', 'border-blue-500');
             activeCard.classList.replace('bg-slate-50', 'bg-blue-50');
             activeCard.querySelector('p:first-child').classList.replace('text-slate-400', 'text-blue-600');
-            if(navigator.vibrate) navigator.vibrate(10); 
+            if(navigator.vibrate) navigator.vibrate(10);
         };
-    
+
         window.showPopup = function(title, message, icon) {
             if (!icon) icon = "☕";
             var popup = document.getElementById('universal-popup');
             var content = document.getElementById('popup-content');
             var actionArea = document.getElementById('popup-actions');
-            
+
             document.getElementById('popup-title').innerText = title;
             document.getElementById('popup-message').innerText = message;
             document.getElementById('popup-icon').innerText = icon;
             actionArea.innerHTML = `<button onclick="closePopup()" class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-transform">OKE!</button>`;
-    
+
             popup.classList.remove('hidden');
             popup.classList.add('flex');
-            
+
             setTimeout(function() {
                 content.classList.remove('scale-50', 'opacity-0');
                 content.classList.add('scale-100', 'opacity-100');
             }, 10);
         };
-    
+
         window.closePopup = function() {
             var content = document.getElementById('popup-content');
             content.classList.add('scale-50', 'opacity-0');
@@ -821,38 +1118,39 @@ window.displayMarqueeMessage = function(message) {
                 document.getElementById('universal-popup').classList.add('hidden');
             }, 300);
         };
-    
+
         window.shareLink = function(item) {
-            if(navigator.share) { navigator.share({title: 'Titip Folkpresso', text: "Nitip " + item + " dong!"}); } 
+            if(navigator.share) { navigator.share({title: 'Titip Folkpresso', text: "Nitip " + item + " dong!"}); }
             else { showToast("Link Titip Beli disalin!"); }
         };
-        
+
         window.mysteryBrew = function() {
             if(!isStoreOpen) return showToast("Toko Tutup.");
             var random = products[Math.floor(Math.random() * products.length)];
             addToCart(random.name, random.price, random.mg, random.cost);
             showToast("✨ Magic! " + random.name + " terpilih!");
         };
-        
+
         window.claimQuest = function() {
-        if(!currentUser) return showToast("Login dulu kak!");
-        var btn = document.getElementById('quest-card');
-        var today = new Date().toDateString();
-        
-        if(btn.classList.contains('opacity-50')) return showToast("Sudah diklaim hari ini!");
-        
-        showPopup("Hooray!", "Kamu baru saja mendapatkan +50 Poin Folkpresso!", "🎁");
-        userPoints += 50;
-        sendGlobalMessage(`${currentUser} baru saja menyelesaikan Daily Quest! 🎁`);
-        
-        // Tandai sebagai sudah diklaim
-        btn.classList.add('opacity-50');
-        document.getElementById('quest-status').innerText = "Terklaim ✅";
-        
-        saveUserData();
-        updateMemberUI();
-    };
+            if(!currentUser) return showToast("Login dulu kak!");
+            var btn = document.getElementById('quest-card');
+            var today = new Date().toDateString();
+
+            if(btn.classList.contains('opacity-50')) return showToast("Sudah diklaim hari ini!");
+
+            showPopup("Hooray!", "Kamu baru saja mendapatkan +50 Poin Folkpresso!", "🎁");
+            userPoints += 50;
+            sendGlobalMessage(`${currentUser} baru saja menyelesaikan Daily Quest! 🎁`);
+
+            btn.classList.add('opacity-50');
+            document.getElementById('quest-status').innerText = "Terklaim ✅";
+
+            saveUserData();
+            updateMemberUI();
+        };
+
         window.generateVoucher = function() { addToCart("Voucher Traktir", 20000, 0, 0); };
+
         window.loadLastOrder = function() {
             if(!currentUser) return;
             var saved = localStorage.getItem('lastOrder_' + currentUser);
@@ -862,23 +1160,21 @@ window.displayMarqueeMessage = function(message) {
                 showToast("Pesanan terakhir dimuat!");
             }
         };
-        // Register Service Worker untuk PWA
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('Aplikasi Siap Di-install:', reg.scope))
-                .catch(err => console.log('Gagal Register SW:', err));
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js')
+                    .then(function(reg) { console.log('Service Worker Registered:', reg.scope); })
+                    .catch(function(err) { console.log('Service Worker Failed:', err); });
+            });
+        }
+
+        var deferredPrompt;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log("Aplikasi bisa di-install!");
         });
-    }
-    
-    // Tombol Install Manual (Opsional, bisa ditaruh di menu)
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        // Simpan event ini jika ingin membuat tombol "Install Aplikasi" nanti
-        console.log("Aplikasi bisa di-install sekarang!");
-    });
     </script>
 </body>
 </html>
