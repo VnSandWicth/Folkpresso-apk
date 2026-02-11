@@ -7,9 +7,11 @@
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e3a8a">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/751/751621.png">
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -31,83 +33,72 @@
 
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
-
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 80% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
         @keyframes brewBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
         .app-page { display: none; }
         .app-page.active { display: block; animation: slideUp 0.4s ease-out; }
         .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); }
         .dark .glass-nav { background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255,255,255,0.1); }
-
         .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 20s linear infinite; }
         .anim-brew { animation: brewBounce 1s infinite ease-in-out; }
-
-        .member-card-gold { background: linear-gradient(135deg, #FFD700, #B8860B); color: #FFF; }
-        .member-card-silver { background: linear-gradient(135deg, #E0E0E0, #9E9E9E); color: #333; }
         .member-card-bronze { background: linear-gradient(135deg, #CD7F32, #8B4513); color: #FFF; }
-        .grayscale-mode { filter: grayscale(100%); pointer-events: none; opacity: 0.6; }
-
-        #universal-popup { z-index: 9999; }
-        #login-modal { z-index: 5000; }
-
-        #toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 6000; pointer-events: none; width: 100%; display: flex; flex-direction: column; items-center; }
+        #toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 9999; pointer-events: none; width: 100%; display: flex; flex-direction: column; align-items: center; }
         .toast { background: #1e3a8a; color: white; padding: 12px 24px; border-radius: 50px; margin-top: 10px; font-size: 12px; font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: popIn 0.3s forwards; }
+        #payment-modal, #tracking-modal { z-index: 10000; }
     </style>
 </head>
-<body class="bg-[#F8FAFC] text-slate-900 pb-32 dark:bg-slate-950 dark:text-white transition-colors duration-300">
-
-    <div id="universal-popup" class="fixed inset-0 hidden items-center justify-center p-6 backdrop-blur-md bg-black/40">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl transform scale-50 opacity-0 transition-all duration-300" id="popup-content">
-            <div id="popup-icon" class="text-5xl text-center mb-4">✨</div>
-            <h3 id="popup-title" class="text-xl font-black text-center text-blue-900 dark:text-white italic mb-2">Pemberitahuan</h3>
-            <p id="popup-message" class="text-sm text-center text-slate-500 dark:text-slate-400 mb-6 font-medium">Pesan di sini...</p>
-            <div id="popup-actions" class="w-full"></div>
-        </div>
-    </div>
+<body class="bg-[#F8FAFC] text-slate-900 pb-32 dark:bg-slate-950 dark:text-white transition-colors duration-300 font-sans select-none">
 
     <div id="toast-container"></div>
 
-   <body class="bg-[#F8FAFC] text-slate-900 dark:bg-slate-950 dark:text-white transition-colors duration-300 font-sans select-none">
+    <div id="payment-modal" class="fixed inset-0 hidden items-center justify-center p-6 backdrop-blur-md bg-black/40">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
+            <h3 class="text-2xl font-black text-center text-blue-900 dark:text-white mb-6">Metode Pembayaran</h3>
+            <div class="space-y-3">
+                <button onclick="processPayment('Cash')" class="w-full bg-green-500 text-white py-4 rounded-2xl font-bold shadow-lg">💵 Cash</button>
+                <button onclick="processPayment('QRIS')" class="w-full bg-blue-500 text-white py-4 rounded-2xl font-bold shadow-lg">📱 QRIS</button>
+                <button onclick="closePaymentModal()" class="w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white py-4 rounded-2xl font-bold">Batal</button>
+            </div>
+        </div>
+    </div>
 
-    <div id="login-screen" class="fixed inset-0 z-[9999] bg-gradient-to-br from-blue-700 to-blue-900 flex flex-col items-center justify-center p-6 transition-all duration-500">
+    <div id="tracking-modal" class="fixed inset-0 hidden items-center justify-center p-6 backdrop-blur-md bg-black/40">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl text-center">
+            <div id="brew-state">
+                <div class="text-6xl mb-4 anim-brew">☕</div>
+                <h3 class="text-2xl font-black text-blue-900 dark:text-white mb-2">Memproses...</h3>
+                <div class="w-full bg-slate-200 dark:bg-slate-700 h-3 rounded-full overflow-hidden mt-4">
+                    <div id="anim-bar" class="h-full bg-blue-600 transition-all duration-[3000ms]" style="width: 0%"></div>
+                </div>
+            </div>
+            <div id="finish-state" class="hidden flex-col items-center">
+                <div class="text-6xl mb-4">✅</div>
+                <h3 class="text-2xl font-black text-green-600 mb-2">Pesanan Selesai!</h3>
+                <button onclick="finishOrder()" class="w-full bg-blue-900 text-white py-4 rounded-2xl font-black mt-4">Selesai</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-screen" class="fixed inset-0 z-[5000] bg-gradient-to-br from-blue-700 to-blue-900 flex flex-col items-center justify-center p-6 transition-all duration-500">
         <div class="mb-8 p-6 bg-white rounded-[2.5rem] shadow-2xl animate-bounce">
             <img src="https://cdn-icons-png.flaticon.com/512/751/751621.png" class="w-20 h-20">
         </div>
-        <h1 class="text-5xl font-extrabold text-white mb-3 italic tracking-tight">Folkpresso</h1>
-        <p class="text-blue-100 mb-12 text-center max-w-xs font-medium">Komunitas Kopi & Loyalty App.<br>Masuk untuk kumpulkan poin.</p>
-
-        <button onclick="loginWithGoogle()" class="group w-full max-w-xs bg-white text-blue-900 font-bold py-4 px-6 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4">
+        <h1 class="text-5xl font-extrabold text-white mb-3 italic">Folkpresso</h1>
+        <button onclick="loginWithGoogle()" class="w-full max-w-xs bg-white text-blue-900 font-bold py-4 rounded-2xl shadow-xl flex items-center justify-center gap-4">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6 h-6">
-            <span>Masuk dengan Google</span>
+            <span id="login-text">Masuk dengan Google</span>
         </button>
-        <p class="mt-10 text-xs text-blue-300/60 font-semibold tracking-widest uppercase">Copyright - Folkpresso</p>
     </div>
 
     <div id="main-app" class="hidden">
         <header class="glass-nav sticky top-0 z-[60]">
             <div class="px-6 py-4 flex justify-between items-center">
-                <div>
-                    <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 tracking-tighter italic">FOLKPRESSO</h1>
-                    <div id="store-status-badge" class="flex items-center gap-1.5 mt-1">
-                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Open Now</p>
-                    </div>
-                </div>
+                <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 italic">FOLKPRESSO</h1>
                 <div class="flex gap-2">
                     <button onclick="toggleDark()" class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl">🌙</button>
-                    <button onclick="window.showPage('admin')" class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl text-blue-600 dark:text-blue-400">📊</button>
-                </div>
-            </div>
-            <div class="px-6 pb-4">
-                <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1">
-                    <span class="text-blue-900 dark:text-blue-300">Community Goal 🎯</span>
-                    <span id="goal-counter" class="text-slate-400">0 / 20 Cups</span>
-                </div>
-                <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div id="goal-bar" class="h-full bg-blue-600 w-0 transition-all duration-1000"></div>
+                    <button onclick="showPage('admin')" class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl text-blue-600">📊</button>
                 </div>
             </div>
         </header>
@@ -115,802 +106,192 @@
         <main id="home-page" class="app-page active">
             <div class="px-6 mt-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <img id="profile-photo-nav" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-10 h-10 rounded-full border-2 border-blue-500 object-cover">
+                    <img id="profile-photo-nav" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-10 h-10 rounded-full border-2 border-blue-500">
                     <div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Halo, Friend!</p>
-                        <h2 id="home-username" class="text-sm font-black text-blue-900 dark:text-white truncate max-w-[120px]">Guest</h2>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">Halo,</p>
+                        <h2 id="home-username" class="text-sm font-black text-blue-900 dark:text-white italic">Guest</h2>
                     </div>
                 </div>
-                <div onclick="window.showPage('profile')" class="bg-blue-100 dark:bg-slate-800 px-3 py-1 rounded-full flex items-center gap-1 cursor-pointer">
-                    <span class="text-xs">⭐</span>
-                    <span id="home-points" class="text-xs font-bold text-blue-800 dark:text-blue-300">0</span>
-                </div>
+                <div class="bg-blue-100 px-3 py-1 rounded-full"><span id="home-points" class="text-xs font-bold text-blue-800">0</span> ⭐</div>
             </div>
-
-            <div class="bg-blue-900 dark:bg-blue-950 py-2 mt-4 overflow-hidden border-y border-blue-800">
-                <div class="animate-marquee text-xs font-bold text-blue-200 tracking-wide">
-                    🔥 "Aren Latte-nya juara!" &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!
-                </div>
-            </div>
-
-            <div class="px-6 mt-6 grid grid-cols-2 gap-3">
-                <div onclick="mysteryBrew()" class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[2rem] p-5 text-white shadow-lg active:scale-95 transition-transform">
-                     <h4 class="font-black text-sm">Mystery Brew 🎲</h4>
-                     <p class="text-[10px] opacity-80">Biarkan kami pilih!</p>
-                </div>
-                <div onclick="claimQuest()" id="quest-card" class="bg-gradient-to-br from-pink-500 to-orange-500 rounded-[2rem] p-5 text-white shadow-lg active:scale-95 transition-transform">
-                    <h4 class="font-black text-sm">Daily Quest ⚔️</h4>
-                    <p id="quest-status" class="text-[10px] opacity-80">Klaim +50 Poin</p>
-                </div>
-            </div>
-
             <div class="px-6 mt-8 pb-10 space-y-4" id="product-list"></div>
         </main>
 
         <main id="cart-page" class="app-page px-6 pt-8">
-            <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 italic text-center">Keranjang</h2>
-            <div id="cart-items" class="space-y-3 min-h-[100px]"></div>
-            <div class="mt-8 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
-                <div class="flex justify-between items-center mb-4"><span class="font-bold text-slate-400 uppercase text-xs">Total</span><span id="cart-total" class="text-xl font-black text-blue-900 dark:text-white">Rp 0</span></div>
-                <button onclick="openPayment()" class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">Checkout</button>
+            <h2 class="text-2xl font-black text-center mb-6">Keranjang</h2>
+            <div id="cart-items" class="space-y-3"></div>
+            <div class="mt-8 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border">
+                <div class="flex justify-between items-center mb-4"><span class="font-bold text-xs uppercase text-slate-400">Total</span><span id="cart-total" class="text-xl font-black">Rp 0</span></div>
+                <button onclick="openPayment()" class="w-full bg-blue-900 text-white py-4 rounded-2xl font-black">Checkout</button>
             </div>
         </main>
 
-        <main id="profile-page" class="app-page px-6 pt-8">
-            <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 text-center italic">My Profile</h2>
-            <div id="member-card" class="member-card-bronze rounded-[2rem] p-6 shadow-2xl h-52 flex flex-col justify-between">
-                <div class="flex justify-between items-start">
-                    <h3 id="tier-name" class="font-bold tracking-widest text-sm uppercase">Bronze Member</h3>
-                    <span class="text-2xl">✨</span>
-                </div>
-                <div>
-                    <p id="profile-username" class="font-bold text-lg mb-1">Guest</p>
-                    <p id="display-points" class="text-3xl font-black">0</p>
-                </div>
-                <div class="flex justify-between items-end">
-                    <div class="w-full mr-4">
-                        <div class="w-full h-1.5 bg-black/20 rounded-full overflow-hidden"><div id="level-bar" class="h-full bg-white w-0"></div></div>
-                    </div>
-                    <div onclick="window.logout()" class="w-10 h-10 bg-red-500 p-2 rounded-lg flex items-center justify-center cursor-pointer shadow-lg active:scale-90">🚪</div>
-                </div>
+        <main id="profile-page" class="app-page p-6">
+            <h3 class="text-xl font-black mb-6">Profil</h3>
+            <div id="member-card" class="member-card-bronze rounded-[2rem] p-6 h-48 flex flex-col justify-between mb-6">
+                <h2 id="tier-name" class="text-xl font-black">BRONZE MEMBER</h2>
+                <div class="text-2xl font-black"><span id="display-points">0</span> Poin</div>
             </div>
-            
-            <div class="mt-6 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
-                <h4 class="font-bold text-sm mb-4">⚡ Caffeine Meter</h4>
-                <div class="flex items-end gap-2 h-24">
-                    <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-t-xl relative overflow-hidden">
-                        <div id="caffeine-bar" class="absolute bottom-0 w-full bg-orange-400 transition-all duration-1000" style="height: 0%"></div>
-                    </div>
-                    <div class="text-right">
-                        <h5 id="caffeine-mg" class="text-2xl font-black text-orange-500">0<span class="text-xs text-slate-400">mg</span></h5>
-                    </div>
-                </div>
-            </div>
+            <button onclick="logout()" class="w-full bg-red-100 text-red-600 py-4 rounded-2xl font-bold">Keluar Akun</button>
+        </main>
+
+        <main id="admin-page" class="app-page p-6">
+            <h3 class="text-xl font-black">Dashboard Admin</h3>
+            <p class="text-slate-500 mt-4 italic">Halaman admin sedang dalam pemeliharaan.</p>
+            <button onclick="showPage('home')" class="mt-6 bg-blue-900 text-white px-6 py-3 rounded-xl">Kembali ke Menu</button>
         </main>
 
         <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav p-4 flex justify-around">
-            <button onclick="showPage('home')" id="btn-home" class="flex flex-col items-center text-blue-900 dark:text-blue-400">🏠<span class="text-[10px] font-bold mt-1">Menu</span></button>
-            <button onclick="showPage('cart')" id="btn-cart" class="flex flex-col items-center text-slate-400">🛒<span class="text-[10px] font-bold mt-1">Cart</span></button>
-            <button onclick="showPage('profile')" id="btn-profile" class="flex flex-col items-center text-slate-400">😎<span class="text-[10px] font-bold mt-1">Profile</span></button>
+            <button onclick="showPage('home')" id="btn-home" class="flex flex-col items-center text-blue-900">🏠<span class="text-[10px] font-bold">Menu</span></button>
+            <button onclick="showPage('cart')" id="btn-cart" class="flex flex-col items-center text-slate-400">🛒<span class="text-[10px] font-bold">Cart</span></button>
+            <button onclick="showPage('profile')" id="btn-profile" class="flex flex-col items-center text-slate-400">😎<span class="text-[10px] font-bold">Profile</span></button>
         </nav>
     </div>
 
-    <div id="universal-popup" class="fixed inset-0 hidden items-center justify-center p-6 backdrop-blur-md bg-black/40 z-[9999]">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl transform transition-all duration-300" id="popup-content">
-            <div id="popup-icon" class="text-5xl text-center mb-4">✨</div>
-            <h3 id="popup-title" class="text-xl font-black text-center text-blue-900 dark:text-white italic mb-2">Pemberitahuan</h3>
-            <p id="popup-message" class="text-sm text-center text-slate-500 dark:text-slate-400 mb-6 font-medium"></p>
-            <div id="popup-actions" class="w-full"></div>
-        </div>
-    </div>
-    <div id="toast-container"></div>
-    <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav p-4 flex justify-around">
-        <button onclick="showPage('home')" id="btn-home" class="flex flex-col items-center text-blue-900 dark:text-blue-400">🏠<span class="text-[10px] font-bold mt-1">Menu</span></button>
-        <button onclick="showPage('cart')" id="btn-cart" class="flex flex-col items-center text-slate-400">🛒<span class="text-[10px] font-bold mt-1">Cart</span></button>
-        <button onclick="showPage('profile')" id="btn-profile" class="flex flex-col items-center text-slate-400">😎<span class="text-[10px] font-bold mt-1">Profile</span></button>
-    </nav>
-
     <script>
-        var SB_URL = "https://gfmvigkhflkqetbftttr.supabase.co";
-        var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXZpZ2toZmxrcWV0YmZ0dHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTQ3NDAsImV4cCI6MjA4NTYzMDc0MH0.dGq7S_3y2nG8Nrl_ZpzLVuncoedp2rlIzb2u4cZ44Fg";
+        // --- CONFIG FIREBASE ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyBR_Er6zVysY-J-ht8PMpKRW0FJ69utN3w",
+          authDomain: "folkpresso.firebaseapp.com",
+          projectId: "folkpresso",
+          storageBucket: "folkpresso.firebasestorage.app",
+          messagingSenderId: "728120023418",
+          appId: "1:728120023418:web:62c8b1271da8af8a67dec3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-        var defaultMarquee = `🔥 "Aren Latte-nya juara!" - Andi &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; 🚀 "Thanks buat bonusnya kak!" - Siti &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!`;
-        var marqueeTimer;
+        let currentUser = "Guest";
+        let cart = [];
 
-        window.displayMarqueeMessage = function(message) {
-            var marqueeEl = document.querySelector('.animate-marquee');
-            if (!marqueeEl) return;
-            clearTimeout(marqueeTimer);
-            marqueeEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${message} &nbsp;&nbsp; • &nbsp;&nbsp; ${defaultMarquee}`;
-            marqueeTimer = setTimeout(function() {
-                marqueeEl.innerHTML = defaultMarquee;
-            }, 20000);
+        // --- AUTH ---
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                startSync(user.uid);
+            } else {
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('main-app').classList.add('hidden');
+            }
+        });
+
+        window.loginWithGoogle = function() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(e => alert(e.message));
         };
 
-        function initSupabase() {
-            if (typeof window.supabase !== 'undefined' && !window.supabaseClient) {
-                try {
-                    window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
-                    console.log("✅ Supabase Client berhasil dibuat");
-                    return true;
-                } catch(e) {
-                    console.error("❌ Error inisialisasi Supabase:", e);
-                    return false;
+        function startSync(uid) {
+            db.collection("users").doc(uid).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('home-username').innerText = data.customName || "Friend";
+                    document.getElementById('home-points').innerText = (data.points || 0).toLocaleString();
+                    const dp = document.getElementById('display-points');
+                    if(dp) dp.innerText = (data.points || 0).toLocaleString();
                 }
-            }
-            return !!window.supabaseClient;
-        }
-
-        function initMarqueeChannel() {
-            if (!window.supabaseClient) {
-                if (!initSupabase()) return false;
-            }
-
-            if (!window.marqueeChannel) {
-                try {
-                    window.marqueeChannel = window.supabaseClient.channel('folkpresso-marquee', {
-                        config: { broadcast: { self: true } }
-                    });
-
-                    window.marqueeChannel.on('broadcast', { event: 'announcement' }, function(payload) {
-                        if (window.displayMarqueeMessage && payload.payload) {
-                            window.displayMarqueeMessage(payload.payload.message);
-                        }
-                    }).subscribe(function(status) {
-                        if (status === 'SUBSCRIBED') {
-                            console.log("✅ Channel berhasil ter-subscribe!");
-                        }
-                    });
-                    return true;
-                } catch(e) {
-                    console.warn("⚠️ Error inisialisasi channel:", e);
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        var initAttempts = 0;
-        var initInterval = setInterval(function() {
-            initAttempts++;
-            if (initSupabase() && initMarqueeChannel()) {
-                clearInterval(initInterval);
-                console.log("✅ Supabase & Channel berhasil diinisialisasi");
-            } else if (initAttempts >= 10) {
-                clearInterval(initInterval);
-                console.warn("⚠️ Gagal inisialisasi setelah 10 percobaan");
-            }
-        }, 500);
-
-
-    // --- 1. KONFIGURASI FIREBASE FOLKPRESSO ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyBR_Er6zVysY-J-ht8PMpKRW0FJ69utN3w",
-      authDomain: "folkpresso.firebaseapp.com",
-      databaseURL: "https://folkpresso-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "folkpresso",
-      storageBucket: "folkpresso.firebasestorage.app",
-      messagingSenderId: "728120023418",
-      appId: "1:728120023418:web:62c8b1271da8af8a67dec3",
-      measurementId: "G-4VRF8TV2E1"
-    };
-
-    // Inisialisasi
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const provider = new firebase.auth.GoogleAuthProvider();
-
-    // --- 2. LOGIKA PINDAH HALAMAN OTOMATIS (AUTH STATE) ---
-    auth.onAuthStateChanged((user) => {
-        const loginScreen = document.getElementById('login-screen');
-        const mainApp = document.getElementById('main-app');
-
-        if (user) {
-            // JIKA USER LOGIN:
-            console.log("User masuk:", user.displayName);
-            
-            // 1. Sembunyikan Login Screen pelan-pelan
-            loginScreen.style.opacity = '0';
-            setTimeout(() => {
-                loginScreen.classList.add('hidden');
-                // 2. Munculkan Aplikasi Utama
-                mainApp.classList.remove('hidden');
-            }, 500);
-
-            // 3. Tarik Data Poin dari Cloud
-            startFolkSync(user.uid);
-            
-        } else {
-            // JIKA USER BELUM LOGIN / LOGOUT:
-            console.log("User belum login");
-            loginScreen.classList.remove('hidden');
-            loginScreen.style.opacity = '1';
-            mainApp.classList.add('hidden');
-        }
-    });
-
-    // --- 3. FUNGSI LOGIN GOOGLE ---
-   window.loginWithGoogle = function() {
-    // Cari elemen dengan aman
-    const btn = document.getElementById('btn-login-google');
-    const text = document.getElementById('login-text');
-    const errorMsg = document.getElementById('error-msg');
-    
-    // Safety check: Hanya jalankan classList jika elemennya ada
-    if (btn) {
-        btn.classList.add('opacity-50', 'pointer-events-none');
-    }
-    if (text) {
-        text.innerText = "Menghubungkan...";
-    }
-    if (errorMsg) {
-        errorMsg.classList.add('hidden');
-    }
-
-    const provider = new firebase.auth.GoogleAuthProvider();
-    
-    auth.signInWithPopup(provider)
-        .then((result) => {
-            console.log("Login sukses!");
-            // Halaman akan otomatis pindah karena auth.onAuthStateChanged
-        })
-        .catch((error) => {
-            console.error("Login Error:", error.code);
-            
-            // Kembalikan tampilan tombol jika gagal
-            if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
-            if (text) text.innerText = "Masuk dengan Google";
-
-            if (error.code === 'auth/unauthorized-domain') {
-                alert("IP 127.0.0.1 belum didaftarkan di Firebase Console!");
-            } else if (error.code === 'auth/popup-closed-by-user') {
-                if (errorMsg) {
-                    errorMsg.innerText = "Login dibatalkan (Popup ditutup).";
-                    errorMsg.classList.remove('hidden');
-                }
-            } else {
-                alert("Error: " + error.message);
-            }
-        });
-};
-
-    // --- 4. SINKRONISASI DATA (POIN & NAMA) ---
-    function startFolkSync(uid) {
-        db.collection("users").doc(uid).onSnapshot((doc) => {
-            if (doc.exists) {
-                const data = doc.data();
-                
-                // Update Variable Global
-                currentUser = data.username;
-                userPoints = data.points || 0;
-                userCaffeine = data.caffeine || 0;
-
-                // Update Tampilan UI (Navbar, Profile)
-                const nameDisplay = document.getElementById('home-username');
-                const pointsDisplay = document.getElementById('home-points');
-                if(nameDisplay) nameDisplay.innerText = currentUser;
-                if(pointsDisplay) pointsDisplay.innerText = userPoints.toLocaleString();
-
-                // Update Foto Profil di Aplikasi
-                const avatars = document.querySelectorAll('img[src*="avatar"]'); // Cari semua gambar avatar
-                avatars.forEach(img => {
-                    if(data.photo) img.src = data.photo;
-                });
-                
-                updateMemberUI(); // Refresh tampilan menu/tombol
-            }
-        });
-    }
-
-    // --- 5. LOGOUT ---
-    window.logout = function() {
-        if(confirm("Yakin ingin keluar dari Folkpresso?")) {
-            auth.signOut().then(() => {
-                localStorage.clear();
-                window.location.reload();
             });
         }
-    };
-    
-   
 
-        // Back to Step 1
-        window.backToStep1 = function() {
-            clearInterval(otpTimerInterval);
-            generatedOTP = "";
-            document.getElementById('register-step1').classList.remove('hidden');
-            document.getElementById('register-step2').classList.add('hidden');
-            document.getElementById('register-switch-text').classList.remove('hidden');
-        };
-
-        // Backward compatibility: keep handleLogin for any external calls
-        window.handleLogin = function() {
-            window.handleLoginOnly();
-        };
-
-        var products = [
-            { name: "Aren Coffee", price: 15000, cost: 9000, type: "signature", mg: 80, image: "img/gula aren.png" },
-            { name: "Salted Caramel", price: 15000, cost: 9000, type: "signature", mg: 60, image: "img/salted.png" },
-            { name: "Caramel Macchiato", price: 15000, cost: 9000, type: "signature", mg: 120, image: "img/maciato.png" },
-            { name: "Spanish Coffee", price: 15000, cost: 9000, type: "classic", mg: 100, image: "img/spanish.png" },
-            { name: "Tiramisu", price: 15000, cost: 9000, type: "non-coffee", mg: 50, image: "img/tiramisu.png" },
-            { name: "Hazelnut", price: 15000, cost: 9000, type: "non-coffee", mg: 60, image: "img/hazelnut.png" },
-            { name: "Matcha Latte", price: 15000, cost: 9000, type: "non-coffee", mg: 40, image: "img/matcha.png" },
-            { name: "Chocolate", price: 15000, cost: 9000, type: "non-coffee", mg: 10, image: "img/coklat.png" },
-            { name: "Vanilla", price: 15000, cost: 9000, type: "non-coffee", mg: 50, image: "img/vanilla.png" }
+        // --- PRODUCT ---
+        const products = [
+            { name: "Aren Coffee", price: 15000 },
+            { name: "Salted Caramel", price: 15000 },
+            { name: "Matcha Latte", price: 15000 }
         ];
 
-        var currentTierStatus = "";
-        var cart = [];
-        var isStoreOpen = true;
-        var currentUser = null;
-        var userPoints = 0;
-        var userCaffeine = 0;
-        var communityGoal = 0;
-
         window.onload = function() {
-            renderProducts(products);
-
-            communityGoal = parseInt(localStorage.getItem('folkpresso_community_goal')) || 0;
-            updateGoalUI();
-
-            var savedUser = localStorage.getItem('folkpresso_current_user');
-            if (savedUser) {
-                loadUserData(savedUser);
-                document.getElementById('login-modal').classList.add('hidden');
-            }
+            const container = document.getElementById('product-list');
+            if(!container) return;
+            container.innerHTML = products.map(p => `
+                <div class="bg-white dark:bg-slate-900 p-4 rounded-3xl flex justify-between items-center shadow-sm border border-slate-100 dark:border-slate-800">
+                    <div><h4 class="font-bold">${p.name}</h4><p class="text-blue-600 text-xs">Rp ${p.price.toLocaleString()}</p></div>
+                    <button onclick="addToCart('${p.name}', ${p.price})" class="bg-blue-900 text-white w-10 h-10 rounded-xl font-bold">+</button>
+                </div>
+            `).join('');
         };
 
-        function updateGoalUI() {
-            var goalPercent = Math.min((communityGoal / 20) * 100, 100);
-            if(document.getElementById('goal-bar')) document.getElementById('goal-bar').style.width = goalPercent + "%";
-            if(document.getElementById('goal-counter')) document.getElementById('goal-counter').innerText = communityGoal + " / 20 Cups";
-        }
-
-        function toggleDark() { document.documentElement.classList.toggle('dark'); }
-
-        window.showPage = function(id) {
-            if(id === 'admin') {
-                if(prompt("PIN Owner:") !== "1234") return alert("Salah PIN!");
-            }
-            document.querySelectorAll('.app-page').forEach(function(p) { p.classList.remove('active'); });
-            document.getElementById(id + '-page').classList.add('active');
-            document.querySelectorAll('nav button').forEach(function(b) {
-                b.classList.remove('text-blue-900', 'dark:text-blue-400'); b.classList.add('text-slate-400');
-            });
-            document.getElementById('btn-' + id).classList.add('text-blue-900', 'dark:text-blue-400');
-            if(id === 'cart') renderCart();
-        };
-
-        window.handleLogout = function() {
-            showPopup("Mau Keluar?", "Yakin mau keluar akun?", "🚪");
-            var actionArea = document.getElementById('popup-actions');
-            actionArea.innerHTML = `
-                <div class="flex gap-3 w-full">
-                    <button onclick="executeLogout()" class="flex-1 bg-red-500 text-white py-4 rounded-2xl font-black shadow-lg">YA</button>
-                    <button onclick="closePopup()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 py-4 rounded-2xl font-black">BATAL</button>
-                </div>`;
-        };
-
-        window.executeLogout = function() {
-            localStorage.removeItem('folkpresso_current_user');
-            location.reload();
-        };
-
-        function loadUserData(username) {
-            currentUser = username;
-            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
-            var userData = db[username] || { points: 0, caffeine: 0, lastQuestDate: "" };
-
-            userPoints = userData.points || 0;
-            userCaffeine = userData.caffeine || 0;
-
-            var today = new Date().toDateString();
-            if(userData.lastQuestDate === today) {
-                var btn = document.getElementById('quest-card');
-                document.getElementById('quest-status').innerText = "Terklaim ✅";
-                btn.classList.add('opacity-50');
-            } else {
-                var btn = document.getElementById('quest-card');
-                document.getElementById('quest-status').innerText = "Klaim +50 Poin";
-                btn.classList.remove('opacity-50');
-            }
-
-            if(document.getElementById('home-username')) document.getElementById('home-username').innerText = username;
-            if(document.getElementById('profile-username')) document.getElementById('profile-username').innerText = username;
-            if(document.getElementById('home-points')) document.getElementById('home-points').innerText = userPoints.toLocaleString();
-
-            updateMemberUI();
-        }
-
-        function saveUserData() {
-            if(!currentUser) return;
-            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
-            var today = new Date().toDateString();
-            var isClaimed = document.getElementById('quest-card').classList.contains('opacity-50');
-
-            if(db[currentUser]) {
-                db[currentUser].points = userPoints;
-                db[currentUser].caffeine = userCaffeine;
-                if(isClaimed) db[currentUser].lastQuestDate = today;
-            }
-            localStorage.setItem('folkpresso_users_db', JSON.stringify(db));
-        }
-
-        window.filterMood = function(mood) {
-            if(mood === 'all') return renderProducts(products);
-            var filtered = products.filter(function(p) { return p.type === mood; });
-            renderProducts(filtered);
-        };
-
-        function renderProducts(list) {
-            var container = document.getElementById('product-list');
-            var grayscale = isStoreOpen ? '' : 'grayscale-mode';
-            container.innerHTML = '';
-
-            list.forEach(function(p) {
-                var imgSource = p.image || "https://cdn-icons-png.flaticon.com/512/751/751621.png";
-
-                container.innerHTML += `
-                <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center gap-4 ${grayscale}">
-
-                    <div class="w-16 h-16 shrink-0">
-                        <img src="${imgSource}" alt="${p.name}" class="w-full h-full object-cover rounded-2xl shadow-sm bg-slate-50">
-                    </div>
-
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-sm dark:text-white truncate">${p.name}</h4>
-                        <p class="text-blue-600 dark:text-blue-400 font-black text-xs">Rp ${p.price.toLocaleString()}</p>
-                    </div>
-
-                    <button onclick="shareLink('${p.name}')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs shrink-0">🔗</button>
-                    <button onclick="addToCart('${p.name}', ${p.price}, ${p.mg || 0}, ${p.cost || 0})" class="bg-blue-900 dark:bg-blue-600 text-white w-10 h-10 rounded-xl font-bold shrink-0 shadow-lg active:scale-90 transition-transform">+</button>
-                </div>`;
-            });
-        }
-
-        window.addToCart = function(name, price, mg, cost) {
-            if(!isStoreOpen) return showPopup("Toko Tutup", "Maaf kak, toko sedang tutup.", "🔒");
-            var existingItem = cart.find(function(item) { return item.name === name; });
-            if (existingItem) { existingItem.quantity += 1; }
-            else { cart.push({ name: name, price: price, mg: mg, cost: cost || 0, quantity: 1 }); }
-            showToast(name + " berhasil ditambahkan!");
-            if(navigator.vibrate) navigator.vibrate(20);
-            renderCart();
-        };
-
-        window.updateQuantity = function(index, delta) {
-            cart[index].quantity += delta;
-            if (cart[index].quantity < 1) { cart.splice(index, 1); showToast("Item dihapus"); }
-            renderCart();
+        window.addToCart = function(name, price) {
+            const item = cart.find(i => i.name === name);
+            if(item) item.quantity++; else cart.push({name, price, quantity: 1});
+            showToast(name + " ditambahkan!");
         };
 
         function renderCart() {
-            var list = document.getElementById('cart-items');
-            list.innerHTML = cart.length ? '' : '<p class="text-center text-slate-400 text-xs py-10 italic">Keranjangmu masih kosong nih...</p>';
-            var total = 0;
-            cart.forEach(function(item, index) {
-                var itemTotal = item.price * item.quantity;
-                total += itemTotal;
-                list.innerHTML += `
-                <div class="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 mb-3">
-                    <div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-xl shadow-inner">☕</div>
-                    <div class="flex-1"><h4 class="font-extrabold text-sm text-slate-800 dark:text-white leading-tight">${item.name}</h4><p class="text-blue-600 dark:text-blue-400 font-black text-xs mt-0.5">Rp ${itemTotal.toLocaleString()}</p></div>
-                    <div class="flex items-center bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700">
-                        <button onclick="updateQuantity(${index}, -1)" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 text-slate-600 dark:text-white rounded-xl shadow-sm"><span class="font-bold">-</span></button>
-                        <span class="px-4 text-sm font-black text-blue-900 dark:text-white min-w-[40px] text-center">${item.quantity}</span>
-                        <button onclick="updateQuantity(${index}, 1)" class="w-8 h-8 flex items-center justify-center bg-blue-900 dark:bg-blue-600 text-white rounded-xl shadow-md"><span class="font-bold">+</span></button>
-                    </div>
+            const list = document.getElementById('cart-items');
+            if(!list) return;
+            let total = 0;
+            list.innerHTML = cart.map(item => {
+                total += item.price * item.quantity;
+                return `<div class="bg-white dark:bg-slate-900 p-4 rounded-2xl flex justify-between">
+                    <span class="font-bold">${item.name} (x${item.quantity})</span>
+                    <span>Rp ${(item.price * item.quantity).toLocaleString()}</span>
                 </div>`;
-            });
+            }).join('') || '<p class="text-center italic text-slate-400">Keranjang kosong</p>';
             document.getElementById('cart-total').innerText = 'Rp ' + total.toLocaleString();
         }
 
+        // --- PEMBAYARAN ---
         window.openPayment = function() {
             if(!cart.length) return showToast("Keranjang kosong!");
-            document.getElementById('payment-modal').classList.remove('hidden');
-            document.getElementById('payment-modal').classList.add('flex');
+            const modal = document.getElementById('payment-modal');
+            if(modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
         };
 
-        window.processPayment = async function(method) {
-            var username = localStorage.getItem('folkpresso_current_user') || "Guest";
+        window.closePaymentModal = function() {
+            const modal = document.getElementById('payment-modal');
+            if(modal) modal.classList.add('hidden');
+        };
 
-            document.getElementById('payment-modal').classList.add('hidden');
-            document.getElementById('tracking-modal').classList.remove('hidden');
-
-            var totalOrder = cart.reduce(function(a, b) { return a + (b.price * b.quantity); }, 0);
-            var caffeineAdd = cart.reduce(function(a, b) { return a + (b.mg * b.quantity); }, 0);
-            var cupsCount = cart.reduce(function(a, b) { return a + b.quantity; }, 0);
-
-            var orderDetails = cart.map(function(item) {
-                return item.quantity + "x " + item.name;
-            }).join(", ");
-
-            sendGlobalMessage(`☕ ${username} baru saja memesan ${orderDetails} via ${method}!`);
-
-            var now = new Date();
-            var dateStamp = now.toISOString().split('T')[0];
-            var fullTimeStr = now.toLocaleDateString('id-ID') + " | " + now.toLocaleTimeString('id-ID');
-
-            var payload = cart.map(function(item) {
-                return {
-                    date: dateStamp,
-                    full_time: fullTimeStr,
-                    name: item.name,
-                    type: 'in',
-                    qty: item.quantity,
-                    unit_price: item.price,
-                    unit_cost: item.cost || 0,
-                    total: item.price * item.quantity,
-                    method: method,
-                    payment_status: 'success',
-                    location: '-',
-                    netto: '-',
-                    notes: '-'
-                };
-            });
-
-            if (window.supabaseClient) {
-                try {
-                    console.log("📤 Mengirim data ke Supabase...", payload);
-                    const { data, error } = await window.supabaseClient.from('transactions').insert(payload);
-                    if (error) {
-                        console.error("❌ Supabase Error:", error);
-                        showToast("⚠️ Gagal sync database: " + error.message);
-                    } else {
-                        console.log("✅ Data berhasil dikirim ke Supabase!");
-                        
-                    }
-                } catch (err) {
-                    console.error("❌ Error saat kirim data:", err);
-                    showToast("⚠️ Error koneksi: " + err.message);
-                }
-            } else {
-                console.warn("⚠️ Supabase client belum siap, data hanya tersimpan lokal");
-                showToast("⚠️ Mode offline - data tersimpan lokal");
-            }
-
-            userPoints += Math.floor(totalOrder / 1000);
-            userCaffeine += caffeineAdd;
-            saveUserData();
-            updateMemberUI();
-
-            communityGoal += cupsCount;
-            localStorage.setItem('folkpresso_community_goal', communityGoal);
-            updateGoalUI();
-
-            if(currentUser) {
-                localStorage.setItem('lastOrder_' + currentUser, JSON.stringify(cart));
-                document.getElementById('reorder-section').classList.remove('hidden');
-            }
-
-            var modal = document.getElementById('tracking-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.getElementById('brew-state').classList.remove('hidden');
-            document.getElementById('finish-state').classList.remove('flex');
-            document.getElementById('finish-state').classList.add('hidden');
-            document.getElementById('anim-bar').style.width = "0%";
-            document.getElementById('track-title').innerText = "Memproses...";
-            document.getElementById('track-desc').innerText = "Via " + method;
-
-            setTimeout(function() {
+        window.processPayment = function(method) {
+            closePaymentModal();
+            const track = document.getElementById('tracking-modal');
+            if(track) {
+                track.classList.remove('hidden'); track.classList.add('flex');
                 document.getElementById('anim-bar').style.width = "100%";
-                setTimeout(function() {
+                setTimeout(() => {
                     document.getElementById('brew-state').classList.add('hidden');
                     document.getElementById('finish-state').classList.remove('hidden');
                     document.getElementById('finish-state').classList.add('flex');
-                }, 500);
-            }, 3000);
+                }, 3000);
+            }
         };
 
-        window.sendGlobalMessage = function(msg) {
-            if (window.marqueeChannel) {
-                try {
-                    window.marqueeChannel.send({
-                        type: 'broadcast',
-                        event: 'announcement',
-                        payload: { message: msg }
-                    });
-                    console.log("📤 Pesan broadcast terkirim:", msg);
-                } catch(e) {
-                    console.error("❌ Error saat kirim broadcast:", e);
-                    if (window.displayMarqueeMessage) {
-                        window.displayMarqueeMessage(msg);
-                    }
-                }
+        window.finishOrder = function() { location.reload(); };
+
+        // --- NAVIGASI (DENGAN PENGECEKAN SAFETY) ---
+        window.showPage = function(id) {
+            const target = document.getElementById(id + '-page');
+            
+            // HANYA JALANKAN JIKA ELEMEN ADA
+            if (target) {
+                document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active'));
+                target.classList.add('active');
+
+                // Update warna icon nav
+                document.querySelectorAll('nav button').forEach(b => b.classList.replace('text-blue-900', 'text-slate-400'));
+                const btn = document.getElementById('btn-' + id);
+                if(btn) btn.classList.replace('text-slate-400', 'text-blue-900');
+
+                if(id === 'cart') renderCart();
             } else {
-                console.warn("⚠️ Channel belum siap");
-                if (initMarqueeChannel()) {
-                    setTimeout(function() {
-                        if (window.marqueeChannel) {
-                            try {
-                                window.marqueeChannel.send({
-                                    type: 'broadcast',
-                                    event: 'announcement',
-                                    payload: { message: msg }
-                                });
-                            } catch(e) {
-                                console.error("❌ Gagal kirim pesan:", e);
-                            }
-                        }
-                    }, 200);
-                } else {
-                    if (window.displayMarqueeMessage) {
-                        window.displayMarqueeMessage(msg);
-                    }
-                }
+                console.error("Error: Halaman " + id + "-page tidak ditemukan!");
+                showToast("Halaman belum tersedia");
             }
         };
-
-        window.finishOrder = function() {
-            document.getElementById('tracking-modal').classList.remove('flex');
-            document.getElementById('tracking-modal').classList.add('hidden');
-            cart = [];
-            renderCart();
-            showToast("Pesanan Selesai!");
-            showPage('home');
-        };
-
-        function updateMemberUI() {
-            var card = document.getElementById('member-card');
-            var tierName = document.getElementById('tier-name');
-            var bar = document.getElementById('level-bar');
-            var currentTier = tierName.innerText;
-
-            if (currentTierStatus !== "" && currentTierStatus !== currentTier) {
-                sendGlobalMessage(`Hore! ${currentUser} sekarang sudah jadi member ${currentTier}! 👑`);
-            }
-
-            if(document.getElementById('display-points')) document.getElementById('display-points').innerText = userPoints.toLocaleString();
-            if(document.getElementById('home-points')) document.getElementById('home-points').innerText = userPoints.toLocaleString();
-
-            if(userPoints > 5000) {
-                card.className = "member-card-gold rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500";
-                tierName.innerText = "GOLD MEMBER 👑";
-                bar.style.width = "100%";
-                currentTierStatus = "GOLD MEMBER 👑";
-            } else if (userPoints > 1000) {
-                card.className = "member-card-silver rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500";
-                tierName.innerText = "SILVER MEMBER ⚔️";
-                bar.style.width = (userPoints / 5000 * 100) + "%";
-                currentTierStatus = "SILVER MEMBER ⚔️";
-            } else {
-                card.className = "member-card-bronze rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500";
-                tierName.innerText = "BRONZE MEMBER";
-                bar.style.width = (userPoints / 1000 * 100) + "%";
-                currentTierStatus = "BRONZE MEMBER";
-            }
-
-            document.getElementById('caffeine-mg').innerHTML = userCaffeine + '<span class="text-xs text-slate-400">mg</span>';
-            document.getElementById('caffeine-bar').style.height = Math.min((userCaffeine / 500) * 100, 100) + "%";
-        }
-
-        window.toggleStoreStatus = function() {
-            isStoreOpen = !isStoreOpen;
-            var statusText = document.getElementById('admin-status-text');
-            var btn = document.getElementById('btn-store-toggle');
-            var badge = document.getElementById('store-status-badge');
-            if(isStoreOpen) {
-                statusText.innerText = "Buka"; statusText.className = "text-[10px] text-green-500 font-bold uppercase mt-1";
-                btn.innerText = "TUTUP TOKO"; btn.className = "bg-red-500 text-white px-4 py-2 rounded-xl font-bold text-xs";
-                badge.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span><p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Open Now</p>`;
-            } else {
-                statusText.innerText = "Tutup"; statusText.className = "text-[10px] text-red-500 font-bold uppercase mt-1";
-                btn.innerText = "BUKA TOKO"; btn.className = "bg-green-500 text-white px-4 py-2 rounded-xl font-bold text-xs";
-                badge.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span><p class="text-[10px] text-red-400 font-bold uppercase tracking-widest">Closed</p>`;
-            }
-            renderProducts(products);
-        };
-
-        window.rate = function(stars) { showToast("Terima kasih rating " + stars + " bintangnya!"); };
 
         function showToast(msg) {
-            var toast = document.createElement('div');
-            toast.className = 'toast'; toast.innerText = msg;
-            document.getElementById('toast-container').appendChild(toast);
-            setTimeout(function() { toast.remove(); }, 2500);
+            const container = document.getElementById('toast-container');
+            if(!container) return;
+            const t = document.createElement('div');
+            t.className = 'toast'; t.innerText = msg;
+            container.appendChild(t);
+            setTimeout(() => t.remove(), 2500);
         }
 
-        window.selectPickup = function(value) {
-            document.getElementById('pickup-time').value = value;
-            document.querySelectorAll('.pickup-card').forEach(function(card) {
-                card.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/40');
-                card.classList.add('border-transparent', 'bg-slate-50', 'dark:bg-slate-800');
-                card.querySelector('p:first-child').classList.replace('text-blue-600', 'text-slate-400');
-            });
-            var activeCard = document.getElementById('time-' + value);
-            activeCard.classList.replace('border-transparent', 'border-blue-500');
-            activeCard.classList.replace('bg-slate-50', 'bg-blue-50');
-            activeCard.querySelector('p:first-child').classList.replace('text-slate-400', 'text-blue-600');
-            if(navigator.vibrate) navigator.vibrate(10);
-        };
-
-        window.showPopup = function(title, message, icon) {
-            if (!icon) icon = "☕";
-            var popup = document.getElementById('universal-popup');
-            var content = document.getElementById('popup-content');
-            var actionArea = document.getElementById('popup-actions');
-
-            document.getElementById('popup-title').innerText = title;
-            document.getElementById('popup-message').innerText = message;
-            document.getElementById('popup-icon').innerText = icon;
-            actionArea.innerHTML = `<button onclick="closePopup()" class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-transform">OKE!</button>`;
-
-            popup.classList.remove('hidden');
-            popup.classList.add('flex');
-
-            setTimeout(function() {
-                content.classList.remove('scale-50', 'opacity-0');
-                content.classList.add('scale-100', 'opacity-100');
-            }, 10);
-        };
-
-        window.closePopup = function() {
-            var content = document.getElementById('popup-content');
-            content.classList.add('scale-50', 'opacity-0');
-            setTimeout(function() {
-                document.getElementById('universal-popup').classList.add('hidden');
-            }, 300);
-        };
-
-        window.shareLink = function(item) {
-            if(navigator.share) { navigator.share({title: 'Titip Folkpresso', text: "Nitip " + item + " dong!"}); }
-            else { showToast("Link Titip Beli disalin!"); }
-        };
-
-        window.mysteryBrew = function() {
-            if(!isStoreOpen) return showToast("Toko Tutup.");
-            var random = products[Math.floor(Math.random() * products.length)];
-            addToCart(random.name, random.price, random.mg, random.cost);
-            showToast("✨ Magic! " + random.name + " terpilih!");
-        };
-
-        window.claimQuest = function() {
-            if(!currentUser) return showToast("Login dulu kak!");
-            var btn = document.getElementById('quest-card');
-            var today = new Date().toDateString();
-
-            if(btn.classList.contains('opacity-50')) return showToast("Sudah diklaim hari ini!");
-
-            showPopup("Hooray!", "Kamu baru saja mendapatkan +50 Poin Folkpresso!", "🎁");
-            userPoints += 50;
-            sendGlobalMessage(`${currentUser} baru saja menyelesaikan Daily Quest! 🎁`);
-
-            btn.classList.add('opacity-50');
-            document.getElementById('quest-status').innerText = "Terklaim ✅";
-
-            saveUserData();
-            updateMemberUI();
-        };
-
-        window.generateVoucher = function() { addToCart("Voucher Traktir", 20000, 0, 0); };
-
-        window.loadLastOrder = function() {
-            if(!currentUser) return;
-            var saved = localStorage.getItem('lastOrder_' + currentUser);
-            if(saved) {
-                var items = JSON.parse(saved);
-                items.forEach(function(i) { addToCart(i.name, i.price, i.mg, i.cost); });
-                showToast("Pesanan terakhir dimuat!");
-            }
-        };
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('sw.js')
-                    .then(function(reg) { console.log('Service Worker Registered:', reg.scope); })
-                    .catch(function(err) { console.log('Service Worker Failed:', err); });
-            });
-        }
-
-        var deferredPrompt;
-        window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            deferredPrompt = e;
-            console.log("Aplikasi bisa di-install!");
-        });
+        window.toggleDark = function() { document.documentElement.classList.toggle('dark'); };
+        window.logout = function() { auth.signOut().then(() => location.reload()); };
     </script>
 </body>
 </html>
