@@ -10,6 +10,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/751/751621.png">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -67,289 +70,140 @@
 
     <div id="toast-container"></div>
 
-    <div id="login-modal" class="fixed inset-0 bg-blue-900 flex flex-col items-center justify-center p-8 text-white transition-all duration-500 overflow-y-auto">
-        <div class="text-6xl mb-4 animate-bounce">☕</div>
-        <h1 class="text-3xl font-black mb-2 italic tracking-tighter">FOLKPRESSO</h1>
-        <p class="text-sm opacity-80 mb-6 text-center">Masuk untuk simpan Poin & Level Member!</p>
+   <body class="bg-[#F8FAFC] text-slate-900 dark:bg-slate-950 dark:text-white transition-colors duration-300 font-sans select-none">
 
-        <!-- Tab Switcher -->
-        <div class="w-full max-w-xs flex mb-4 bg-white/10 rounded-2xl p-1 backdrop-blur-md border border-white/20">
-            <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-3 rounded-xl font-black text-sm transition-all bg-white text-blue-900">MASUK</button>
-            <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-3 rounded-xl font-black text-sm transition-all text-white/70">DAFTAR</button>
+    <div id="login-screen" class="fixed inset-0 z-[9999] bg-gradient-to-br from-blue-700 to-blue-900 flex flex-col items-center justify-center p-6 transition-all duration-500">
+        <div class="mb-8 p-6 bg-white rounded-[2.5rem] shadow-2xl animate-bounce">
+            <img src="https://cdn-icons-png.flaticon.com/512/751/751621.png" class="w-20 h-20">
         </div>
+        <h1 class="text-5xl font-extrabold text-white mb-3 italic tracking-tight">Folkpresso</h1>
+        <p class="text-blue-100 mb-12 text-center max-w-xs font-medium">Komunitas Kopi & Loyalty App.<br>Masuk untuk kumpulkan poin.</p>
 
-        <!-- LOGIN FORM -->
-        <div id="form-login" class="w-full max-w-xs bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 shadow-2xl">
-            <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Nama Pengguna</label>
-            <input type="text" id="login-username" placeholder="Contoh: Budi" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-4 border border-transparent focus:border-white/50 transition-colors">
-
-            <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Password</label>
-            <input type="password" id="login-password" placeholder="Masukkan password" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-6 border border-transparent focus:border-white/50 transition-colors">
-
-            <button onclick="handleLoginOnly()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">MASUK</button>
-            <p class="text-center text-[11px] opacity-60 mt-4">Belum punya akun? <span onclick="switchAuthTab('register')" class="underline cursor-pointer opacity-100 font-bold">Daftar di sini</span></p>
-        </div>
-
-        <!-- REGISTER FORM -->
-        <div id="form-register" class="w-full max-w-xs bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 shadow-2xl hidden">
-            <!-- Step 1: Data Diri -->
-            <div id="register-step1">
-                <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Nama Pengguna</label>
-                <input type="text" id="register-username" placeholder="Contoh: Budi" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-4 border border-transparent focus:border-white/50 transition-colors">
-
-                <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Password</label>
-                <input type="password" id="register-password" placeholder="Min. 6 karakter" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-4 border border-transparent focus:border-white/50 transition-colors">
-
-                <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">Konfirmasi Password</label>
-                <input type="password" id="register-password-confirm" placeholder="Ulangi password" class="w-full bg-white/20 p-4 rounded-2xl text-white font-bold placeholder-white/50 outline-none text-center mb-4 border border-transparent focus:border-white/50 transition-colors">
-
-                <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2">No. HP (WhatsApp)</label>
-                <div class="flex mb-6">
-                    <span class="bg-white/30 p-4 rounded-l-2xl text-white font-bold text-sm flex items-center">+62</span>
-                    <input type="tel" id="register-phone" placeholder="81234567890" class="w-full bg-white/20 p-4 rounded-r-2xl text-white font-bold placeholder-white/50 outline-none text-center border border-transparent focus:border-white/50 transition-colors">
-                </div>
-
-                <button onclick="handleRegisterStep1()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">KIRIM KODE OTP</button>
-            </div>
-
-            <!-- Step 2: Verifikasi OTP -->
-            <div id="register-step2" class="hidden">
-                <div class="text-center mb-4">
-                    <div class="text-4xl mb-2">📲</div>
-                    <p class="text-sm font-bold">Kode OTP telah dikirim!</p>
-                    <p id="otp-phone-display" class="text-[11px] opacity-70 mt-1">ke +62 ...</p>
-                </div>
-
-                <label class="text-[10px] font-bold uppercase tracking-widest opacity-70 block mb-2 text-center">Masukkan 6 Digit Kode OTP</label>
-                <div class="flex justify-center gap-2 mb-4" id="otp-inputs">
-                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 0)" onkeydown="otpBackspace(event, 0)">
-                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 1)" onkeydown="otpBackspace(event, 1)">
-                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 2)" onkeydown="otpBackspace(event, 2)">
-                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 3)" onkeydown="otpBackspace(event, 3)">
-                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 4)" onkeydown="otpBackspace(event, 4)">
-                    <input type="text" maxlength="1" class="otp-box w-11 h-14 bg-white/20 rounded-xl text-white font-black text-xl text-center outline-none border-2 border-transparent focus:border-white/50 transition-colors" oninput="otpAutoFocus(this, 5)" onkeydown="otpBackspace(event, 5)">
-                </div>
-
-                <div class="flex justify-between items-center mb-6 px-2">
-                    <p id="otp-timer" class="text-[11px] opacity-70">Berlaku 02:00</p>
-                    <button id="btn-resend-otp" onclick="resendOTP()" class="text-[11px] font-bold underline opacity-50 cursor-not-allowed" disabled>Kirim Ulang</button>
-                </div>
-
-                <button onclick="verifyOTP()" id="btn-verify-otp" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">VERIFIKASI & DAFTAR</button>
-
-                <button onclick="backToStep1()" class="w-full text-white/60 font-bold text-xs mt-3 py-2">Kembali</button>
-            </div>
-
-            <p class="text-center text-[11px] opacity-60 mt-4" id="register-switch-text">Sudah punya akun? <span onclick="switchAuthTab('login')" class="underline cursor-pointer opacity-100 font-bold">Masuk di sini</span></p>
-        </div>
+        <button onclick="loginWithGoogle()" class="group w-full max-w-xs bg-white text-blue-900 font-bold py-4 px-6 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6 h-6">
+            <span>Masuk dengan Google</span>
+        </button>
+        <p class="mt-10 text-xs text-blue-300/60 font-semibold tracking-widest uppercase">Copyright - Folkpresso</p>
     </div>
 
-    <header class="glass-nav sticky top-0 z-[60]">
-        <div class="px-6 py-4 flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 tracking-tighter italic">FOLKPRESSO</h1>
-                <div id="store-status-badge" class="flex items-center gap-1.5 mt-1">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Open Now</p>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="window.showToast('🎵 Now Playing: ' + currentVibe)" class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl text-xs animate-pulse">🎵</button>
-                <button onclick="toggleDark()" class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl">🌙</button>
-                <button onclick="window.showPage('admin')" class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl text-blue-600 dark:text-blue-400">📊</button>
-            </div>
-        </div>
-
-        <div class="px-6 pb-4">
-            <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1">
-                <span class="text-blue-900 dark:text-blue-300">Community Goal 🎯</span>
-                <span id="goal-counter" class="text-slate-400">0 / 20 Cups</span>
-            </div>
-            <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div id="goal-bar" class="h-full bg-blue-600 w-0 transition-all duration-1000"></div>
-            </div>
-        </div>
-    </header>
-
-    <main id="home-page" class="app-page active">
-        <div class="px-6 mt-4 flex items-center justify-between">
-            <div>
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Halo, Barista Friend!</p>
-                <h2 id="home-username" class="text-xl font-black text-blue-900 dark:text-white truncate max-w-[150px]">Guest</h2>
-            </div>
-            <div onclick="window.showPage('profile')" class="bg-blue-100 dark:bg-slate-800 px-3 py-1 rounded-full flex items-center gap-1 cursor-pointer hover:bg-blue-200 transition-colors">
-                <span class="text-xs">⭐</span>
-                <span id="home-points" class="text-xs font-bold text-blue-800 dark:text-blue-300">0</span>
-            </div>
-        </div>
-
-        <div class="bg-blue-900 dark:bg-blue-950 py-2 mt-4 overflow-hidden relative border-y border-blue-800">
-            <div class="animate-marquee text-xs font-bold text-blue-200 tracking-wide">
-                🔥 "Aren Latte-nya juara!" - Andi &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; 🚀 "Thanks buat bonusnya kak!" - Siti &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!
-            </div>
-        </div>
-
-        <div class="px-6 mt-6">
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pilih Kategori</p>
-            <div class="flex gap-3 overflow-x-auto no-scrollbar">
-                <button onclick="filterMood('signature')" class="mood-btn min-w-[100px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">🌟</div><span class="text-[10px] font-bold">Signature</span></button>
-                <button onclick="filterMood('classic')" class="mood-btn min-w-[100px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">☕</div><span class="text-[10px] font-bold">Classic</span></button>
-                <button onclick="filterMood('non-coffee')" class="mood-btn min-w-[100px] bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">🍵</div><span class="text-[10px] font-bold">Non-Coffee</span></button>
-                <button onclick="filterMood('all')" class="mood-btn min-w-[100px] bg-blue-100 dark:bg-blue-900 p-3 rounded-2xl border border-blue-200 dark:border-blue-700 text-center active:scale-95 transition-transform"><div class="text-2xl mb-1">👀</div><span class="text-[10px] font-bold">Semua</span></button>
-            </div>
-        </div>
-
-        <div class="px-6 mt-6 grid grid-cols-2 gap-3">
-            <div onclick="mysteryBrew()" class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[2rem] p-5 text-white shadow-lg relative overflow-hidden active:scale-95 transition-transform">
-                 <h4 class="font-black text-sm relative z-10">Mystery Brew 🎲</h4>
-                 <p class="text-[10px] opacity-80 relative z-10">Biarkan kami pilih!</p>
-                 <span class="absolute -bottom-2 -right-2 text-5xl opacity-20">❓</span>
-            </div>
-
-            <div onclick="claimQuest()" id="quest-card" class="bg-gradient-to-br from-pink-500 to-orange-500 rounded-[2rem] p-5 text-white shadow-lg relative overflow-hidden active:scale-95 transition-transform">
-                <h4 class="font-black text-sm relative z-10">Daily Quest ⚔️</h4>
-                <p id="quest-status" class="text-[10px] opacity-80 relative z-10">Klaim +50 Poin</p>
-                <span class="absolute -bottom-2 -right-2 text-5xl opacity-20">🎁</span>
-            </div>
-        </div>
-
-        <div class="px-6 mt-8 pb-10 space-y-4" id="product-list"></div>
-    </main>
-
-    <main id="cart-page" class="app-page px-6 pt-8">
-        <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 italic text-center">Keranjang</h2>
-
-        <div class="mb-6 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800 p-4 rounded-2xl flex items-center gap-3">
-            <div class="bg-pink-100 dark:bg-pink-800 p-2 rounded-xl text-xl">🎁</div>
-            <div class="flex-1">
-                <p class="text-xs font-bold text-pink-700 dark:text-pink-300">Traktir Teman?</p>
-                <p class="text-[10px] text-slate-500 dark:text-slate-400">Beli voucher digital</p>
-            </div>
-            <button onclick="generateVoucher()" class="bg-pink-500 text-white px-3 py-2 rounded-xl text-[10px] font-bold">Beli</button>
-        </div>
-
-        <div id="reorder-section" class="hidden mb-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800 text-center">
-            <p class="text-xs text-blue-800 dark:text-blue-300 font-bold mb-3">Mau pesan yang kemarin?</p>
-            <button onclick="loadLastOrder()" class="bg-blue-600 text-white px-6 py-2 rounded-xl text-xs font-bold shadow-lg active:scale-95">Ulangi Pesanan Terakhir</button>
-        </div>
-
-        <div id="cart-items" class="space-y-3 min-h-[100px]"><p class="text-center text-slate-400 text-xs py-10">Belum ada pesanan.</p></div>
-
-        <div class="mt-8 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
-            <div class="flex justify-between items-center mb-4"><span class="font-bold text-slate-400 uppercase text-xs">Total</span><span id="cart-total" class="text-xl font-black text-blue-900 dark:text-white">Rp 0</span></div>
-            <button onclick="openPayment()" class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">Checkout</button>
-        </div>
-    </main>
-
-    <main id="profile-page" class="app-page px-6 pt-8">
-        <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 text-center italic">My Profile</h2>
-
-        <div id="member-card" class="member-card-bronze rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500">
-            <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-            <div class="flex justify-between items-start">
-                <h3 id="tier-name" class="font-bold tracking-widest text-sm uppercase">Bronze Member</h3>
-                <span class="text-2xl">✨</span>
-            </div>
-            <div>
-                <p class="text-[10px] opacity-60 uppercase tracking-widest mb-1">Account</p>
-                <p id="profile-username" class="font-bold text-lg mb-1">Guest</p>
-                <p class="text-[10px] opacity-60 uppercase tracking-widest mb-1">Total Points</p>
-                <p id="display-points" class="text-3xl font-black">0</p>
-            </div>
-            <div class="flex justify-between items-end">
-                <div class="w-full mr-4">
-                    <p class="text-[10px] opacity-60 uppercase tracking-widest mb-1">Next Level</p>
-                    <div class="w-full h-1.5 bg-black/20 rounded-full overflow-hidden"><div id="level-bar" class="h-full bg-white w-[10%]"></div></div>
-                </div>
-                <div onclick="handleLogout()" class="w-10 h-10 bg-red-500 p-2 rounded-lg shrink-0 flex items-center justify-center cursor-pointer shadow-lg active:scale-90 transition-transform">
-                    🚪
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-6 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
-            <h4 class="font-bold text-sm dark:text-white mb-4">⚡ Caffeine Meter</h4>
-            <div class="flex items-end gap-2 h-24">
-                <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-t-xl relative overflow-hidden group">
-                    <div id="caffeine-bar" class="absolute bottom-0 w-full bg-orange-400 transition-all duration-1000" style="height: 0%"></div>
-                </div>
-                <div class="text-right">
-                    <h5 id="caffeine-mg" class="text-2xl font-black text-orange-500">0<span class="text-xs text-slate-400">mg</span></h5>
-                    <p class="text-[10px] text-slate-400">Weekly Intake</p>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <main id="admin-page" class="app-page px-6 pt-8">
-        <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-8 italic text-center">Owner Dashboard</h2>
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl mb-4 flex justify-between items-center shadow-lg">
-            <div><h4 class="font-bold text-sm dark:text-white">Status Toko</h4><p id="admin-status-text" class="text-[10px] text-green-500 font-bold uppercase mt-1">Buka</p></div>
-            <button onclick="toggleStoreStatus()" id="btn-store-toggle" class="bg-red-500 text-white px-4 py-2 rounded-xl font-bold text-xs">TUTUP TOKO</button>
-        </div>
-        <div class="grid grid-cols-2 gap-4 text-white">
-            <div class="bg-blue-800 p-5 rounded-3xl"><p class="text-[10px] font-bold opacity-80 uppercase">Omzet</p><h4 id="admin-sales" class="text-lg font-black mt-1">Rp 0</h4></div>
-            <div class="bg-indigo-600 p-5 rounded-3xl"><p class="text-[10px] font-bold opacity-80 uppercase">Cups</p><h4 id="admin-cups" class="text-lg font-black mt-1">0</h4></div>
-        </div>
-    </main>
-
-    <div id="payment-modal" class="fixed inset-0 bg-black/60 z-[100] hidden flex-col items-center justify-end backdrop-blur-sm">
-        <div class="bg-white dark:bg-slate-900 w-full rounded-t-[3rem] p-8 animate-slide-up max-h-[90vh] overflow-y-auto">
-            <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 mx-auto mb-6 rounded-full"></div>
-            <h3 class="text-xl font-black text-blue-900 dark:text-blue-400 mb-6 text-center">Pembayaran</h3>
-
-            <div class="mb-6">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3 ml-2">Waktu Ambil ⏰</label>
-                <div class="grid grid-cols-2 gap-3" id="pickup-options">
-                    <div onclick="selectPickup('ASAP')" id="time-ASAP" class="pickup-card bg-blue-50 dark:bg-blue-900/40 border-2 border-blue-500 p-4 rounded-2xl cursor-pointer transition-all">
-                        <p class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">Sekarang</p>
-                        <p class="text-sm font-black dark:text-white">±15 Menit</p>
-                    </div>
-                    <div onclick="selectPickup('Sore')" id="time-Sore" class="pickup-card bg-slate-50 dark:bg-slate-800 border-2 border-transparent p-4 rounded-2xl cursor-pointer transition-all">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">Nanti Sore</p>
-                        <p class="text-sm font-black dark:text-white">17:00 WIB</p>
+    <div id="main-app" class="hidden">
+        <header class="glass-nav sticky top-0 z-[60]">
+            <div class="px-6 py-4 flex justify-between items-center">
+                <div>
+                    <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 tracking-tighter italic">FOLKPRESSO</h1>
+                    <div id="store-status-badge" class="flex items-center gap-1.5 mt-1">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Open Now</p>
                     </div>
                 </div>
-                <input type="hidden" id="pickup-time" value="ASAP">
+                <div class="flex gap-2">
+                    <button onclick="toggleDark()" class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl">🌙</button>
+                    <button onclick="window.showPage('admin')" class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl text-blue-600 dark:text-blue-400">📊</button>
+                </div>
+            </div>
+            <div class="px-6 pb-4">
+                <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1">
+                    <span class="text-blue-900 dark:text-blue-300">Community Goal 🎯</span>
+                    <span id="goal-counter" class="text-slate-400">0 / 20 Cups</span>
+                </div>
+                <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div id="goal-bar" class="h-full bg-blue-600 w-0 transition-all duration-1000"></div>
+                </div>
+            </div>
+        </header>
+
+        <main id="home-page" class="app-page active">
+            <div class="px-6 mt-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img id="profile-photo-nav" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-10 h-10 rounded-full border-2 border-blue-500 object-cover">
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Halo, Friend!</p>
+                        <h2 id="home-username" class="text-sm font-black text-blue-900 dark:text-white truncate max-w-[120px]">Guest</h2>
+                    </div>
+                </div>
+                <div onclick="window.showPage('profile')" class="bg-blue-100 dark:bg-slate-800 px-3 py-1 rounded-full flex items-center gap-1 cursor-pointer">
+                    <span class="text-xs">⭐</span>
+                    <span id="home-points" class="text-xs font-bold text-blue-800 dark:text-blue-300">0</span>
+                </div>
             </div>
 
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 ml-2">E-Money</label>
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <button onclick="processPayment('GoPay')" class="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-4 rounded-2xl font-bold text-sm hover:scale-95 transition-transform">GoPay</button>
-                <button onclick="processPayment('OVO')" class="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-4 rounded-2xl font-bold text-sm hover:scale-95 transition-transform">OVO</button>
-                <button onclick="processPayment('DANA')" class="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-4 rounded-2xl font-bold text-sm hover:scale-95 transition-transform">DANA</button>
-                <button onclick="processPayment('ShopeePay')" class="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-4 rounded-2xl font-bold text-sm hover:scale-95 transition-transform">ShopeePay</button>
+            <div class="bg-blue-900 dark:bg-blue-950 py-2 mt-4 overflow-hidden border-y border-blue-800">
+                <div class="animate-marquee text-xs font-bold text-blue-200 tracking-wide">
+                    🔥 "Aren Latte-nya juara!" &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!
+                </div>
             </div>
 
-            <button onclick="processPayment('Tunai')" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 p-4 rounded-2xl font-bold text-sm mb-4">Bayar Tunai</button>
+            <div class="px-6 mt-6 grid grid-cols-2 gap-3">
+                <div onclick="mysteryBrew()" class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[2rem] p-5 text-white shadow-lg active:scale-95 transition-transform">
+                     <h4 class="font-black text-sm">Mystery Brew 🎲</h4>
+                     <p class="text-[10px] opacity-80">Biarkan kami pilih!</p>
+                </div>
+                <div onclick="claimQuest()" id="quest-card" class="bg-gradient-to-br from-pink-500 to-orange-500 rounded-[2rem] p-5 text-white shadow-lg active:scale-95 transition-transform">
+                    <h4 class="font-black text-sm">Daily Quest ⚔️</h4>
+                    <p id="quest-status" class="text-[10px] opacity-80">Klaim +50 Poin</p>
+                </div>
+            </div>
 
-            <button onclick="document.getElementById('payment-modal').classList.add('hidden')" class="w-full text-slate-400 font-bold text-xs">Batal</button>
-        </div>
+            <div class="px-6 mt-8 pb-10 space-y-4" id="product-list"></div>
+        </main>
+
+        <main id="cart-page" class="app-page px-6 pt-8">
+            <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 italic text-center">Keranjang</h2>
+            <div id="cart-items" class="space-y-3 min-h-[100px]"></div>
+            <div class="mt-8 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
+                <div class="flex justify-between items-center mb-4"><span class="font-bold text-slate-400 uppercase text-xs">Total</span><span id="cart-total" class="text-xl font-black text-blue-900 dark:text-white">Rp 0</span></div>
+                <button onclick="openPayment()" class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">Checkout</button>
+            </div>
+        </main>
+
+        <main id="profile-page" class="app-page px-6 pt-8">
+            <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 text-center italic">My Profile</h2>
+            <div id="member-card" class="member-card-bronze rounded-[2rem] p-6 shadow-2xl h-52 flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                    <h3 id="tier-name" class="font-bold tracking-widest text-sm uppercase">Bronze Member</h3>
+                    <span class="text-2xl">✨</span>
+                </div>
+                <div>
+                    <p id="profile-username" class="font-bold text-lg mb-1">Guest</p>
+                    <p id="display-points" class="text-3xl font-black">0</p>
+                </div>
+                <div class="flex justify-between items-end">
+                    <div class="w-full mr-4">
+                        <div class="w-full h-1.5 bg-black/20 rounded-full overflow-hidden"><div id="level-bar" class="h-full bg-white w-0"></div></div>
+                    </div>
+                    <div onclick="window.logout()" class="w-10 h-10 bg-red-500 p-2 rounded-lg flex items-center justify-center cursor-pointer shadow-lg active:scale-90">🚪</div>
+                </div>
+            </div>
+            
+            <div class="mt-6 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+                <h4 class="font-bold text-sm mb-4">⚡ Caffeine Meter</h4>
+                <div class="flex items-end gap-2 h-24">
+                    <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-t-xl relative overflow-hidden">
+                        <div id="caffeine-bar" class="absolute bottom-0 w-full bg-orange-400 transition-all duration-1000" style="height: 0%"></div>
+                    </div>
+                    <div class="text-right">
+                        <h5 id="caffeine-mg" class="text-2xl font-black text-orange-500">0<span class="text-xs text-slate-400">mg</span></h5>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav p-4 flex justify-around">
+            <button onclick="showPage('home')" id="btn-home" class="flex flex-col items-center text-blue-900 dark:text-blue-400">🏠<span class="text-[10px] font-bold mt-1">Menu</span></button>
+            <button onclick="showPage('cart')" id="btn-cart" class="flex flex-col items-center text-slate-400">🛒<span class="text-[10px] font-bold mt-1">Cart</span></button>
+            <button onclick="showPage('profile')" id="btn-profile" class="flex flex-col items-center text-slate-400">😎<span class="text-[10px] font-bold mt-1">Profile</span></button>
+        </nav>
     </div>
 
-    <div id="tracking-modal" class="fixed inset-0 bg-blue-900/95 z-[110] hidden flex-col items-center justify-center p-8 backdrop-blur-md text-white">
-        <div id="brew-state" class="flex flex-col items-center w-full">
-            <div class="text-6xl mb-4 anim-brew">☕</div>
-            <h2 id="track-title" class="text-2xl font-black mb-2">Memproses...</h2>
-            <p id="track-desc" class="text-sm opacity-80 text-center">Mohon tunggu sebentar</p>
-            <div class="w-full max-w-xs bg-blue-800 h-2 rounded-full mt-8 overflow-hidden">
-                <div id="anim-bar" class="h-full bg-blue-400 w-0 transition-all duration-[2000ms] ease-linear"></div>
-            </div>
-        </div>
-
-        <div id="finish-state" class="hidden flex-col items-center w-full max-w-xs animate-slide-up">
-            <p class="text-sm font-bold mb-4">Gimana pelayanan kami?</p>
-            <div class="flex gap-2 justify-center mb-6">
-                <button onclick="rate(1)" class="text-2xl hover:scale-125 transition-transform">⭐</button>
-                <button onclick="rate(2)" class="text-2xl hover:scale-125 transition-transform">⭐</button>
-                <button onclick="rate(3)" class="text-2xl hover:scale-125 transition-transform">⭐</button>
-                <button onclick="rate(4)" class="text-2xl hover:scale-125 transition-transform">⭐</button>
-                <button onclick="rate(5)" class="text-2xl hover:scale-125 transition-transform">⭐</button>
-            </div>
-            <button onclick="finishOrder()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-black">Selesai</button>
+    <div id="universal-popup" class="fixed inset-0 hidden items-center justify-center p-6 backdrop-blur-md bg-black/40 z-[9999]">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl transform transition-all duration-300" id="popup-content">
+            <div id="popup-icon" class="text-5xl text-center mb-4">✨</div>
+            <h3 id="popup-title" class="text-xl font-black text-center text-blue-900 dark:text-white italic mb-2">Pemberitahuan</h3>
+            <p id="popup-message" class="text-sm text-center text-slate-500 dark:text-slate-400 mb-6 font-medium"></p>
+            <div id="popup-actions" class="w-full"></div>
         </div>
     </div>
-
+    <div id="toast-container"></div>
     <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav p-4 flex justify-around">
         <button onclick="showPage('home')" id="btn-home" class="flex flex-col items-center text-blue-900 dark:text-blue-400">🏠<span class="text-[10px] font-bold mt-1">Menu</span></button>
         <button onclick="showPage('cart')" id="btn-cart" class="flex flex-col items-center text-slate-400">🛒<span class="text-[10px] font-bold mt-1">Cart</span></button>
@@ -428,256 +282,127 @@
             }
         }, 500);
 
-        /* ============================================ */
-        /*  AUTH SYSTEM - Login & Register terpisah     */
-        /*  + Verifikasi OTP via No. HP                 */
-        /* ============================================ */
 
-        var generatedOTP = "";
-        var otpTimerInterval = null;
-        var pendingRegister = {};
+    // --- 1. KONFIGURASI FIREBASE FOLKPRESSO ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBR_Er6zVysY-J-ht8PMpKRW0FJ69utN3w",
+      authDomain: "folkpresso.firebaseapp.com",
+      databaseURL: "https://folkpresso-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "folkpresso",
+      storageBucket: "folkpresso.firebasestorage.app",
+      messagingSenderId: "728120023418",
+      appId: "1:728120023418:web:62c8b1271da8af8a67dec3",
+      measurementId: "G-4VRF8TV2E1"
+    };
 
-        // Tab Switcher
-        window.switchAuthTab = function(tab) {
-            var tabLogin = document.getElementById('tab-login');
-            var tabRegister = document.getElementById('tab-register');
-            var formLogin = document.getElementById('form-login');
-            var formRegister = document.getElementById('form-register');
+    // Inisialisasi
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const provider = new firebase.auth.GoogleAuthProvider();
 
-            if (tab === 'login') {
-                tabLogin.classList.add('bg-white', 'text-blue-900');
-                tabLogin.classList.remove('text-white/70');
-                tabRegister.classList.remove('bg-white', 'text-blue-900');
-                tabRegister.classList.add('text-white/70');
-                formLogin.classList.remove('hidden');
-                formRegister.classList.add('hidden');
-            } else {
-                tabRegister.classList.add('bg-white', 'text-blue-900');
-                tabRegister.classList.remove('text-white/70');
-                tabLogin.classList.remove('bg-white', 'text-blue-900');
-                tabLogin.classList.add('text-white/70');
-                formRegister.classList.remove('hidden');
-                formLogin.classList.add('hidden');
-                // Reset to step 1
-                document.getElementById('register-step1').classList.remove('hidden');
-                document.getElementById('register-step2').classList.add('hidden');
-                document.getElementById('register-switch-text').classList.remove('hidden');
-            }
-        };
+    // --- 2. LOGIKA PINDAH HALAMAN OTOMATIS (AUTH STATE) ---
+    auth.onAuthStateChanged((user) => {
+        const loginScreen = document.getElementById('login-screen');
+        const mainApp = document.getElementById('main-app');
 
-        // LOGIN ONLY - akun harus sudah terdaftar
-        window.handleLoginOnly = function() {
-            var username = document.getElementById('login-username').value.trim();
-            var password = document.getElementById('login-password').value.trim();
+        if (user) {
+            // JIKA USER LOGIN:
+            console.log("User masuk:", user.displayName);
+            
+            // 1. Sembunyikan Login Screen pelan-pelan
+            loginScreen.style.opacity = '0';
+            setTimeout(() => {
+                loginScreen.classList.add('hidden');
+                // 2. Munculkan Aplikasi Utama
+                mainApp.classList.remove('hidden');
+            }, 500);
 
-            if (!username || !password) {
-                showPopup("Peringatan", "Isi Nama & Password!", "⚠️");
-                return;
-            }
+            // 3. Tarik Data Poin dari Cloud
+            startFolkSync(user.uid);
+            
+        } else {
+            // JIKA USER BELUM LOGIN / LOGOUT:
+            console.log("User belum login");
+            loginScreen.classList.remove('hidden');
+            loginScreen.style.opacity = '1';
+            mainApp.classList.add('hidden');
+        }
+    });
 
-            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
-
-            // Cek apakah akun ada
-            if (!db[username]) {
-                showPopup("Akun Tidak Ditemukan", "Username belum terdaftar. Silakan daftar terlebih dahulu.", "❌");
-                return;
-            }
-
-            // Cek password
-            if (db[username].password !== password) {
-                showPopup("Password Salah", "Password yang kamu masukkan salah. Coba lagi!", "🔒");
-                return;
-            }
-
-            // Login berhasil
-            localStorage.setItem('folkpresso_current_user', username);
-            loadUserData(username);
-            document.getElementById('login-modal').classList.add('hidden');
-            showToast("Login Berhasil! Halo " + username);
-        };
-
-        // REGISTER Step 1 - Validasi data & kirim OTP
-        window.handleRegisterStep1 = function() {
-            var username = document.getElementById('register-username').value.trim();
-            var password = document.getElementById('register-password').value.trim();
-            var confirmPw = document.getElementById('register-password-confirm').value.trim();
-            var phone = document.getElementById('register-phone').value.trim().replace(/\D/g, '');
-
-            if (!username || !password || !confirmPw || !phone) {
-                showPopup("Peringatan", "Semua field harus diisi!", "⚠️");
-                return;
-            }
-
-            if (username.length < 3) {
-                showPopup("Peringatan", "Nama pengguna minimal 3 karakter!", "⚠️");
-                return;
-            }
-
-            if (password.length < 6) {
-                showPopup("Peringatan", "Password minimal 6 karakter!", "⚠️");
-                return;
-            }
-
-            if (password !== confirmPw) {
-                showPopup("Peringatan", "Password dan konfirmasi tidak cocok!", "⚠️");
-                return;
-            }
-
-            if (phone.length < 9 || phone.length > 13) {
-                showPopup("Peringatan", "Nomor HP tidak valid! Masukkan 9-13 digit.", "📱");
-                return;
-            }
-
-            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
-
-            // Cek username sudah dipakai
-            if (db[username]) {
-                showPopup("Username Sudah Digunakan", "Nama pengguna '" + username + "' sudah terdaftar. Silakan gunakan nama lain atau langsung login.", "⚠️");
-                return;
-            }
-
-            // Cek no HP sudah dipakai user lain
-            var phoneFormatted = "+62" + phone;
-            for (var key in db) {
-                if (db[key].phone === phoneFormatted) {
-                    showPopup("Nomor HP Sudah Terdaftar", "Nomor " + phoneFormatted + " sudah digunakan akun lain. Satu nomor hanya bisa untuk satu akun.", "📱");
-                    return;
-                }
-            }
-
-            // Simpan data pending
-            pendingRegister = {
-                username: username,
-                password: password,
-                phone: phoneFormatted
-            };
-
-            // Generate OTP
-            generatedOTP = String(Math.floor(100000 + Math.random() * 900000));
-            console.log("🔐 OTP Generated:", generatedOTP);
-
-            // Tampilkan OTP via popup (simulasi kirim SMS)
-            showPopup("Kode OTP Terkirim!", "Kode OTP kamu: " + generatedOTP + " (Simulasi - di produksi akan dikirim via SMS/WA ke " + phoneFormatted + ")", "📲");
-
-            // Tampilkan nomor di step 2
-            document.getElementById('otp-phone-display').innerText = "ke " + phoneFormatted;
-
-            // Pindah ke step 2
-            document.getElementById('register-step1').classList.add('hidden');
-            document.getElementById('register-step2').classList.remove('hidden');
-            document.getElementById('register-switch-text').classList.add('hidden');
-
-            // Reset OTP inputs
-            var otpBoxes = document.querySelectorAll('.otp-box');
-            otpBoxes.forEach(function(box) { box.value = ''; });
-            otpBoxes[0].focus();
-
-            // Start timer
-            startOTPTimer();
-        };
-
-        // OTP Auto Focus & Backspace
-        window.otpAutoFocus = function(el, index) {
-            el.value = el.value.replace(/\D/g, '');
-            if (el.value && index < 5) {
-                document.querySelectorAll('.otp-box')[index + 1].focus();
-            }
-        };
-
-        window.otpBackspace = function(e, index) {
-            if (e.key === 'Backspace' && !e.target.value && index > 0) {
-                document.querySelectorAll('.otp-box')[index - 1].focus();
-            }
-        };
-
-        // OTP Timer (2 menit)
-        function startOTPTimer() {
-            var seconds = 120;
-            var timerEl = document.getElementById('otp-timer');
-            var resendBtn = document.getElementById('btn-resend-otp');
-
-            resendBtn.disabled = true;
-            resendBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            resendBtn.classList.remove('opacity-100', 'cursor-pointer');
-
-            clearInterval(otpTimerInterval);
-            otpTimerInterval = setInterval(function() {
-                seconds--;
-                var m = Math.floor(seconds / 60);
-                var s = seconds % 60;
-                timerEl.innerText = "Berlaku " + String(m).padStart(2, '0') + ":" + String(s).padStart(2, '0');
-
-                if (seconds <= 0) {
-                    clearInterval(otpTimerInterval);
-                    timerEl.innerText = "Kode kedaluwarsa";
-                    generatedOTP = "";
-                    resendBtn.disabled = false;
-                    resendBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    resendBtn.classList.add('opacity-100', 'cursor-pointer');
-                }
-            }, 1000);
+    // --- 3. FUNGSI LOGIN GOOGLE ---
+    window.loginWithGoogle = function() {
+        // Cek apakah dibuka lewat file:// (Error Google)
+        if (window.location.protocol === 'file:') {
+            alert("⚠️ ERROR: Google Login tidak bisa jalan jika dibuka langsung dari folder (file://).\n\nHarap buka menggunakan Live Server (VS Code) atau Upload ke Hosting.");
+            return;
         }
 
-        // Resend OTP
-        window.resendOTP = function() {
-            generatedOTP = String(Math.floor(100000 + Math.random() * 900000));
-            console.log("🔐 OTP Re-Generated:", generatedOTP);
-            showPopup("Kode OTP Baru!", "Kode OTP baru: " + generatedOTP + " (Simulasi SMS ke " + pendingRegister.phone + ")", "📲");
-            startOTPTimer();
+        auth.signInWithPopup(provider)
+            .then(async (result) => {
+                // Login Berhasil di Google, sekarang cek Database Folkpresso
+                const user = result.user;
+                const userRef = db.collection("users").doc(user.uid);
+                const doc = await userRef.get();
 
-            // Reset OTP inputs
-            var otpBoxes = document.querySelectorAll('.otp-box');
-            otpBoxes.forEach(function(box) { box.value = ''; });
-            otpBoxes[0].focus();
-        };
+                if (!doc.exists) {
+                    // Simpan data member baru
+                    await userRef.set({
+                        username: user.displayName,
+                        email: user.email,
+                        photo: user.photoURL,
+                        points: 0,
+                        caffeine: 0,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    showToast(`Selamat datang, ${user.displayName.split(' ')[0]}!`);
+                }
+            })
+            .catch((error) => {
+                console.error("Error Login:", error);
+                alert("Gagal Login: " + error.message);
+            });
+    };
 
-        // Verify OTP & Complete Registration
-        window.verifyOTP = function() {
-            var otpBoxes = document.querySelectorAll('.otp-box');
-            var enteredOTP = '';
-            otpBoxes.forEach(function(box) { enteredOTP += box.value; });
+    // --- 4. SINKRONISASI DATA (POIN & NAMA) ---
+    function startFolkSync(uid) {
+        db.collection("users").doc(uid).onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                
+                // Update Variable Global
+                currentUser = data.username;
+                userPoints = data.points || 0;
+                userCaffeine = data.caffeine || 0;
 
-            if (enteredOTP.length !== 6) {
-                showPopup("Peringatan", "Masukkan 6 digit kode OTP!", "⚠️");
-                return;
+                // Update Tampilan UI (Navbar, Profile)
+                const nameDisplay = document.getElementById('home-username');
+                const pointsDisplay = document.getElementById('home-points');
+                if(nameDisplay) nameDisplay.innerText = currentUser;
+                if(pointsDisplay) pointsDisplay.innerText = userPoints.toLocaleString();
+
+                // Update Foto Profil di Aplikasi
+                const avatars = document.querySelectorAll('img[src*="avatar"]'); // Cari semua gambar avatar
+                avatars.forEach(img => {
+                    if(data.photo) img.src = data.photo;
+                });
+                
+                updateMemberUI(); // Refresh tampilan menu/tombol
             }
+        });
+    }
 
-            if (!generatedOTP) {
-                showPopup("Kode Kedaluwarsa", "Kode OTP sudah kedaluwarsa. Silakan kirim ulang.", "⏰");
-                return;
-            }
-
-            if (enteredOTP !== generatedOTP) {
-                showPopup("OTP Salah", "Kode OTP yang kamu masukkan salah. Coba lagi!", "❌");
-                // Clear inputs
-                otpBoxes.forEach(function(box) { box.value = ''; });
-                otpBoxes[0].focus();
-                return;
-            }
-
-            // OTP Benar! Simpan akun baru
-            clearInterval(otpTimerInterval);
-
-            var db = JSON.parse(localStorage.getItem('folkpresso_users_db')) || {};
-            db[pendingRegister.username] = {
-                password: pendingRegister.password,
-                phone: pendingRegister.phone,
-                points: 0,
-                caffeine: 0,
-                registeredAt: new Date().toISOString()
-            };
-
-            localStorage.setItem('folkpresso_users_db', JSON.stringify(db));
-            localStorage.setItem('folkpresso_current_user', pendingRegister.username);
-            loadUserData(pendingRegister.username);
-
-            document.getElementById('login-modal').classList.add('hidden');
-            showToast("Pendaftaran Berhasil! Selamat datang, " + pendingRegister.username + "!");
-
-            // Reset
-            generatedOTP = "";
-            pendingRegister = {};
-        };
+    // --- 5. LOGOUT ---
+    window.logout = function() {
+        if(confirm("Yakin ingin keluar dari Folkpresso?")) {
+            auth.signOut().then(() => {
+                localStorage.clear();
+                window.location.reload();
+            });
+        }
+    };
+    
+   
 
         // Back to Step 1
         window.backToStep1 = function() {
