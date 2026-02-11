@@ -331,38 +331,49 @@
     });
 
     // --- 3. FUNGSI LOGIN GOOGLE ---
-    window.loginWithGoogle = function() {
-        // Cek apakah dibuka lewat file:// (Error Google)
-        if (window.location.protocol === 'file:') {
-            alert("⚠️ ERROR: Google Login tidak bisa jalan jika dibuka langsung dari folder (file://).\n\nHarap buka menggunakan Live Server (VS Code) atau Upload ke Hosting.");
-            return;
-        }
+   window.loginWithGoogle = function() {
+    // Cari elemen dengan aman
+    const btn = document.getElementById('btn-login-google');
+    const text = document.getElementById('login-text');
+    const errorMsg = document.getElementById('error-msg');
+    
+    // Safety check: Hanya jalankan classList jika elemennya ada
+    if (btn) {
+        btn.classList.add('opacity-50', 'pointer-events-none');
+    }
+    if (text) {
+        text.innerText = "Menghubungkan...";
+    }
+    if (errorMsg) {
+        errorMsg.classList.add('hidden');
+    }
 
-        auth.signInWithPopup(provider)
-            .then(async (result) => {
-                // Login Berhasil di Google, sekarang cek Database Folkpresso
-                const user = result.user;
-                const userRef = db.collection("users").doc(user.uid);
-                const doc = await userRef.get();
+    const provider = new firebase.auth.GoogleAuthProvider();
+    
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            console.log("Login sukses!");
+            // Halaman akan otomatis pindah karena auth.onAuthStateChanged
+        })
+        .catch((error) => {
+            console.error("Login Error:", error.code);
+            
+            // Kembalikan tampilan tombol jika gagal
+            if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
+            if (text) text.innerText = "Masuk dengan Google";
 
-                if (!doc.exists) {
-                    // Simpan data member baru
-                    await userRef.set({
-                        username: user.displayName,
-                        email: user.email,
-                        photo: user.photoURL,
-                        points: 0,
-                        caffeine: 0,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    showToast(`Selamat datang, ${user.displayName.split(' ')[0]}!`);
+            if (error.code === 'auth/unauthorized-domain') {
+                alert("IP 127.0.0.1 belum didaftarkan di Firebase Console!");
+            } else if (error.code === 'auth/popup-closed-by-user') {
+                if (errorMsg) {
+                    errorMsg.innerText = "Login dibatalkan (Popup ditutup).";
+                    errorMsg.classList.remove('hidden');
                 }
-            })
-            .catch((error) => {
-                console.error("Error Login:", error);
-                alert("Gagal Login: " + error.message);
-            });
-    };
+            } else {
+                alert("Error: " + error.message);
+            }
+        });
+};
 
     // --- 4. SINKRONISASI DATA (POIN & NAMA) ---
     function startFolkSync(uid) {
@@ -903,4 +914,3 @@
     </script>
 </body>
 </html>
-
