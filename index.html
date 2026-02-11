@@ -331,11 +331,42 @@
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
             
-            auth.signInWithPopup(provider).catch((error) => {
-                if(btn) btn.classList.remove('opacity-50');
-                if(text) text.innerText = "Masuk dengan Google";
-                alert("Login gagal: " + error.message);
-            });
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    console.log("✅ Login berhasil:", result.user.displayName);
+                    const user = result.user;
+                    
+                    // Inisialisasi user baru di Firestore
+                    const userRef = db.collection("users").doc(user.uid);
+                    userRef.get().then((doc) => {
+                        if (!doc.exists) {
+                            userRef.set({
+                                username: user.displayName,
+                                customName: user.displayName,
+                                email: user.email,
+                                photo: user.photoURL,
+                                points: 0,
+                                caffeine: 0,
+                                nameChangeCount: 0,
+                                lastQuestDate: "",
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+                    });
+                })
+                .catch((error) => {
+                    console.error("❌ Login error:", error);
+                    if(btn) btn.classList.remove('opacity-50');
+                    if(text) text.innerText = "Masuk dengan Google";
+                    
+                    if(error.code === 'auth/popup-closed-by-user') {
+                        console.log("User menutup popup");
+                    } else if(error.code === 'auth/unauthorized-domain') {
+                        alert("Domain belum terdaftar di Firebase Console!");
+                    } else {
+                        alert("Login gagal: " + error.message);
+                    }
+                });
         };
 
         function startFolkSync(uid) {
@@ -503,10 +534,8 @@
 
             if(trackModal && brewState && finishState && animBar) {
                 trackModal.classList.remove('hidden');
-                trackModal.classList.add('flex');
                 brewState.classList.remove('hidden');
                 finishState.classList.add('hidden');
-                finishState.classList.remove('flex');
                 animBar.style.width = "0%";
                 
                 submitTransaction(method);
@@ -516,7 +545,6 @@
                     setTimeout(() => {
                         brewState.classList.add('hidden');
                         finishState.classList.remove('hidden');
-                        finishState.classList.add('flex');
                     }, 500);
                 }, 3000);
             }
@@ -534,17 +562,63 @@
             localStorage.setItem('folkpresso_community_goal', communityGoal);
             updateGoalUI();
 
+            // Update Firestore (poin & caffeine)
             const userRef = db.collection("users").doc(user.uid);
             userRef.update({
                 points: firebase.firestore.FieldValue.increment(Math.floor(totalOrder / 1000)),
                 caffeine: firebase.firestore.FieldValue.increment(totalCaffeine)
             });
 
+            // Kirim data transaksi ke Supabase
+            const now = new Date();
+            const dateStamp = now.toISOString().split('T')[0];
+            const fullTimeStr = now.toLocaleDateString('id-ID') + " | " + now.toLocaleTimeString('id-ID');
+
+            const payload = cart.map(item => ({
+                date: dateStamp,
+                full_time: fullTimeStr,
+                name: item.name,
+                type: 'in',
+                qty: item.quantity,
+                unit_price: item.price,
+                unit_cost: item.cost || 0,
+                total: item.price * item.quantity,
+                method: method,
+                payment_status: 'success',
+                location: '-',
+                netto: '-',
+                notes: '-'
+            }));
+
+            if (window.supabaseClient) {
+                try {
+                    console.log("📤 Mengirim data ke Supabase...", payload);
+                    const { data, error } = await window.supabaseClient
+                        .from('transactions')
+                        .insert(payload);
+                    
+                    if (error) {
+                        console.error("❌ Supabase Error:", error);
+                        showToast("⚠️ Gagal sync database: " + error.message);
+                    } else {
+                        console.log("✅ Data berhasil dikirim ke Supabase!");
+                    }
+                } catch (err) {
+                    console.error("❌ Error saat kirim data:", err);
+                    showToast("⚠️ Error koneksi: " + err.message);
+                }
+            } else {
+                console.warn("⚠️ Supabase client belum siap, data hanya tersimpan lokal");
+                showToast("⚠️ Mode offline - data tersimpan lokal");
+            }
+
+            // Broadcast pesan
             if(window.marqueeChannel) {
+                const orderDetails = cart.map(item => item.quantity + "x " + item.name).join(", ");
                 window.marqueeChannel.send({
                     type: 'broadcast',
                     event: 'announcement',
-                    payload: { message: `☕ ${currentUser} baru order via ${method}!` }
+                    payload: { message: `☕ ${currentUser} baru saja memesan ${orderDetails} via ${method}!` }
                 });
             }
         }
