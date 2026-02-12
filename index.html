@@ -1934,8 +1934,7 @@
             });
         };
 
-        // === GPS ADDRESS (DIPERBAIKI: LEBIH DETAIL & SPESIFIK) ===
-        // === GPS ADDRESS: AKURASI MAKSIMAL & DETAIL JALAN ===
+        // === GPS ADDRESS: DETAIL MAKSIMAL (Jalan, Kampung, Kelurahan, Kecamatan) ===
         window.getGPSAddress = function () {
             var btn = document.getElementById('btn-gps');
             var status = document.getElementById('gps-status');
@@ -1946,13 +1945,14 @@
                 return;
             }
 
-            if (btn) btn.innerHTML = '<span class="animate-spin">⌛</span> Menghitung...';
-            if (status) { status.classList.remove('hidden'); status.innerText = '📡 Melacak koordinat paling akurat...'; }
+            if (btn) btn.innerHTML = '<span class="animate-spin">⌛</span> Akurasi Tinggi...';
+            if (status) { status.classList.remove('hidden'); status.innerText = '📡 Mencari koordinat paling detail...'; }
 
+            // Paksa browser mencari posisi terbaru dengan akurasi maksimal
             var options = {
                 enableHighAccuracy: true,
-                timeout: 25000, // Memberi waktu lebih lama untuk penguncian satelit yang akurat
-                maximumAge: 0
+                timeout: 30000,           // Waktu tunggu lebih lama untuk presisi
+                maximumAge: 0             // Tanpa cache lokasi lama
             };
 
             navigator.geolocation.getCurrentPosition(
@@ -1960,9 +1960,9 @@
                     var lat = pos.coords.latitude;
                     var lon = pos.coords.longitude;
 
-                    if (status) status.innerText = 'Titik terkunci. Menarik data alamat detail...';
+                    if (status) status.innerText = 'Koordinat didapat. Menyusun detail alamat...';
 
-                    // Fetch detail dengan zoom 18 (level tertinggi)
+                    // Fetch detail dengan zoom 18 (level bangunan/jalan)
                     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
                         headers: { 'Accept-Language': 'id-ID, id;q=0.9' }
                     })
@@ -1972,41 +1972,51 @@
                                 let a = data.address;
                                 let p = [];
 
-                                // 1. Nama POI / Gedung / Toko
-                                if (a.amenity || a.building || a.shop) p.push(a.amenity || a.building || a.shop);
-
-                                // 2. Nama Jalan & Nomor Rumah (Detail Utama)
-                                if (a.road) {
-                                    let jln = a.road;
-                                    if (a.house_number) jln += " No. " + a.house_number;
-                                    p.push(jln);
+                                // 1. Nama Bangunan / Toko / POI
+                                if (a.amenity || a.building || a.shop || a.office) {
+                                    p.push(a.amenity || a.building || a.shop || a.office);
                                 }
 
-                                // 3. Nama Kampung / Dusun / RT / RW ( neighbourhood/hamlet/suburb )
-                                // Ini yang paling penting agar tidak hanya muncul "Parung"
-                                if (a.neighbourhood) p.push(a.neighbourhood);
-                                if (a.hamlet) p.push(a.hamlet);
-                                if (a.residential) p.push(a.residential);
+                                // 2. Jalan & Nomor Rumah (Detail Kunci)
+                                if (a.road) {
+                                    let jalan = a.road;
+                                    if (a.house_number) jalan += " No. " + a.house_number;
+                                    p.push(jalan);
+                                }
 
-                                // 4. Level Administratif (Desa/Kelurahan -> Kecamatan)
-                                let kel = a.village || a.suburb || a.city_district;
-                                if (kel) p.push("Kel/Desa " + kel);
+                                // 3. Kampung / Dusun / RT / RW ( neighbourhood / hamlet / allotments )
+                                // Ini yang membuat alamat tidak rancu (misal: Kampung Sawah)
+                                let kampung = a.neighbourhood || a.hamlet || a.allotments || a.residential;
+                                if (kampung) p.push(kampung);
 
-                                if (a.municipality) p.push("Kec. " + a.municipality);
+                                // 4. Desa atau Kelurahan
+                                let kelurahan = a.village || a.suburb || a.city_district;
+                                if (kelurahan) p.push("Kel/Desa " + kelurahan);
 
-                                // 5. Kabupaten / Kota
-                                let kota = a.city || a.town || a.county;
-                                if (kota) p.push(kota);
+                                // 5. Kecamatan ( municipality atau city_district )
+                                let kecamatan = a.municipality || a.suburb || a.city_district;
+                                if (kecamatan) p.push("Kec. " + kecamatan);
 
-                                // Membersihkan duplikasi kata yang sering muncul (misal: "Parung, Kec. Parung")
-                                let uniqueParts = [...new Set(p)];
+                                // 6. Kabupaten / Kota
+                                let kabupaten = a.city || a.town || a.county;
+                                if (kabupaten) p.push(kabupaten);
+
+                                // --- MEMBERSIHKAN DUPLIKASI KATA ---
+                                // Menghapus kata yang sama jika Kelurahan & Kecamatan namanya mirip
+                                let uniqueParts = [];
+                                p.forEach(item => {
+                                    if (item && !uniqueParts.some(exist => exist.toLowerCase().includes(item.toLowerCase()))) {
+                                        uniqueParts.push(item);
+                                    }
+                                });
+
                                 var finalAddr = uniqueParts.join(", ");
 
-                                // Update Input & Variabel Global
+                                // Tampilkan di Input
                                 if (addrInput) addrInput.value = finalAddr;
                                 window.userAddress = finalAddr;
 
-                                // Simpan permanen ke profil Firebase user
+                                // Simpan ke Database Firebase User
                                 if (auth.currentUser) {
                                     db.collection('users').doc(auth.currentUser.uid).update({ address: finalAddr });
                                 }
@@ -2017,7 +2027,7 @@
                                 var backup = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
                                 if (addrInput) addrInput.value = backup;
                                 window.userAddress = backup;
-                                if (status) status.innerText = '⚠️ Hanya mendapatkan koordinat.';
+                                if (status) status.innerText = '⚠️ Nama jalan tidak ditemukan.';
                             }
                             if (btn) btn.innerHTML = '📡 Update Lokasi';
                         })
@@ -2028,7 +2038,11 @@
                 },
                 function (err) {
                     if (btn) btn.innerHTML = '📡 Gunakan GPS';
-                    showToast('❌ Gagal melacak. Pastikan GPS aktif.');
+                    let errorMsg = 'Gagal melacak lokasi.';
+                    if (err.code === 1) errorMsg = '❌ Izin GPS ditolak.';
+                    if (err.code === 3) errorMsg = '❌ Waktu habis. Coba lagi.';
+                    showToast(errorMsg);
+                    if (status) status.innerText = errorMsg;
                 },
                 options
             );
