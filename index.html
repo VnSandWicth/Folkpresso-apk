@@ -398,46 +398,101 @@
             </div>
 
             <div class="bg-white rounded-[2.5rem] p-8 shadow-2xl">
-                <h2 class="text-xl font-extrabold text-slate-800 text-center mb-2">Selamat Datang!</h2>
-                <p class="text-sm text-slate-400 text-center mb-8">Silahkan Masuk Untuk Meraih Point dan Menikmati Kopi
-                </p>
-
-                <div class="space-y-4 mb-6">
-                    <div class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
-                        <span class="text-slate-400">📧</span>
-                        <input type="email" placeholder="Email"
-                            class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300"
-                            disabled>
-                    </div>
-                    <div class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
-                        <span class="text-slate-400">🔒</span>
-                        <input type="password" placeholder="Kata Sandi"
-                            class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300"
-                            disabled>
-                    </div>
+                <!-- Tab Switcher -->
+                <div class="flex bg-slate-100 rounded-2xl p-1 mb-6">
+                    <button id="tab-btn-login" onclick="switchAuthTab('login')"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 bg-white text-blue-700 shadow-sm">
+                        Masuk
+                    </button>
+                    <button id="tab-btn-register" onclick="switchAuthTab('register')"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 text-slate-400">
+                        Daftar
+                    </button>
                 </div>
 
-                <button onclick="loginWithGoogle()"
-                    class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mb-5">
-                    <span id="login-text">Masuk</span>
-                </button>
+                <!-- ===== TAB: MASUK (LOGIN) ===== -->
+                <div id="tab-login">
+                    <h2 class="text-xl font-extrabold text-slate-800 text-center mb-2">Selamat Datang!</h2>
+                    <p class="text-sm text-slate-400 text-center mb-6">Masuk untuk meraih poin dan menikmati kopi</p>
 
-                <div class="flex gap-3 mb-6">
+                    <div class="space-y-4 mb-5">
+                        <div
+                            class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                            <span class="text-slate-400">📧</span>
+                            <input id="login-email" type="email" placeholder="Email"
+                                class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300">
+                        </div>
+                        <div
+                            class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                            <span class="text-slate-400">🔒</span>
+                            <input id="login-password" type="password" placeholder="Kata Sandi"
+                                class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300">
+                        </div>
+                    </div>
+
+                    <p id="login-error" class="text-red-500 text-xs font-semibold text-center mb-3 hidden"></p>
+
+                    <button onclick="loginWithEmail()"
+                        class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mb-4">
+                        <span id="login-text">Masuk</span>
+                    </button>
+
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex-1 h-px bg-slate-200"></div>
+                        <span class="text-xs text-slate-400 font-semibold">atau</span>
+                        <div class="flex-1 h-px bg-slate-200"></div>
+                    </div>
+
                     <button onclick="loginWithGoogle()"
-                        class="flex-1 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 py-3 rounded-2xl transition-all active:scale-95">
+                        class="w-full flex items-center justify-center gap-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 py-3.5 rounded-2xl transition-all active:scale-95 mb-4">
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5">
-                        <span class="text-xs font-bold text-slate-600">Google</span>
+                        <span class="text-sm font-bold text-slate-600">Masuk dengan Google</span>
                     </button>
-                    <button onclick="loginWithGoogle()"
-                        class="flex-1 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 py-3 rounded-2xl transition-all active:scale-95">
-                        <span class="text-lg">📘</span>
-                        <span class="text-xs font-bold text-slate-600">Facebook</span>
-                    </button>
+
+                    <p class="text-center text-xs text-slate-400">Belum punya akun? <span
+                            class="text-blue-600 font-bold cursor-pointer" onclick="switchAuthTab('register')">Daftar
+                            Sekarang</span></p>
                 </div>
 
-                <p class="text-center text-xs text-slate-400">Belum punya akun? <span
-                        class="text-blue-600 font-bold cursor-pointer" onclick="loginWithGoogle()">Daftar
-                        Sekarang</span></p>
+                <!-- ===== TAB: DAFTAR (REGISTER) ===== -->
+                <div id="tab-register" class="hidden">
+                    <h2 class="text-xl font-extrabold text-slate-800 text-center mb-2">Buat Akun Baru</h2>
+                    <p class="text-sm text-slate-400 text-center mb-6">Daftar dan mulai kumpulkan poin!</p>
+
+                    <div class="space-y-4 mb-5">
+                        <div
+                            class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                            <span class="text-slate-400">📧</span>
+                            <input id="reg-email" type="email" placeholder="Email"
+                                class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300">
+                        </div>
+                        <div
+                            class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                            <span class="text-slate-400">🔒</span>
+                            <input id="reg-password" type="password" placeholder="Kata Sandi (min. 6 karakter)"
+                                class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300">
+                        </div>
+                        <div
+                            class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                            <span class="text-slate-400">📱</span>
+                            <span class="text-sm font-bold text-slate-500">+62</span>
+                            <input id="reg-phone" type="tel" placeholder="8xxxxxxxxxx"
+                                class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300">
+                        </div>
+                    </div>
+
+                    <p id="reg-error" class="text-red-500 text-xs font-semibold text-center mb-3 hidden"></p>
+
+                    <button onclick="registerWithEmail()"
+                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mb-4">
+                        <span id="reg-text">Daftar Sekarang</span>
+                    </button>
+
+                    <p class="text-center text-xs text-slate-400">Sudah punya akun? <span
+                            class="text-blue-600 font-bold cursor-pointer" onclick="switchAuthTab('login')">Masuk</span>
+                    </p>
+                </div>
+
             </div>
         </div>
         <p class="mt-8 text-xs text-blue-200/50 font-semibold tracking-widest uppercase">© FOLKPRESSO - 2026</p>
@@ -1182,72 +1237,205 @@
             }
         });
 
-        window.loginWithGoogle = function () {
-            const btn = document.querySelector('button[onclick*="loginWithGoogle"]');
-            const text = document.getElementById('login-text');
-            if (btn) btn.classList.add('opacity-50', 'pointer-events-none');
-            if (text) text.innerText = "Membuka Google...";
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
+        // === TAB SWITCHER ===
+        window.switchAuthTab = function (tab) {
+            const tabLogin = document.getElementById('tab-login');
+            const tabRegister = document.getElementById('tab-register');
+            const btnLogin = document.getElementById('tab-btn-login');
+            const btnRegister = document.getElementById('tab-btn-register');
+
+            // Sembunyikan error saat pindah tab
+            const loginErr = document.getElementById('login-error');
+            const regErr = document.getElementById('reg-error');
+            if (loginErr) { loginErr.classList.add('hidden'); loginErr.innerText = ''; }
+            if (regErr) { regErr.classList.add('hidden'); regErr.innerText = ''; }
+
+            if (tab === 'register') {
+                tabLogin.classList.add('hidden');
+                tabRegister.classList.remove('hidden');
+                btnLogin.className = 'flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 text-slate-400';
+                btnRegister.className = 'flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 bg-white text-emerald-600 shadow-sm';
+            } else {
+                tabLogin.classList.remove('hidden');
+                tabRegister.classList.add('hidden');
+                btnLogin.className = 'flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 bg-white text-blue-700 shadow-sm';
+                btnRegister.className = 'flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 text-slate-400';
+            }
+        };
+
+        // === LOGIN DENGAN GOOGLE ===
+        window.loginWithGoogle = function () {
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
-            provider.setCustomParameters({ prompt: 'select_account' });
+            auth.signInWithRedirect(provider);
+        };
 
-            // Deteksi mobile device
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        // === LOGIN DENGAN EMAIL & PASSWORD ===
+        window.loginWithEmail = function () {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errEl = document.getElementById('login-error');
+            const btnText = document.getElementById('login-text');
 
-            // Gunakan redirect untuk mobile, popup untuk desktop
-            const loginMethod = isMobile ?
-                auth.signInWithRedirect(provider) :
-                auth.signInWithPopup(provider);
+            errEl.classList.add('hidden');
+            errEl.innerText = '';
 
-            if (isMobile) {
-                console.log("📱 Mobile detected, using redirect...");
-                return; // Redirect akan handle sendiri
-
-                auth.signInWithRedirect(provider);
+            if (!email || !password) {
+                errEl.innerText = 'Email dan kata sandi harus diisi!';
+                errEl.classList.remove('hidden');
+                return;
             }
 
-            // Untuk desktop (popup)
-            loginMethod
-                .then((result) => {
-                    console.log("✅ Login berhasil:", result.user.displayName);
-                    const user = result.user;
+            btnText.innerText = 'Memproses...';
 
-                    // Inisialisasi user baru di Firestore
-                    const userRef = db.collection("users").doc(user.uid);
-                    userRef.get().then((doc) => {
-                        if (!doc.exists) {
-                            userRef.set({
-                                username: user.displayName,
-                                customName: user.displayName,
-                                email: user.email,
-                                photo: user.photoURL,
-                                points: 0,
-                                caffeine: 0,
-                                nameChangeCount: 0,
-                                lastQuestDate: "",
-                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                        }
-                    });
+            auth.signInWithEmailAndPassword(email, password)
+                .then(function () {
+                    console.log('✅ Login email berhasil');
+                    btnText.innerText = 'Masuk';
                 })
-                .catch((error) => {
-                    console.error("❌ Login error:", error);
-                    if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
-                    if (text) text.innerText = "Masuk dengan Google";
-
-                    if (error.code === 'auth/popup-closed-by-user') {
-                        console.log("User menutup popup");
-                    } else if (error.code === 'auth/popup-blocked') {
-                        console.log("Popup diblokir, coba redirect...");
-                        auth.signInWithRedirect(provider);
-                    } else if (error.code === 'auth/unauthorized-domain') {
-                        alert("Domain belum terdaftar di Firebase Console!");
+                .catch(function (error) {
+                    console.error('❌ Login email error:', error);
+                    btnText.innerText = 'Masuk';
+                    if (error.code === 'auth/user-not-found') {
+                        errEl.innerText = 'Akun tidak ditemukan. Silakan daftar terlebih dahulu.';
+                    } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                        errEl.innerText = 'Email atau kata sandi salah!';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errEl.innerText = 'Format email tidak valid!';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errEl.innerText = 'Terlalu banyak percobaan. Coba lagi nanti.';
                     } else {
-                        alert("Login gagal: " + error.message);
+                        errEl.innerText = 'Login gagal: ' + error.message;
                     }
+                    errEl.classList.remove('hidden');
                 });
         };
+
+        // === DAFTAR AKUN BARU ===
+        window.registerWithEmail = async function () {
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const phoneRaw = document.getElementById('reg-phone').value.trim();
+            const errEl = document.getElementById('reg-error');
+            const btnText = document.getElementById('reg-text');
+
+            errEl.classList.add('hidden');
+            errEl.innerText = '';
+
+            // Validasi input
+            if (!email || !password || !phoneRaw) {
+                errEl.innerText = 'Semua field harus diisi!';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if (password.length < 6) {
+                errEl.innerText = 'Kata sandi minimal 6 karakter!';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            // Normalisasi nomor HP: buang spasi/strip, pastikan format +62
+            let phone = phoneRaw.replace(/[\s\-]/g, '');
+            if (phone.startsWith('0')) phone = phone.substring(1);
+            phone = '+62' + phone;
+
+            // Validasi format nomor HP Indonesia sederhana
+            if (!/^\+62[0-9]{9,13}$/.test(phone)) {
+                errEl.innerText = 'Format nomor HP tidak valid! Contoh: 812345678xx';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            btnText.innerText = 'Memproses...';
+
+            try {
+                // Cek apakah nomor HP sudah terdaftar di Firestore
+                const phoneCheck = await db.collection('users').where('phone', '==', phone).limit(1).get();
+
+                if (!phoneCheck.empty) {
+                    errEl.innerText = '❌ Nomor HP sudah terdaftar! Gunakan nomor lain atau masuk dengan akun yang ada.';
+                    errEl.classList.remove('hidden');
+                    btnText.innerText = 'Daftar Sekarang';
+                    return;
+                }
+
+                // Buat akun di Firebase Auth
+                const result = await auth.createUserWithEmailAndPassword(email, password);
+                const user = result.user;
+
+                // Simpan data user ke Firestore (termasuk nomor HP)
+                await db.collection('users').doc(user.uid).set({
+                    username: email.split('@')[0],
+                    customName: email.split('@')[0],
+                    email: user.email,
+                    phone: phone,
+                    photo: '',
+                    points: 0,
+                    caffeine: 0,
+                    nameChangeCount: 0,
+                    lastQuestDate: '',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                console.log('✅ Registrasi berhasil:', user.email, phone);
+                btnText.innerText = 'Daftar Sekarang';
+
+            } catch (error) {
+                console.error('❌ Registrasi error:', error);
+                btnText.innerText = 'Daftar Sekarang';
+
+                if (error.code === 'auth/email-already-in-use') {
+                    errEl.innerText = 'Email sudah terdaftar! Silakan masuk atau gunakan email lain.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errEl.innerText = 'Format email tidak valid!';
+                } else if (error.code === 'auth/weak-password') {
+                    errEl.innerText = 'Kata sandi terlalu lemah! Gunakan minimal 6 karakter.';
+                } else {
+                    errEl.innerText = 'Pendaftaran gagal: ' + error.message;
+                }
+                errEl.classList.remove('hidden');
+            }
+        };
+
+        // 3. REVISI AUTH STATE HANDLER (Agar tidak stuck)
+        auth.onAuthStateChanged((user) => {
+            const loginScreen = document.getElementById('login-screen');
+            const mainApp = document.getElementById('main-app');
+
+            // Cek apakah ada hasil dari proses redirect (hasil login dari Google)
+            auth.getRedirectResult().then((result) => {
+                if (user || (result && result.user)) {
+                    // Jika user terdeteksi atau baru saja sukses redirect login
+                    const activeUser = user || result.user;
+
+                    loginScreen.classList.add('hidden');
+                    loginScreen.style.opacity = '0';
+                    mainApp.classList.remove('hidden');
+
+                    // Mulai sinkronisasi data Folkpresso
+                    if (typeof startFolkSync === "function") {
+                        startFolkSync(activeUser.uid);
+                    }
+                } else {
+                    // Jika benar-benar tidak ada user, baru tampilkan login
+                    loginScreen.classList.remove('hidden');
+                    setTimeout(() => {
+                        loginScreen.style.opacity = '1';
+                    }, 10);
+                    mainApp.classList.add('hidden');
+                }
+            }).catch((error) => {
+                console.error("Auth Redirect Error:", error);
+                // Jika terjadi error (seperti blokir COOP), pastikan login screen tetap muncul agar tidak blank
+                loginScreen.classList.remove('hidden');
+                loginScreen.style.opacity = '1';
+                if (text) text.innerText = "Login dengan Google";
+                if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
+            });
+        });
 
         // Handle redirect result untuk mobile
         auth.getRedirectResult().then((result) => {
