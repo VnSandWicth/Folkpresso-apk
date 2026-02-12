@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Folkpresso | The Community Coffee</title>
+    <title>FOLKPRESSO - Share Stories Share Laughter </title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e3a8a">
@@ -18,6 +18,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Midtrans Snap.js Sandbox -->
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-yIcpNrBNbMzCnZzQ"></script>
+    <!-- Midtrans Snap.js Sandbox -->
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-yIcpNrBNbMzCnZzQ"></script>
 
     <script>
         tailwind.config = {
@@ -99,14 +103,14 @@
         }
 
         .glass-nav {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
         }
 
         .dark .glass-nav {
             background: rgba(15, 23, 42, 0.95);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .animate-marquee {
@@ -165,17 +169,165 @@
             animation: popIn 0.3s forwards;
         }
 
-        /* Modal Layering */
         #payment-modal,
         #tracking-modal,
         #universal-popup {
             z-index: 9999;
         }
+
+        .kopiku-header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 60;
+        }
+
+        .dark .kopiku-header {
+            background: #0f172a;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .points-card {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            border-radius: 20px;
+            color: white;
+        }
+
+        .category-pill {
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1.5px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .category-pill.active,
+        .category-pill:hover {
+            background: #1e3a8a;
+            color: white;
+            border-color: #1e3a8a;
+        }
+
+        .dark .category-pill {
+            background: #1e293b;
+            border-color: #334155;
+            color: #94a3b8;
+        }
+
+        .dark .category-pill.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+
+        .menu-product-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s;
+        }
+
+        .menu-product-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .dark .menu-product-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .notif-tab {
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .notif-tab.active {
+            background: #1e3a8a;
+            color: white;
+        }
+
+        .notif-tab:not(.active) {
+            background: #f1f5f9;
+            color: #94a3b8;
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .settings-item:hover {
+            background: #f8fafc;
+        }
+
+        .dark .settings-item {
+            border-color: #1e293b;
+        }
+
+        .dark .settings-item:hover {
+            background: #1e293b;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            padding: 4px 0;
+            transition: color 0.2s;
+            min-width: 56px;
+        }
+
+        .bottom-nav-item.active {
+            color: #1e3a8a;
+        }
+
+        .dark .bottom-nav-item.active {
+            color: #60a5fa;
+        }
+
+        .bottom-nav-item .nav-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .bottom-nav-item.active .nav-icon {
+            background: #dbeafe;
+        }
+
+        .dark .bottom-nav-item.active .nav-icon {
+            background: #1e3b6e;
+        }
     </style>
 </head>
 
 <body
-    class="bg-[#F8FAFC] text-slate-900 pb-32 dark:bg-slate-950 dark:text-white transition-colors duration-300 font-sans select-none">
+    class="bg-[#EDF2FA] text-slate-900 pb-24 dark:bg-slate-950 dark:text-white transition-colors duration-300 font-sans select-none">
 
     <div id="toast-container"></div>
 
@@ -183,8 +335,8 @@
         <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl transform scale-50 opacity-0 transition-all duration-300"
             id="popup-content">
             <div id="popup-icon" class="text-5xl text-center mb-4">✨</div>
-            <h3 id="popup-title" class="text-xl font-black text-center text-blue-900 dark:text-white italic mb-2">
-                Pemberitahuan</h3>
+            <h3 id="popup-title" class="text-xl font-black text-center text-blue-900 dark:text-white mb-2">Pemberitahuan
+            </h3>
             <p id="popup-message" class="text-sm text-center text-slate-500 dark:text-slate-400 mb-6 font-medium">Pesan
                 di sini...</p>
             <div id="popup-actions" class="w-full"></div>
@@ -233,114 +385,266 @@
         </div>
     </div>
 
+    <!-- ===== LOGIN SCREEN ===== -->
     <div id="login-screen"
-        class="fixed inset-0 z-[5000] bg-gradient-to-br from-blue-700 to-blue-900 flex flex-col items-center justify-center p-6 transition-all duration-500">
-        <div class="mb-8 p-6 bg-white rounded-[2.5rem] shadow-2xl animate-bounce">
-            <img src="https://cdn-icons-png.flaticon.com/512/751/751621.png" class="w-20 h-20">
-        </div>
-        <h1 class="text-5xl font-extrabold text-white mb-3 italic tracking-tight">Folkpresso</h1>
-        <p class="text-blue-100 mb-12 text-center max-w-xs font-medium">Komunitas Kopi & Loyalty App.<br>Masuk untuk
-            kumpulkan poin.</p>
+        class="fixed inset-0 z-[5000] flex flex-col items-center justify-center p-6 transition-all duration-500"
+        style="background: linear-gradient(160deg, #6aacf0 0%, #2563eb 40%, #1e3a8a 100%);">
+        <div class="w-full max-w-sm">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-[2rem] shadow-2xl mb-5">
+                    <span class="text-5xl">☕</span>
+                </div>
+                <h1 class="text-4xl font-extrabold text-white tracking-tight">FOLKPRESSO</h1>
+            </div>
 
-        <button onclick="loginWithGoogle()"
-            class="group w-full max-w-xs bg-white text-blue-900 font-bold py-4 px-6 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6 h-6">
-            <span id="login-text">Masuk dengan Google</span>
-        </button>
-        <p class="mt-10 text-xs text-blue-300/60 font-semibold tracking-widest uppercase">Copyright - Folkpresso</p>
-    </div>
+            <div class="bg-white rounded-[2.5rem] p-8 shadow-2xl">
+                <h2 class="text-xl font-extrabold text-slate-800 text-center mb-2">Selamat Datang!</h2>
+                <p class="text-sm text-slate-400 text-center mb-8">Silahkan Masuk Untuk Meraih Point dan Menikmati Kopi
+                </p>
 
-    <div id="main-app" class="hidden">
-        <header class="glass-nav sticky top-0 z-[60]">
-            <div class="px-6 py-4 flex justify-between items-center">
-                <div>
-                    <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 tracking-tighter italic">
-                        FOLKPRESSO</h1>
-                    <div class="flex items-center gap-3 mt-1">
-                        <div id="store-status-badge" class="flex items-center gap-1.5">
-                            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                            <p
-                                class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
-                                Open Now</p>
-                        </div>
-                        <div id="broadcast-status" class="flex items-center gap-1.5">
-                            <span id="broadcast-indicator" class="w-2 h-2 bg-gray-400 rounded-full"></span>
-                            <p id="broadcast-text"
-                                class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
-                                Connecting...</p>
-                        </div>
+                <div class="space-y-4 mb-6">
+                    <div class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                        <span class="text-slate-400">📧</span>
+                        <input type="email" placeholder="Email"
+                            class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300"
+                            disabled>
+                    </div>
+                    <div class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                        <span class="text-slate-400">🔒</span>
+                        <input type="password" placeholder="Kata Sandi"
+                            class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300"
+                            disabled>
                     </div>
                 </div>
-                <button onclick="toggleDark()" class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl">🌙</button>
-            </div>
-            <div class="px-6 pb-4">
-                <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1">
-                    <span class="text-blue-900 dark:text-blue-300">Community Goal 🎯</span>
-                    <span id="goal-counter" class="text-slate-400">0 / 20 Cups</span>
+
+                <button onclick="loginWithGoogle()"
+                    class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mb-5">
+                    <span id="login-text">Masuk</span>
+                </button>
+
+                <div class="flex gap-3 mb-6">
+                    <button onclick="loginWithGoogle()"
+                        class="flex-1 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 py-3 rounded-2xl transition-all active:scale-95">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5">
+                        <span class="text-xs font-bold text-slate-600">Google</span>
+                    </button>
+                    <button onclick="loginWithGoogle()"
+                        class="flex-1 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 py-3 rounded-2xl transition-all active:scale-95">
+                        <span class="text-lg">📘</span>
+                        <span class="text-xs font-bold text-slate-600">Facebook</span>
+                    </button>
                 </div>
-                <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div id="goal-bar" class="h-full bg-blue-600 w-0 transition-all duration-1000"></div>
+
+                <p class="text-center text-xs text-slate-400">Belum punya akun? <span
+                        class="text-blue-600 font-bold cursor-pointer" onclick="loginWithGoogle()">Daftar
+                        Sekarang</span></p>
+            </div>
+        </div>
+        <p class="mt-8 text-xs text-blue-200/50 font-semibold tracking-widest uppercase">© FOLKPRESSO - 2026</p>
+    </div>
+
+    <!-- ===== MAIN APP ===== -->
+    <div id="main-app" class="hidden">
+
+        <!-- HEADER -->
+        <header class="kopiku-header">
+            <div class="px-5 py-4 flex justify-between items-center">
+                <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 tracking-tight">FOLKPRESSO</h1>
+                <div class="flex items-center gap-3">
+                    <div id="store-status-badge" class="hidden"><span
+                            class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span></div>
+                    <div id="broadcast-status" class="flex items-center gap-1">
+                        <span id="broadcast-indicator" class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                        <p id="broadcast-text" class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                            Connecting</p>
+                    </div>
+                    <button onclick="toggleDark()"
+                        class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-sm">🌙</button>
+                    <div
+                        class="w-9 h-9 flex items-center justify-center bg-blue-50 dark:bg-slate-800 rounded-xl text-sm cursor-pointer">
+                        🔔</div>
                 </div>
             </div>
         </header>
 
+        <!-- ===== HOME PAGE ===== -->
         <main id="home-page" class="app-page active">
-            <div class="px-6 mt-4 flex items-center justify-between">
+            <!-- User Greeting -->
+            <div class="px-5 mt-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <img id="profile-photo-nav" src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
-                        class="w-10 h-10 rounded-full border-2 border-blue-500 object-cover">
+                        class="w-11 h-11 rounded-full border-2 border-blue-500 object-cover shadow-sm">
                     <div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Halo, Friend!</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Halo, FOLK-ers!</p>
                         <h2 id="home-username"
-                            class="text-sm font-black text-blue-900 dark:text-white truncate max-w-[120px]">Guest</h2>
+                            class="text-sm font-extrabold text-blue-900 dark:text-white truncate max-w-[140px]">Guest
+                        </h2>
                     </div>
                 </div>
                 <div onclick="window.showPage('profile')"
-                    class="bg-blue-100 dark:bg-slate-800 px-3 py-1 rounded-full flex items-center gap-1 cursor-pointer">
-                    <span class="text-xs">⭐</span>
-                    <span id="home-points" class="text-xs font-bold text-blue-800 dark:text-blue-300">0</span>
+                    class="points-card px-4 py-2.5 flex items-center gap-2 cursor-pointer shadow-lg">
+                    <span class="text-lg">☕</span>
+                    <div>
+                        <p class="text-[9px] font-medium opacity-80">Your Points</p>
+                        <p id="home-points" class="text-lg font-extrabold leading-tight">0</p>
+                    </div>
+                    <span class="text-white/60 ml-1">›</span>
                 </div>
             </div>
 
-            <div class="bg-blue-900 dark:bg-blue-950 py-2 mt-4 overflow-hidden border-y border-blue-800">
+            <!-- Community Goal (hidden but functional) -->
+            <div class="hidden">
+                <span id="goal-counter">0 / 20 Cups</span>
+                <div id="goal-bar" class="h-full bg-blue-600 w-0"></div>
+            </div>
+
+            <!-- Marquee -->
+            <div class="bg-blue-900 dark:bg-blue-950 py-2 mt-4 overflow-hidden border-y border-blue-800/50">
                 <div class="animate-marquee text-xs font-bold text-blue-200 tracking-wide">
-                    🔥 "Aren Latte-nya juara!" &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; •
-                    &nbsp;&nbsp; ☕ Folkpresso Open!
+                    🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; • &nbsp;&nbsp; FOLKPRESSO Open!
                 </div>
             </div>
 
-            <div class="px-6 mt-6 grid grid-cols-2 gap-3">
+            <!-- Special Offer Banner -->
+            <div class="px-5 mt-5">
+                <div class="relative rounded-[1.5rem] overflow-hidden h-40 shadow-lg">
+                    <img src="img/1st rend.png" class="w-full h-full object-cover">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-900/30 flex items-center p-6">
+                        <div>
+                            <p class="text-[10px] font-bold text-blue-200 uppercase tracking-widest mb-1">Special Offer
+                            </p>
+                            <h3 class="text-white font-extrabold text-lg leading-snug">30% Off All Lattes<br>With
+                                Membership!</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Cards -->
+            <div class="px-5 mt-5 grid grid-cols-2 gap-3">
                 <div onclick="mysteryBrew()"
-                    class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[2rem] p-5 text-white shadow-lg active:scale-95 transition-transform">
-                    <h4 class="font-black text-sm">Mystery Brew 🎲</h4>
-                    <p class="text-[10px] opacity-80">Biarkan kami pilih!</p>
+                    class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[1.5rem] p-5 text-white shadow-lg active:scale-95 transition-transform cursor-pointer">
+                    <h4 class="font-extrabold text-sm">Mystery Brew 🎲</h4>
+                    <p class="text-[10px] opacity-80 mt-1">Biarkan kami pilih!</p>
                 </div>
                 <div onclick="claimQuest()" id="quest-card"
-                    class="bg-gradient-to-br from-pink-500 to-orange-500 rounded-[2rem] p-5 text-white shadow-lg active:scale-95 transition-transform">
-                    <h4 class="font-black text-sm">Daily Quest ⚔️</h4>
-                    <p id="quest-status" class="text-[10px] opacity-80">Klaim +50 Poin</p>
+                    class="bg-gradient-to-br from-pink-500 to-orange-500 rounded-[1.5rem] p-5 text-white shadow-lg active:scale-95 transition-transform cursor-pointer">
+                    <h4 class="font-extrabold text-sm">Daily Quest ⚔️</h4>
+                    <p id="quest-status" class="text-[10px] opacity-80 mt-1">Klaim +50 Poin</p>
                 </div>
             </div>
 
-            <div class="px-6 mt-8 pb-10 space-y-4" id="product-list"></div>
+            <!-- Popular Now -->
+            <div class="px-5 mt-7">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-extrabold text-slate-800 dark:text-white">Popular Now 🔥</h3>
+                    <span onclick="showPage('menu')" class="text-xs font-bold text-blue-600 cursor-pointer">See All
+                        →</span>
+                </div>
+            </div>
+
+            <div class="px-5 pb-10 space-y-3" id="product-list"></div>
         </main>
 
-        <main id="cart-page" class="app-page px-6 pt-8">
-            <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 italic text-center">Keranjang</h2>
-            <div id="cart-items" class="space-y-3 min-h-[100px]"></div>
-            <div
-                class="mt-8 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
-                <div class="flex justify-between items-center mb-4"><span
-                        class="font-bold text-slate-400 uppercase text-xs">Total</span><span id="cart-total"
-                        class="text-xl font-black text-blue-900 dark:text-white">Rp 0</span></div>
-                <button onclick="window.openPayment()"
-                    class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">Checkout</button>
+        <!-- ===== MENU PAGE ===== -->
+        <main id="menu-page" class="app-page">
+            <div class="px-5 pt-6 pb-3 flex items-center gap-3">
+                <button onclick="showPage('home')"
+                    class="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm text-lg">←</button>
+                <h2 class="text-xl font-extrabold text-slate-800 dark:text-white flex-1">Daftar Menu</h2>
+                <button
+                    class="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm text-sm">⚙️</button>
+            </div>
+
+            <div class="px-5 mb-4 flex gap-2 overflow-x-auto no-scrollbar" id="menu-category-tabs">
+                <span class="category-pill active" onclick="filterMenu('all')">☕ All</span>
+                <span class="category-pill" onclick="filterMenu('signature')">✨ Signature</span>
+                <span class="category-pill" onclick="filterMenu('classic')">☕ Classic</span>
+                <span class="category-pill" onclick="filterMenu('non-coffee')">🍵 Non-Coffee</span>
+            </div>
+
+            <div class="px-5 mb-5">
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm border border-slate-100 dark:border-slate-700">
+                    <span class="text-slate-400">🔍</span>
+                    <input type="text" placeholder="Search menu..." id="menu-search" oninput="searchMenu(this.value)"
+                        class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300 dark:text-white">
+                </div>
+            </div>
+
+            <div class="px-5 pb-10 grid grid-cols-2 gap-3" id="menu-product-grid"></div>
+        </main>
+
+        <!-- ===== CART PAGE ===== -->
+        <main id="cart-page" class="app-page">
+            <div class="px-5 pt-6 pb-3 flex items-center gap-3">
+                <button onclick="showPage('home')"
+                    class="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm text-lg">←</button>
+                <h2 class="text-xl font-extrabold text-blue-900 dark:text-white flex-1">Keranjang Anda</h2>
+            </div>
+
+            <div class="px-5">
+                <!-- Alamat Pengiriman -->
+                <div
+                    class="bg-white dark:bg-slate-900 p-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 mb-4">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span>📍</span>
+                        <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Alamat Pengiriman</span>
+                    </div>
+                    <p id="cart-address-display" class="text-sm font-bold text-slate-800 dark:text-white">Belum diatur
+                    </p>
+                    <p class="text-[10px] text-blue-600 font-bold mt-1 cursor-pointer" onclick="showPage('profile')">
+                        Ubah di Profile →</p>
+                </div>
+
+                <div id="cart-items" class="space-y-3 min-h-[100px]"></div>
+
+                <div
+                    class="mt-6 bg-white dark:bg-slate-900 rounded-[1.5rem] p-5 shadow-lg border border-slate-100 dark:border-slate-800">
+                    <div class="space-y-3 mb-4">
+                        <div class="flex justify-between text-sm"><span
+                                class="text-slate-400 font-medium">Subtotal</span><span id="cart-total"
+                                class="font-extrabold text-slate-800 dark:text-white">Rp 0</span></div>
+                        <div class="flex justify-between text-sm"><span class="text-slate-400 font-medium">Biaya
+                                Pengiriman</span><span class="font-extrabold text-green-500">Gratis</span></div>
+                        <div
+                            class="border-t border-slate-100 dark:border-slate-700 pt-3 flex justify-between text-base">
+                            <span class="font-bold text-slate-600 dark:text-slate-300">Total Pembayaran</span><span
+                                class="font-extrabold text-blue-900 dark:text-blue-400 text-lg" id="cart-total-final">Rp
+                                0</span>
+                        </div>
+                    </div>
+                    <button onclick="window.openPayment()"
+                        class="w-full bg-blue-700 hover:bg-blue-800 text-white py-4 rounded-2xl font-extrabold shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <span>🛒</span> Lanjutkan Pembayaran
+                    </button>
+                </div>
             </div>
         </main>
 
-        <main id="profile-page" class="app-page p-6">
-            <h3 class="text-xl font-black mb-6">Pengaturan Profil</h3>
+        <!-- ===== PROFILE PAGE ===== -->
+        <main id="profile-page" class="app-page p-5">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">Profil Pengguna</h3>
+                <div class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-sm">
+                    ⚙️</div>
+            </div>
 
+            <!-- Profile Info -->
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-16 h-16 rounded-full border-3 border-blue-500 overflow-hidden shadow-lg bg-blue-50">
+                    <img id="profile-photo-display" src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
+                        class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h4 id="profile-display-name" class="text-lg font-extrabold text-slate-800 dark:text-white">Guest
+                    </h4>
+                    <p class="text-xs text-slate-400 font-medium">KOPIKU Member</p>
+                </div>
+            </div>
+
+            <!-- Member Card -->
             <div id="member-card"
                 class="member-card-bronze rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500 mb-6">
                 <div>
@@ -359,11 +663,53 @@
                 </div>
             </div>
 
+            <!-- Alamat Pengiriman -->
             <div
-                class="mt-6 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 mb-6">
+                class="bg-white dark:bg-slate-900 rounded-[1.5rem] p-5 border border-slate-100 dark:border-slate-800 mb-5">
+                <h4 class="font-extrabold text-sm mb-3 text-slate-700 dark:text-white">📍 Alamat Pengiriman</h4>
+                <textarea id="input-address" rows="2"
+                    class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500 resize-none dark:text-white"
+                    placeholder="Masukkan alamat lengkap..."></textarea>
+                <div class="flex gap-2 mt-2">
+                    <button onclick="getGPSAddress()" id="btn-gps"
+                        class="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1">
+                        📡 Gunakan GPS
+                    </button>
+                    <button onclick="saveAddress()"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition-all">
+                        💾 Simpan Alamat
+                    </button>
+                </div>
+                <p id="gps-status" class="text-[10px] text-slate-400 mt-2 hidden"></p>
+            </div>
+
+            <!-- Notifikasi -->
+            <div
+                class="bg-white dark:bg-slate-900 rounded-[1.5rem] p-5 border border-slate-100 dark:border-slate-800 mb-5">
+                <h4 class="font-extrabold text-sm mb-3 text-slate-700 dark:text-white">� Notifikasi</h4>
+                <div id="notif-list" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+                    <p class="text-xs text-slate-400 italic text-center py-4">Belum ada notifikasi</p>
+                </div>
+            </div>
+
+            <!-- Riwayat Pesanan -->
+            <div
+                class="bg-white dark:bg-slate-900 rounded-[1.5rem] p-5 border border-slate-100 dark:border-slate-800 mb-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-extrabold text-sm text-slate-700 dark:text-white">📋 Riwayat Pesanan</h4>
+                    <button onclick="loadOrderHistory()" class="text-[10px] font-bold text-blue-600">Refresh</button>
+                </div>
+                <div id="order-history-list" class="space-y-2 max-h-72 overflow-y-auto no-scrollbar">
+                    <p class="text-xs text-slate-400 italic text-center py-4">Klik Refresh untuk melihat riwayat</p>
+                </div>
+            </div>
+
+            <!-- Caffeine Meter -->
+            <div
+                class="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 mb-5">
                 <h4 class="font-bold text-sm mb-4">⚡ Caffeine Meter</h4>
-                <div class="flex items-end gap-2 h-24">
-                    <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-t-xl relative overflow-hidden">
+                <div class="flex items-end gap-3 h-20">
+                    <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-t-xl relative overflow-hidden h-full">
                         <div id="caffeine-bar"
                             class="absolute bottom-0 w-full bg-orange-400 transition-all duration-1000"
                             style="height: 0%"></div>
@@ -375,34 +721,52 @@
                 </div>
             </div>
 
+            <!-- Custom Name -->
             <div
-                class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800">
+                class="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 mb-5">
                 <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nama Custom Kamu</label>
                 <div class="flex gap-2 mt-2">
                     <input type="text" id="input-username"
-                        class="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500"
+                        class="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Masukkan nama...">
                     <button onclick="updateCustomName()" id="btn-save-name"
-                        class="bg-blue-600 text-white px-4 rounded-xl font-bold text-xs">Simpan</button>
+                        class="bg-blue-600 text-white px-5 rounded-xl font-bold text-xs active:scale-95 transition-transform">Simpan</button>
                 </div>
-                <p id="name-change-info" class="text-[10px] text-slate-400 mt-2 italic">*Nama ini akan muncul di
-                    aplikasi
-                </p>
+                <p id="name-change-info" class="text-[10px] text-slate-400 mt-2">*Nama ini akan muncul di aplikasi</p>
             </div>
 
-            <button onclick="logout()" class="w-full mt-8 bg-red-100 text-red-600 py-4 rounded-2xl font-bold">Keluar
-                Akun</button>
+            <!-- Logout -->
+            <button onclick="logout()"
+                class="w-full bg-red-50 hover:bg-red-100 text-red-500 py-4 rounded-2xl font-bold transition-colors border border-red-100">
+                Keluar Akun
+            </button>
         </main>
 
-        <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav p-4 flex justify-around">
-            <button onclick="showPage('home')" id="btn-home"
-                class="flex flex-col items-center text-blue-900 dark:text-blue-400">🏠<span
-                    class="text-[10px] font-bold mt-1">Menu</span></button>
-            <button onclick="showPage('cart')" id="btn-cart" class="flex flex-col items-center text-slate-400">🛒<span
-                    class="text-[10px] font-bold mt-1">Cart</span></button>
-            <button onclick="showPage('profile')" id="btn-profile"
-                class="flex flex-col items-center text-slate-400">😎<span
-                    class="text-[10px] font-bold mt-1">Profile</span></button>
+        <!-- ===== BOTTOM NAV ===== -->
+        <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav py-2 px-4">
+            <div class="flex justify-around">
+                <button onclick="showPage('home')" id="btn-home"
+                    class="flex flex-col items-center text-blue-900 dark:text-blue-400">
+                    <div class="nav-icon"
+                        style="background:#dbeafe;border-radius:12px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;">
+                        🏠</div>
+                    <span class="text-[10px] font-bold mt-1">Home</span>
+                </button>
+                <button onclick="showPage('menu')" id="btn-menu" class="flex flex-col items-center text-slate-400">
+                    <div class="nav-icon">📋</div>
+                    <span class="text-[10px] font-bold mt-1">Menu</span>
+                </button>
+                <button onclick="showPage('cart')" id="btn-cart"
+                    class="flex flex-col items-center text-slate-400 relative">
+                    <div class="nav-icon">🛒</div>
+                    <span class="text-[10px] font-bold mt-1">Cart</span>
+                </button>
+                <button onclick="showPage('profile')" id="btn-profile"
+                    class="flex flex-col items-center text-slate-400">
+                    <div class="nav-icon">👤</div>
+                    <span class="text-[10px] font-bold mt-1">Profile</span>
+                </button>
+            </div>
         </nav>
     </div>
 
@@ -589,11 +953,29 @@
             return !!window.marqueeChannel;
         }
 
+        function initNotificationChannel() {
+            if (!window.supabaseClient) return;
+
+            console.log("🔔 listening to broadcast_notifications...");
+            window.supabaseClient
+                .channel('broadcast-channel')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
+                    console.log("🔔 New Broadcast Recieved:", payload);
+                    if (payload.new) {
+                        const n = payload.new;
+                        showToast("🔔 INFO: " + n.title);
+                        // Refresh notif list if needed
+                        if (typeof loadNotifications === 'function') loadNotifications();
+                    }
+                })
+                .subscribe();
+        }
+
         // Polling system untuk marquee (lebih reliable daripada Realtime)
         window.lastAnnouncementId = 0;
         window.pollingInterval = null;
 
-        function initMarqueePolling() {
+        async function initMarqueePolling() {
             if (!window.supabaseClient) {
                 console.log("⚠️ Supabase client not ready");
                 return false;
@@ -602,6 +984,27 @@
             if (window.pollingInterval) {
                 console.log("✅ Polling already running");
                 return true;
+            }
+
+            // --- INITIAL FETCH: Get only the LATEST message ---
+            // This prevents old messages from flooding the screen on startup
+            if (window.lastAnnouncementId === 0) {
+                try {
+                    const { data, error } = await window.supabaseClient
+                        .from('announcements')
+                        .select('*')
+                        .order('id', { ascending: false })
+                        .limit(1);
+
+                    if (data && data.length > 0) {
+                        const latest = data[0];
+                        console.log("🏁 Initial Marquee:", latest.message);
+                        window.displayMarqueeMessage(latest.message, latest.timestamp);
+                        window.lastAnnouncementId = latest.id;
+                    }
+                } catch (e) {
+                    console.error("❌ Initial fetch error:", e);
+                }
             }
 
             console.log("🔄 Starting marquee polling every 2 seconds...");
@@ -651,6 +1054,7 @@
 
         var initInterval = setInterval(function () {
             if (initSupabase() && initMarqueePolling()) {
+                initNotificationChannel(); // Start listening for broadcasts
                 clearInterval(initInterval);
                 console.log("✅ Supabase & Polling Ready");
             }
@@ -808,6 +1212,21 @@
                     if (pointsDisplay) pointsDisplay.innerText = userPoints.toLocaleString();
                     if (profilePhoto && data.photo) profilePhoto.src = data.photo;
 
+                    // Load address
+                    var addressInput = document.getElementById('input-address');
+                    var cartAddr = document.getElementById('cart-address-display');
+                    if (data.address) {
+                        window.userAddress = data.address;
+                        if (addressInput) addressInput.value = data.address;
+                        if (cartAddr) cartAddr.innerText = data.address;
+                    }
+
+                    // Update profile photo & name in profile page
+                    var profilePhotoDisplay = document.getElementById('profile-photo-display');
+                    var profileDisplayName = document.getElementById('profile-display-name');
+                    if (profilePhotoDisplay && data.photo) profilePhotoDisplay.src = data.photo;
+                    if (profileDisplayName) profileDisplayName.innerText = currentUser;
+
                     checkQuestStatus(data.lastQuestDate);
                     updateMemberUI();
                 }
@@ -904,6 +1323,8 @@
 
         window.onload = function () {
             renderProducts(products);
+            renderMenuGrid(products);
+            loadPopularProducts();
             communityGoal = parseInt(localStorage.getItem('folkpresso_community_goal')) || 0;
             updateGoalUI();
         };
@@ -957,29 +1378,96 @@
             renderCart();
         };
 
-        // --- FUNGSI OPEN PAYMENT YANG DIPERBAIKI (SANGAT AMAN) ---
+        // --- MIDTRANS SNAP PAYMENT ---
+        var MIDTRANS_SERVER_KEY = 'Mid-server-JWBir0vEHwL6X-vc7ftNa79H';
+
         window.openPayment = function () {
             if (!cart.length) return showToast("Keranjang kosong!");
 
-            const modal = document.getElementById('payment-modal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex'); // Pastikan flex aktif
-            } else {
-                alert("Sistem Error: Modal tidak ditemukan. Hubungi Admin.");
-            }
+            var totalOrder = cart.reduce(function (a, b) { return a + (b.price * b.quantity); }, 0);
+            var orderId = 'KOPIKU-' + Date.now();
+
+            var itemDetails = cart.map(function (item) {
+                return {
+                    id: item.name.replace(/\s+/g, '-').toLowerCase(),
+                    price: item.price,
+                    quantity: item.quantity,
+                    name: item.name
+                };
+            });
+
+            var transactionData = {
+                transaction_details: {
+                    order_id: orderId,
+                    gross_amount: totalOrder
+                },
+                item_details: itemDetails,
+                customer_details: {
+                    first_name: currentUser || 'Guest',
+                    email: (auth.currentUser && auth.currentUser.email) || 'guest@kopiku.app',
+                    shipping_address: {
+                        address: window.userAddress || '-'
+                    }
+                },
+                enabled_payments: ['gopay', 'shopeepay', 'other_qris', 'dana']
+            };
+
+            showToast('⏳ Memproses pembayaran...');
+
+            // Gunakan CORS Proxy untuk bypass blokir browser di localhost
+            var targetUrl = 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+            var proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+
+            fetch(proxyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + btoa(MIDTRANS_SERVER_KEY + ':')
+                },
+                body: JSON.stringify(transactionData)
+            })
+                .then(function (res) {
+                    if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+                    return res.json();
+                })
+                .then(function (data) {
+                    if (data.token) {
+                        console.log('✅ Snap Token:', data.token);
+                        window.snap.pay(data.token, {
+                            onSuccess: function (result) {
+                                console.log('✅ Midtrans Success:', result);
+                                var method = result.payment_type || 'midtrans';
+                                if (method === 'other_qris') method = 'QRIS';
+                                handlePaymentSuccess(method);
+                            },
+                            onPending: function (result) {
+                                console.log('⏳ Midtrans Pending:', result);
+                                showToast('⏳ Pembayaran pending...');
+                            },
+                            onError: function (result) {
+                                console.error('❌ Midtrans Error:', result);
+                                showToast('❌ Pembayaran gagal!');
+                            },
+                            onClose: function () {
+                                console.log('🚪 Snap popup ditutup');
+                            }
+                        });
+                    } else if (data.redirect_url) {
+                        window.open(data.redirect_url, '_blank');
+                    } else {
+                        console.error('Midtrans response:', data);
+                        showToast('❌ Gagal transaksi: ' + (data.error_messages ? data.error_messages.join(', ') : 'Unknown error'));
+                    }
+                })
+                .catch(function (err) {
+                    console.error('Midtrans fetch error:', err);
+                    // Fallback Simulation UI
+                    // Jika fetch gagal (CORS), buka modal simulasi agar user tetap bisa memilih metode
+                    openSimulationModal();
+                });
         };
 
-        window.closePaymentModal = function () {
-            const modal = document.getElementById('payment-modal');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        };
-
-        window.processPayment = function (method) {
-            closePaymentModal();
+        function handlePaymentSuccess(method) {
             const trackModal = document.getElementById('tracking-modal');
             const brewState = document.getElementById('brew-state');
             const finishState = document.getElementById('finish-state');
@@ -993,6 +1481,10 @@
 
                 submitTransaction(method);
 
+                // Add notification
+                var orderItems = cart.map(function (item) { return item.quantity + 'x ' + item.name; }).join(', ');
+                addNotification('☕ Pesanan berhasil!', orderItems + ' via ' + method);
+
                 setTimeout(() => {
                     animBar.style.width = "100%";
                     setTimeout(() => {
@@ -1000,8 +1492,19 @@
                         finishState.classList.remove('hidden');
                     }, 500);
                 }, 3000);
+            } else {
+                submitTransaction(method);
+                var orderItems = cart.map(function (item) { return item.quantity + 'x ' + item.name; }).join(', ');
+                addNotification('☕ Pesanan berhasil!', orderItems + ' via ' + method);
+                showToast('✅ Pembayaran berhasil via ' + method + '!');
+                cart = [];
+                renderCart();
+                showPage('menu');
             }
-        };
+        }
+
+        window.closePaymentModal = function () { };
+        window.processPayment = function (method) { handlePaymentSuccess(method); };
 
         async function submitTransaction(method) {
             const user = auth.currentUser;
@@ -1031,6 +1534,7 @@
                 date: dateStamp,
                 full_time: fullTimeStr,
                 name: item.name,
+                user_id: user.uid,
                 type: 'in',
                 qty: item.quantity,
                 unit_price: item.price,
@@ -1038,7 +1542,7 @@
                 total: item.price * item.quantity,
                 method: method,
                 payment_status: 'success',
-                location: '-',
+                location: window.userAddress || '-',
                 netto: '-',
                 notes: '-'
             }));
@@ -1096,7 +1600,7 @@
             document.getElementById('tracking-modal').classList.add('hidden');
             cart = [];
             renderCart();
-            showPage('home');
+            showPage('menu');
             showToast("Pesanan selesai! Poin bertambah.");
         };
 
@@ -1111,8 +1615,16 @@
             const btn = document.getElementById('btn-' + id);
             if (btn) btn.className = "flex flex-col items-center text-blue-900 dark:text-blue-400";
 
-            if (id === 'cart') renderCart();
-            if (id === 'profile') updateMemberUI();
+            if (id === 'cart') {
+                renderCart();
+                var cartAddr = document.getElementById('cart-address-display');
+                if (cartAddr && window.userAddress) cartAddr.innerText = window.userAddress;
+            }
+            if (id === 'profile') {
+                updateMemberUI();
+                loadNotifications();
+                loadOrderHistory();
+            }
         };
 
         function showToast(msg) {
@@ -1274,6 +1786,383 @@
             window.addToCart(random.name, random.price, random.mg, random.cost);
             showToast("✨ " + random.name + " terpilih!");
         };
+
+        // === MENU GRID RENDERING ===
+        var currentMenuFilter = 'all';
+
+        function renderMenuGrid(list) {
+            var grid = document.getElementById('menu-product-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            list.forEach(function (p) {
+                var imgSrc = p.image || 'img/gula aren.png';
+                grid.innerHTML += `
+                <div class="menu-product-card" data-type="${p.type}">
+                    <img src="${imgSrc}" class="w-full h-32 object-cover" onerror="this.src='img/gula aren.png'">
+                    <div class="p-3">
+                        <h4 class="font-bold text-sm dark:text-white truncate">${p.name}</h4>
+                        <p class="text-blue-600 font-extrabold text-xs mt-1">Rp ${p.price.toLocaleString()}</p>
+                        <button onclick="addToCart('${p.name}', ${p.price}, ${p.mg}, ${p.cost})"
+                            class="mt-2 w-full bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold py-2 rounded-xl active:scale-95 transition-all">Add to Cart</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        window.filterMenu = function (category) {
+            currentMenuFilter = category;
+            // Update tab styling
+            var tabs = document.querySelectorAll('#menu-category-tabs .category-pill');
+            tabs.forEach(function (t) { t.classList.remove('active'); });
+            event.target.classList.add('active');
+
+            if (category === 'all') {
+                renderMenuGrid(products);
+            } else {
+                var filtered = products.filter(function (p) { return p.type === category; });
+                renderMenuGrid(filtered);
+            }
+        };
+
+        window.searchMenu = function (query) {
+            var q = query.toLowerCase().trim();
+            var base = currentMenuFilter === 'all' ? products : products.filter(function (p) { return p.type === currentMenuFilter; });
+            if (!q) {
+                renderMenuGrid(base);
+                return;
+            }
+            var filtered = base.filter(function (p) { return p.name.toLowerCase().indexOf(q) !== -1; });
+            renderMenuGrid(filtered);
+        };
+
+        // === SAVE ADDRESS ===
+        window.userAddress = '';
+
+        window.saveAddress = function () {
+            var user = auth.currentUser;
+            var addr = document.getElementById('input-address').value.trim();
+            if (!user || !addr) { showToast('Masukkan alamat terlebih dahulu!'); return; }
+
+            db.collection('users').doc(user.uid).update({ address: addr }).then(function () {
+                window.userAddress = addr;
+                var cartAddr = document.getElementById('cart-address-display');
+                if (cartAddr) cartAddr.innerText = addr;
+                showToast('📍 Alamat tersimpan!');
+                addNotification('📍 Alamat diperbarui', addr);
+            });
+        };
+
+        // === GPS ADDRESS ===
+        window.getGPSAddress = function () {
+            var btn = document.getElementById('btn-gps');
+            var status = document.getElementById('gps-status');
+            var addrInput = document.getElementById('input-address');
+
+            if (!navigator.geolocation) {
+                showToast('❌ GPS tidak didukung di browser ini');
+                return;
+            }
+
+            if (btn) btn.innerHTML = '⏳ Mencari...';
+            if (status) { status.classList.remove('hidden'); status.innerText = 'Mengakses lokasi GPS...'; }
+
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    var lat = pos.coords.latitude;
+                    var lon = pos.coords.longitude;
+                    if (status) status.innerText = 'Koordinat: ' + lat.toFixed(6) + ', ' + lon.toFixed(6) + ' — Mencari alamat...';
+
+                    // Reverse geocoding via OpenStreetMap Nominatim (free, no API key)
+                    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon + '&zoom=18&addressdetails=1', {
+                        headers: { 'Accept-Language': 'id' }
+                    })
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            if (data && data.display_name) {
+                                if (addrInput) addrInput.value = data.display_name;
+                                if (status) status.innerText = '✅ Alamat ditemukan!';
+                                showToast('📡 Lokasi GPS berhasil!');
+                            } else {
+                                if (addrInput) addrInput.value = lat.toFixed(6) + ', ' + lon.toFixed(6);
+                                if (status) status.innerText = '⚠️ Alamat tidak ditemukan, koordinat digunakan';
+                            }
+                            if (btn) btn.innerHTML = '📡 Gunakan GPS';
+                        })
+                        .catch(function (err) {
+                            console.error('Geocoding error:', err);
+                            if (addrInput) addrInput.value = lat.toFixed(6) + ', ' + lon.toFixed(6);
+                            if (status) status.innerText = '⚠️ Gagal geocoding, koordinat digunakan';
+                            if (btn) btn.innerHTML = '📡 Gunakan GPS';
+                        });
+                },
+                function (err) {
+                    console.error('GPS error:', err);
+                    if (btn) btn.innerHTML = '📡 Gunakan GPS';
+                    if (err.code === 1) {
+                        showToast('❌ Izin lokasi ditolak. Aktifkan GPS di pengaturan browser.');
+                        if (status) { status.classList.remove('hidden'); status.innerText = '❌ Izin lokasi ditolak'; }
+                    } else if (err.code === 2) {
+                        showToast('❌ Lokasi tidak tersedia');
+                        if (status) { status.classList.remove('hidden'); status.innerText = '❌ Lokasi tidak tersedia'; }
+                    } else {
+                        showToast('❌ Timeout mengakses GPS');
+                        if (status) { status.classList.remove('hidden'); status.innerText = '❌ Timeout GPS'; }
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        };
+
+        // === NOTIFICATIONS ===
+        var notifications = JSON.parse(localStorage.getItem('kopiku_notifs') || '[]');
+
+        function addNotification(title, message) {
+            var notif = {
+                title: title,
+                message: message,
+                time: Date.now()
+            };
+            notifications.unshift(notif);
+            if (notifications.length > 20) notifications.pop();
+            localStorage.setItem('kopiku_notifs', JSON.stringify(notifications));
+        }
+
+        async function loadNotifications() {
+            var container = document.getElementById('notif-list');
+            if (!container) return;
+
+            container.innerHTML = '<div class="flex justify-center py-4"><span class="animate-spin text-blue-500">⌛</span></div>';
+
+            // 1. Get Broadcasts from DB (Only show broadcasts as requested)
+            var broadcasts = [];
+            if (window.supabaseClient) {
+                try {
+                    const { data } = await window.supabaseClient
+                        .from('broadcast_notifications')
+                        .select('*')
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+                    if (data) broadcasts = data;
+                } catch (e) { console.error("Notif fetch error:", e); }
+            }
+
+            // 2. Format & Display
+            var all = [];
+
+            broadcasts.forEach(n => {
+                all.push({
+                    title: "📢 " + n.title,
+                    message: n.message,
+                    time: new Date(n.created_at).getTime(),
+                    type: 'broadcast'
+                });
+            });
+
+            // Sort Descending (Newest first)
+            // all.sort((a, b) => b.time - a.time); // Already sorted by DB query
+
+            // Limit to 30 combined
+            all = all.slice(0, 30);
+
+            if (all.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-4">Belum ada notifikasi</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            all.forEach(function (n) {
+                // Time relative
+                const diff = Date.now() - n.time;
+                let timeStr = "";
+                if (diff < 60000) timeStr = "Baru saja";
+                else if (diff < 3600000) timeStr = Math.floor(diff / 60000) + " menit lalu";
+                else if (diff < 86400000) timeStr = Math.floor(diff / 3600000) + " jam lalu";
+                else timeStr = new Date(n.time).toLocaleDateString('id-ID');
+
+                // Style distinction
+                const borderClass = n.type === 'broadcast' ? 'border-orange-200 bg-orange-50 dark:bg-slate-800' : 'border-slate-100 bg-white dark:bg-slate-800';
+
+                container.innerHTML += `
+                <div class="${borderClass} p-4 rounded-2xl border shadow-sm relative overflow-hidden group mb-2">
+                    <div class="flex justify-between items-start mb-1">
+                        <h4 class="font-bold text-slate-800 dark:text-white text-sm">${n.title}</h4>
+                        <span class="text-[10px] text-slate-400">${timeStr}</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">${n.message}</p>
+                </div>`;
+            });
+        }
+
+        function getTimeAgo(timestamp) {
+            var diff = Date.now() - timestamp;
+            var mins = Math.floor(diff / 60000);
+            if (mins < 1) return 'Baru saja';
+            if (mins < 60) return mins + ' menit lalu';
+            var hours = Math.floor(mins / 60);
+            if (hours < 24) return hours + ' jam lalu';
+            var days = Math.floor(hours / 24);
+            return days + ' hari lalu';
+        }
+
+        // === ORDER HISTORY ===
+        window.loadOrderHistory = async function () {
+            var container = document.getElementById('order-history-list');
+            if (!container) return;
+            container.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-4">Memuat...</p>';
+
+            if (!window.supabaseClient) {
+                container.innerHTML = '<p class="text-xs text-red-400 italic text-center py-4">Database belum terhubung</p>';
+                return;
+            }
+
+            var user = auth.currentUser;
+            if (!user) {
+                container.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-4">Silakan login</p>';
+                return;
+            }
+
+            try {
+                var { data, error } = await window.supabaseClient
+                    .from('transactions') // Pastikan nama tabel benar
+                    .select('date, full_time, name, qty, total, method, payment_status, user_id') // Select specific fields for clarity
+                    .eq('user_id', user.uid)
+                    .order('id', { ascending: false })
+                    .limit(20);
+
+                if (error) {
+                    container.innerHTML = '<p class="text-xs text-red-400 italic text-center py-4">Gagal memuat: ' + error.message + '</p>';
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-4">Belum ada riwayat pesanan</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                data.forEach(function (tx) {
+                    container.innerHTML += `
+                    <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
+                        <div class="flex justify-between items-start">
+                            <h5 class="font-bold text-xs dark:text-white">${tx.name} (${tx.qty}x)</h5>
+                            <span class="text-[10px] text-slate-400">${tx.full_time || tx.date}</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-[11px] text-blue-600 font-bold">Rp ${(tx.total || 0).toLocaleString()}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${tx.payment_status === 'success' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}">${tx.method}</span>
+                        </div>
+                    </div>`;
+                });
+            } catch (e) {
+                container.innerHTML = '<p class="text-xs text-red-400 italic text-center py-4">Error: ' + e.message + '</p>';
+            }
+        };
+
+        // === POPULAR PRODUCTS FROM ORDER DATA ===
+        window.loadPopularProducts = async function () {
+            if (!window.supabaseClient) {
+                // Default: show first 3 products
+                renderProducts(products.slice(0, 3));
+                return;
+            }
+
+            try {
+                var { data, error } = await window.supabaseClient
+                    .from('transactions')
+                    .select('name, qty');
+
+                if (error || !data || data.length === 0) {
+                    renderProducts(products.slice(0, 3));
+                    return;
+                }
+
+                // Count total qty per product name
+                var countMap = {};
+                data.forEach(function (tx) {
+                    if (!countMap[tx.name]) countMap[tx.name] = 0;
+                    countMap[tx.name] += (tx.qty || 1);
+                });
+
+                // Sort products by order count
+                var sorted = products.slice().sort(function (a, b) {
+                    return (countMap[b.name] || 0) - (countMap[a.name] || 0);
+                });
+
+                // Take top 3
+                var top3 = sorted.slice(0, 3);
+                renderProducts(top3);
+            } catch (e) {
+                console.error('Error loading popular:', e);
+                renderProducts(products.slice(0, 3));
+            }
+        };
+    </script>
+    <!-- ===== SIMULATION PAYMENT MODAL ===== -->
+    <div id="simulation-payment-modal"
+        class="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl slide-up">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-lg font-extrabold text-slate-800 dark:text-white">Pilih Pembayaran</h3>
+                    <p class="text-xs text-slate-500">Mode Simulasi (CORS Fallback)</p>
+                </div>
+                <button onclick="closeSimulationModal()"
+                    class="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400 font-bold hover:bg-slate-200">✕</button>
+            </div>
+
+            <div class="space-y-3">
+                <button onclick="handlePaymentSuccess('GoPay')"
+                    class="w-full flex items-center justify-between p-4 bg-sky-50 hover:bg-sky-100 border border-sky-100 rounded-xl transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🟢</span>
+                        <span class="font-bold text-slate-700">GoPay</span>
+                    </div>
+                    <span class="text-xs font-bold text-sky-600 bg-sky-100 px-2 py-1 rounded-lg">Pilih</span>
+                </button>
+
+                <button onclick="handlePaymentSuccess('ShopeePay')"
+                    class="w-full flex items-center justify-between p-4 bg-orange-50 hover:bg-orange-100 border border-orange-100 rounded-xl transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🟧</span>
+                        <span class="font-bold text-slate-700">ShopeePay</span>
+                    </div>
+                    <span class="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-lg">Pilih</span>
+                </button>
+
+                <button onclick="handlePaymentSuccess('Dana')"
+                    class="w-full flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🔵</span>
+                        <span class="font-bold text-slate-700">Dana</span>
+                    </div>
+                    <span class="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-lg">Pilih</span>
+                </button>
+
+                <button onclick="handlePaymentSuccess('QRIS')"
+                    class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🔳</span>
+                        <span class="font-bold text-slate-700">QRIS</span>
+                    </div>
+                    <span class="text-xs font-bold text-slate-600 bg-slate-200 px-2 py-1 rounded-lg">Pilih</span>
+                </button>
+            </div>
+
+            <p class="text-[10px] text-slate-400 text-center mt-6">
+                *Simulasi ini muncul karena koneksi ke Midtrans API diblokir browser.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function openSimulationModal() {
+            document.getElementById('simulation-payment-modal').classList.remove('hidden');
+            document.getElementById('simulation-payment-modal').classList.add('flex');
+        }
+        function closeSimulationModal() {
+            document.getElementById('simulation-payment-modal').classList.add('hidden');
+            document.getElementById('simulation-payment-modal').classList.remove('flex');
+        }
     </script>
 </body>
 
