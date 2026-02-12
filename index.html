@@ -993,29 +993,54 @@
             }
             return !!window.marqueeChannel;
         }
-
         function initNotificationChannel() {
             if (!window.supabaseClient) return;
 
-            window.supabaseClient
-                .channel('store-status-listen')
+            // Hapus channel lama jika ada (untuk mencegah duplikasi listener)
+            if (window.storeChannel) window.supabaseClient.removeChannel(window.storeChannel);
+
+            // Buat Channel Baru
+            window.storeChannel = window.supabaseClient
+                .channel('public:broadcast_notifications_v2')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
-                    if (payload.new && payload.new.title === 'SYSTEM_STORE_STATUS') {
-                        console.log("Status Toko Berubah:", payload.new.message);
-                        window.isStoreOpen = (payload.new.message === 'OPEN');
+                    const data = payload.new;
+                    if (!data) return;
+
+                    console.log("📡 SIGNAL DITERIMA:", data.title, data.message);
+
+                    // === KASUS 1: STATUS TOKO BERUBAH (REALTIME) ===
+                    if (data.title === 'SYSTEM_STORE_STATUS') {
+                        // 1. Update Variable Global
+                        window.isStoreOpen = (data.message === 'OPEN');
+
+                        // 2. Paksa Update Tampilan (Badge) Detik Itu Juga
                         updateStoreVisuals();
 
-                        // Beri notifikasi ke user yang sedang membuka aplikasi
-                        if (!window.isStoreOpen) {
-                            showToast("🔒 Info: Toko Baru Saja Tutup");
-                            // Opsional: Kosongkan keranjang jika mau sadis
-                            // cart = []; renderCart(); 
+                        // 3. Tampilkan Toast / Pop-up Sesuai Status
+                        if (window.isStoreOpen) {
+                            showToast("🔓 UPDATE: Toko Sudah BUKA! Silahkan pesan.");
+                            // Getar pendek 2x tanda buka
+                            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                         } else {
-                            showToast("🔓 Info: Toko Sudah Buka!");
+                            showToast("🔒 UPDATE: Toko TUTUP Sementara.");
+                            // Getar panjang tanda tutup
+                            if (navigator.vibrate) navigator.vibrate([500]);
                         }
                     }
+
+                    // === KASUS 2: NOTIFIKASI DARI OWNER (PROMO DLL) ===
+                    else {
+                        // Refresh list notifikasi karena ada pesan baru
+                        loadNotifications();
+
+                        // Munculkan Toast Pesan
+                        showToast("📩 Pesan Baru: " + data.title);
+                        if (navigator.vibrate) navigator.vibrate(200);
+                    }
                 })
-                .subscribe();
+                .subscribe((status) => {
+                    console.log("Status Koneksi Realtime:", status);
+                });
         }
         // Polling system untuk marquee (lebih reliable daripada Realtime)
         window.lastAnnouncementId = 0;
@@ -1986,7 +2011,6 @@
 
             container.innerHTML = '<div class="flex justify-center py-4"><span class="animate-spin text-blue-500">⌛</span></div>';
 
-            // 1. Ambil Data dari Supabase
             var broadcasts = [];
             if (window.supabaseClient) {
                 try {
@@ -1999,25 +2023,21 @@
                 } catch (e) { console.error("Notif fetch error:", e); }
             }
 
-            // 2. Format Data
             var all = [];
 
             broadcasts.forEach(n => {
-                // --- PERBAIKAN: SEMBUNYIKAN STATUS TOKO ---
-                // Jika judulnya SYSTEM_STORE_STATUS, langsung skip (return)
-                // Data ini tidak akan dimasukkan ke dalam list tampilan
-                if (n.title === 'SYSTEM_STORE_STATUS') return;
-                // ------------------------------------------
+                // --- FILTER: JANGAN TAMPILKAN STATUS TOKO DI LIST ---
+                if (n.title === 'SYSTEM_STORE_STATUS') return; // Skip data ini
+                // ----------------------------------------------------
 
                 all.push({
                     title: "📢 " + n.title,
                     message: n.message,
-                    time: new Date(n.created_at).getTime(),
-                    type: 'broadcast'
+                    time: new Date(n.created_at).getTime()
                 });
             });
 
-            // Limit tampilan max 30
+            // Limit tampilan
             all = all.slice(0, 30);
 
             if (all.length === 0) {
@@ -2027,7 +2047,6 @@
 
             container.innerHTML = '';
             all.forEach(function (n) {
-                // Hitung Waktu
                 const diff = Date.now() - n.time;
                 let timeStr = "";
                 if (diff < 60000) timeStr = "Baru saja";
@@ -2036,7 +2055,7 @@
                 else timeStr = new Date(n.time).toLocaleDateString('id-ID');
 
                 container.innerHTML += `
-                <div class="border-slate-100 bg-white dark:bg-slate-800 p-4 rounded-2xl border shadow-sm relative overflow-hidden group mb-2 transition-all">
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden group mb-2 transition-all">
                     <div class="flex justify-between items-start mb-1">
                         <h4 class="font-bold text-slate-800 dark:text-white text-sm uppercase tracking-wider">${n.title}</h4>
                         <span class="text-[10px] text-slate-400 italic">${timeStr}</span>
@@ -2045,7 +2064,6 @@
                 </div>`;
             });
         }
-
         function getTimeAgo(timestamp) {
             var diff = Date.now() - timestamp;
             var mins = Math.floor(diff / 60000);
