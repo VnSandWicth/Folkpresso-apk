@@ -663,8 +663,7 @@
                     .from('announcements')
                     .insert([{ 
                         message: broadcastMsg,
-                        timestamp: timestamp,
-                        username: currentUser
+                        timestamp: timestamp
                     }])
                     .then(({ data, error }) => {
                         if (error) {
@@ -871,8 +870,7 @@
                     .from('announcements')
                     .insert([{ 
                         message: broadcastMsg,
-                        timestamp: timestamp,
-                        username: currentUser
+                        timestamp: timestamp
                     }])
                     .then(({ data, error }) => {
                         if (error) {
@@ -943,8 +941,7 @@
                     .from('announcements')
                     .insert([{ 
                         message: testMsg,
-                        timestamp: timestamp,
-                        username: currentUser
+                        timestamp: timestamp
                     }])
                     .then(({ data, error }) => {
                         if (error) {
@@ -978,8 +975,7 @@
                 .from('announcements')
                 .insert([{ 
                     message: "☕ User A memesan 2x Aren Coffee via Cash!",
-                    timestamp: baseTime + 100,
-                    username: "User A"
+                    timestamp: baseTime + 100
                 }])
                 .then(() => console.log("✅ User A message inserted"));
             
@@ -989,8 +985,7 @@
                     .from('announcements')
                     .insert([{ 
                         message: "☕ User B memesan 1x Salted Caramel via QRIS!",
-                        timestamp: baseTime + 200,
-                        username: "User B"
+                        timestamp: baseTime + 200
                     }])
                     .then(() => console.log("✅ User B message inserted"));
             }, 50);
@@ -1001,8 +996,7 @@
                     .from('announcements')
                     .insert([{ 
                         message: "⚔️ User C berhasil claim Daily Quest +50 poin!",
-                        timestamp: baseTime + 300,
-                        username: "User C"
+                        timestamp: baseTime + 300
                     }])
                     .then(() => console.log("✅ User C message inserted"));
             }, 100);
@@ -1043,8 +1037,7 @@
                                 .from('announcements')
                                 .insert([{ 
                                     message: broadcastMsg,
-                                    timestamp: timestamp,
-                                    username: currentUser
+                                    timestamp: timestamp
                                 }])
                                 .then(({ data, error }) => {
                                     if (error) {
