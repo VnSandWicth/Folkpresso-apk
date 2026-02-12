@@ -387,7 +387,7 @@
 
     <!-- ===== LOGIN SCREEN ===== -->
     <div id="login-screen"
-        class="fixed inset-0 z-[5000] flex flex-col items-center justify-center p-6 transition-all duration-500"
+        class="fixed inset-0 z-[5000] hidden flex flex-col items-center justify-center p-6 transition-all duration-500"
         style="background: linear-gradient(160deg, #6aacf0 0%, #2563eb 40%, #1e3a8a 100%);">
         <div class="w-full max-w-sm">
             <div class="text-center mb-8">
@@ -1156,21 +1156,28 @@
         var isStoreOpen = true;
         var communityGoal = 0;
 
-        // === AUTH HANDLER ===
+
+        // === AUTH HANDLER (PERBAIKAN AGAR TIDAK FLICKER) ===
         auth.onAuthStateChanged((user) => {
             const loginScreen = document.getElementById('login-screen');
             const mainApp = document.getElementById('main-app');
 
             if (user) {
+                // JIKA USER SUDAH LOGIN:
+                // Langsung sembunyikan login screen dan tampilkan app utama tanpa delay/animasi
+                loginScreen.classList.add('hidden');
                 loginScreen.style.opacity = '0';
-                setTimeout(() => {
-                    loginScreen.classList.add('hidden');
-                    mainApp.classList.remove('hidden');
-                }, 500);
+                mainApp.classList.remove('hidden');
+
+                // Mulai sinkronisasi data
                 startFolkSync(user.uid);
             } else {
+                // JIKA USER BELUM LOGIN:
+                // Tampilkan laman login
                 loginScreen.classList.remove('hidden');
-                loginScreen.style.opacity = '1';
+                setTimeout(() => {
+                    loginScreen.style.opacity = '1';
+                }, 10);
                 mainApp.classList.add('hidden');
             }
         });
