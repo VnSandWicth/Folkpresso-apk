@@ -242,21 +242,32 @@
         var isDisplayingMarquee = false;
 
         window.displayMarqueeMessage = function(message) {
+            console.log("📢 displayMarqueeMessage called:", message);
             var marqueeEl = document.querySelector('.animate-marquee');
-            if (!marqueeEl) return;
             
+            if (!marqueeEl) {
+                console.error("❌ Marquee element not found!");
+                return;
+            }
+            
+            console.log("✅ Marquee element found, adding to queue");
             // Tambahkan pesan ke antrian
             marqueeQueue.push(message);
+            console.log("📋 Queue length:", marqueeQueue.length);
             
             // Jika tidak sedang menampilkan, mulai proses
             if (!isDisplayingMarquee) {
+                console.log("▶️ Starting queue process");
                 processMarqueeQueue();
+            } else {
+                console.log("⏸️ Already displaying, message queued");
             }
         };
 
         function processMarqueeQueue() {
             var marqueeEl = document.querySelector('.animate-marquee');
             if (!marqueeEl || marqueeQueue.length === 0) {
+                console.log("⏹️ Queue empty or element not found");
                 isDisplayingMarquee = false;
                 return;
             }
@@ -265,19 +276,24 @@
             
             // Ambil pesan pertama dari antrian
             var message = marqueeQueue.shift();
+            console.log("📺 Displaying message:", message);
             
             // Tampilkan pesan
             marqueeEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${message} &nbsp;&nbsp; • &nbsp;&nbsp; ${defaultMarquee}`;
             
             // Setelah 5 detik, proses pesan berikutnya
             setTimeout(function() {
+                console.log("⏭️ Message timeout, checking queue...");
                 if (marqueeQueue.length > 0) {
+                    console.log("📋 More messages in queue:", marqueeQueue.length);
                     processMarqueeQueue();
                 } else {
                     // Jika tidak ada lagi, kembali ke default setelah 3 detik
+                    console.log("⏳ No more messages, resetting in 3s...");
                     setTimeout(function() {
                         marqueeEl.innerHTML = defaultMarquee;
                         isDisplayingMarquee = false;
+                        console.log("🔄 Reset to default marquee");
                     }, 3000);
                 }
             }, 5000);
@@ -287,24 +303,52 @@
             if (typeof window.supabase !== 'undefined' && !window.supabaseClient) {
                 try {
                     window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+                    console.log("✅ Supabase client created");
                     return true;
-                } catch(e) { return false; }
+                } catch(e) { 
+                    console.error("❌ Supabase init error:", e);
+                    return false; 
+                }
             }
             return !!window.supabaseClient;
         }
 
         function initMarqueeChannel() {
-            if (!window.supabaseClient) initSupabase();
+            if (!window.supabaseClient) {
+                console.log("⚠️ Supabase client not ready");
+                initSupabase();
+            }
+            
             if (!window.marqueeChannel && window.supabaseClient) {
                 try {
-                    window.marqueeChannel = window.supabaseClient.channel('folkpresso-marquee', { config: { broadcast: { self: true } } });
-                    window.marqueeChannel.on('broadcast', { event: 'announcement' }, function(p) {
-                        if (p.payload) window.displayMarqueeMessage(p.payload.message);
-                    }).subscribe();
+                    console.log("📡 Creating marquee channel...");
+                    window.marqueeChannel = window.supabaseClient.channel('folkpresso-marquee', { 
+                        config: { broadcast: { self: true } } 
+                    });
+                    
+                    window.marqueeChannel.on('broadcast', { event: 'announcement' }, function(payload) {
+                        console.log("📨 Received broadcast:", payload);
+                        if (payload.payload && payload.payload.message) {
+                            window.displayMarqueeMessage(payload.payload.message);
+                        }
+                    });
+                    
+                    window.marqueeChannel.subscribe(function(status) {
+                        console.log("📡 Channel status:", status);
+                        if (status === 'SUBSCRIBED') {
+                            console.log("✅ Marquee channel subscribed!");
+                        } else if (status === 'CHANNEL_ERROR') {
+                            console.error("❌ Channel error");
+                        }
+                    });
+                    
                     return true;
-                } catch(e) { return false; }
+                } catch(e) { 
+                    console.error("❌ Channel init error:", e);
+                    return false; 
+                }
             }
-            return true;
+            return !!window.marqueeChannel;
         }
 
         var initInterval = setInterval(function() {
@@ -520,10 +564,17 @@
 
             // Broadcast jika naik tier
             if (oldTier !== "" && oldTier !== newTier && window.marqueeChannel) {
+                const broadcastMsg = `👑 Selamat! ${currentUser} naik ke ${newTier}!`;
+                console.log("📤 Sending tier broadcast:", broadcastMsg);
+                
                 window.marqueeChannel.send({
                     type: 'broadcast',
                     event: 'announcement',
-                    payload: { message: `👑 Selamat! ${currentUser} naik ke ${newTier}!` }
+                    payload: { message: broadcastMsg }
+                }).then(() => {
+                    console.log("✅ Tier broadcast sent");
+                }).catch((err) => {
+                    console.error("❌ Tier broadcast error:", err);
                 });
             }
             
@@ -713,11 +764,20 @@
             // Broadcast pesan
             if(window.marqueeChannel) {
                 const orderDetails = cart.map(item => item.quantity + "x " + item.name).join(", ");
+                const broadcastMsg = `☕ ${currentUser} baru saja memesan ${orderDetails} via ${method}!`;
+                console.log("📤 Sending broadcast:", broadcastMsg);
+                
                 window.marqueeChannel.send({
                     type: 'broadcast',
                     event: 'announcement',
-                    payload: { message: `☕ ${currentUser} baru saja memesan ${orderDetails} via ${method}!` }
+                    payload: { message: broadcastMsg }
+                }).then(() => {
+                    console.log("✅ Broadcast sent successfully");
+                }).catch((err) => {
+                    console.error("❌ Broadcast error:", err);
                 });
+            } else {
+                console.warn("⚠️ Marquee channel not available");
             }
         }
 
@@ -762,6 +822,30 @@
         }
 
         window.toggleDark = function() { document.documentElement.classList.toggle('dark'); };
+
+        // Fungsi test marquee untuk debugging
+        window.testMarquee = function() {
+            console.log("🧪 Testing marquee...");
+            console.log("Channel status:", window.marqueeChannel ? "Connected" : "Not connected");
+            
+            if (window.marqueeChannel) {
+                const testMsg = `🧪 Test dari ${currentUser} - ${new Date().toLocaleTimeString()}`;
+                console.log("Sending test message:", testMsg);
+                
+                window.marqueeChannel.send({
+                    type: 'broadcast',
+                    event: 'announcement',
+                    payload: { message: testMsg }
+                }).then(() => {
+                    console.log("✅ Test message sent");
+                }).catch((err) => {
+                    console.error("❌ Test message error:", err);
+                });
+            } else {
+                console.error("❌ Channel not initialized");
+                alert("Channel belum terhubung! Cek console untuk detail.");
+            }
+        };
         window.logout = function() { 
             if(confirm("Yakin mau keluar?")) {
                 auth.signOut().then(() => location.reload()); 
@@ -786,10 +870,17 @@
                         
                         // Broadcast pesan daily quest
                         if(window.marqueeChannel) {
+                            const broadcastMsg = `⚔️ ${currentUser} berhasil claim Daily Quest +50 poin!`;
+                            console.log("📤 Sending quest broadcast:", broadcastMsg);
+                            
                             window.marqueeChannel.send({
                                 type: 'broadcast',
                                 event: 'announcement',
-                                payload: { message: `⚔️ ${currentUser} berhasil claim Daily Quest +50 poin!` }
+                                payload: { message: broadcastMsg }
+                            }).then(() => {
+                                console.log("✅ Quest broadcast sent");
+                            }).catch((err) => {
+                                console.error("❌ Quest broadcast error:", err);
                             });
                         }
                     });
