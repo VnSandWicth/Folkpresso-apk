@@ -640,7 +640,7 @@
                 <div>
                     <h4 id="profile-display-name" class="text-lg font-extrabold text-slate-800 dark:text-white">Guest
                     </h4>
-                    <p class="text-xs text-slate-400 font-medium">KOPIKU Member</p>
+                    <p class="text-xs text-slate-400 font-medium">FOLKPRESSO Member</p>
                 </div>
             </div>
 
@@ -866,6 +866,47 @@
             }
             return !!window.supabaseClient;
         }
+        // --- CEK STATUS TOKO ---
+        async function syncStoreStatus() {
+            if (!window.supabaseClient) return;
+
+            // 1. Ambil status terakhir dari Database
+            const { data } = await window.supabaseClient
+                .from('broadcast_notifications')
+                .select('message')
+                .eq('title', 'SYSTEM_STORE_STATUS')
+                .order('id', { ascending: false })
+                .limit(1);
+
+            if (data && data.length > 0) {
+                const status = data[0].message; // 'OPEN' atau 'CLOSED'
+
+                // Update Variabel Global
+                window.isStoreOpen = (status === 'OPEN');
+
+                // Update UI Indikator (Banner Marquee / Badge)
+                updateStoreVisuals();
+            }
+        }
+
+        function updateStoreVisuals() {
+            const statusBadge = document.getElementById('store-status-badge');
+
+            if (!window.isStoreOpen) {
+                // JIKA TUTUP
+                if (statusBadge) {
+                    statusBadge.classList.remove('hidden');
+                    statusBadge.innerHTML = '<span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> <span class="text-[9px] font-bold text-red-500 ml-1">TUTUP</span>';
+                }
+                showToast("🔒 Toko Sedang Tutup");
+            } else {
+                // JIKA BUKA
+                if (statusBadge) statusBadge.classList.add('hidden');
+            }
+        }
+
+        // Panggil fungsi ini saat inisialisasi
+        setTimeout(syncStoreStatus, 2000); // Tunggu sebentar setelah load
 
         function initMarqueeChannel() {
             if (!window.supabaseClient) {
@@ -956,21 +997,26 @@
         function initNotificationChannel() {
             if (!window.supabaseClient) return;
 
-            console.log("🔔 listening to broadcast_notifications...");
             window.supabaseClient
-                .channel('broadcast-channel')
+                .channel('store-status-listen')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
-                    console.log("🔔 New Broadcast Recieved:", payload);
-                    if (payload.new) {
-                        const n = payload.new;
-                        showToast("🔔 INFO: " + n.title);
-                        // Refresh notif list if needed
-                        if (typeof loadNotifications === 'function') loadNotifications();
+                    if (payload.new && payload.new.title === 'SYSTEM_STORE_STATUS') {
+                        console.log("Status Toko Berubah:", payload.new.message);
+                        window.isStoreOpen = (payload.new.message === 'OPEN');
+                        updateStoreVisuals();
+
+                        // Beri notifikasi ke user yang sedang membuka aplikasi
+                        if (!window.isStoreOpen) {
+                            showToast("🔒 Info: Toko Baru Saja Tutup");
+                            // Opsional: Kosongkan keranjang jika mau sadis
+                            // cart = []; renderCart(); 
+                        } else {
+                            showToast("🔓 Info: Toko Sudah Buka!");
+                        }
                     }
                 })
                 .subscribe();
         }
-
         // Polling system untuk marquee (lebih reliable daripada Realtime)
         window.lastAnnouncementId = 0;
         window.pollingInterval = null;
@@ -1345,12 +1391,20 @@
         }
 
         window.addToCart = function (name, price, mg, cost) {
+            // --- TAMBAHAN BLOKIR TOKO TUTUP ---
+            if (!window.isStoreOpen) {
+                showToast("⛔ Maaf, Toko Sedang Tutup!");
+                // Mainkan efek getar jika di HP
+                if (navigator.vibrate) navigator.vibrate(200);
+                return; // Stop proses, jangan masukkan ke keranjang
+            }
+            // ----------------------------------
+
             var item = cart.find(i => i.name === name);
             if (item) item.quantity++; else cart.push({ name, price, mg, cost, quantity: 1 });
             showToast(name + " ditambahkan!");
             renderCart();
         };
-
         function renderCart() {
             var list = document.getElementById('cart-items');
             if (!list) return;
@@ -1926,14 +1980,13 @@
             if (notifications.length > 20) notifications.pop();
             localStorage.setItem('kopiku_notifs', JSON.stringify(notifications));
         }
-
         async function loadNotifications() {
             var container = document.getElementById('notif-list');
             if (!container) return;
 
             container.innerHTML = '<div class="flex justify-center py-4"><span class="animate-spin text-blue-500">⌛</span></div>';
 
-            // 1. Get Broadcasts from DB (Only show broadcasts as requested)
+            // 1. Ambil Data dari Supabase
             var broadcasts = [];
             if (window.supabaseClient) {
                 try {
@@ -1946,10 +1999,16 @@
                 } catch (e) { console.error("Notif fetch error:", e); }
             }
 
-            // 2. Format & Display
+            // 2. Format Data
             var all = [];
 
             broadcasts.forEach(n => {
+                // --- PERBAIKAN: SEMBUNYIKAN STATUS TOKO ---
+                // Jika judulnya SYSTEM_STORE_STATUS, langsung skip (return)
+                // Data ini tidak akan dimasukkan ke dalam list tampilan
+                if (n.title === 'SYSTEM_STORE_STATUS') return;
+                // ------------------------------------------
+
                 all.push({
                     title: "📢 " + n.title,
                     message: n.message,
@@ -1958,10 +2017,7 @@
                 });
             });
 
-            // Sort Descending (Newest first)
-            // all.sort((a, b) => b.time - a.time); // Already sorted by DB query
-
-            // Limit to 30 combined
+            // Limit tampilan max 30
             all = all.slice(0, 30);
 
             if (all.length === 0) {
@@ -1971,7 +2027,7 @@
 
             container.innerHTML = '';
             all.forEach(function (n) {
-                // Time relative
+                // Hitung Waktu
                 const diff = Date.now() - n.time;
                 let timeStr = "";
                 if (diff < 60000) timeStr = "Baru saja";
@@ -1979,16 +2035,13 @@
                 else if (diff < 86400000) timeStr = Math.floor(diff / 3600000) + " jam lalu";
                 else timeStr = new Date(n.time).toLocaleDateString('id-ID');
 
-                // Style distinction
-                const borderClass = n.type === 'broadcast' ? 'border-orange-200 bg-orange-50 dark:bg-slate-800' : 'border-slate-100 bg-white dark:bg-slate-800';
-
                 container.innerHTML += `
-                <div class="${borderClass} p-4 rounded-2xl border shadow-sm relative overflow-hidden group mb-2">
+                <div class="border-slate-100 bg-white dark:bg-slate-800 p-4 rounded-2xl border shadow-sm relative overflow-hidden group mb-2 transition-all">
                     <div class="flex justify-between items-start mb-1">
-                        <h4 class="font-bold text-slate-800 dark:text-white text-sm">${n.title}</h4>
-                        <span class="text-[10px] text-slate-400">${timeStr}</span>
+                        <h4 class="font-bold text-slate-800 dark:text-white text-sm uppercase tracking-wider">${n.title}</h4>
+                        <span class="text-[10px] text-slate-400 italic">${timeStr}</span>
                     </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">${n.message}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-300 leading-relaxed font-medium">${n.message}</p>
                 </div>`;
             });
         }
