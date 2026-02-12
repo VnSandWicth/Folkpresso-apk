@@ -418,8 +418,9 @@
         style="background: linear-gradient(160deg, #6aacf0 0%, #2563eb 40%, #1e3a8a 100%);">
         <div class="w-full max-w-sm">
             <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-[2rem] shadow-2xl mb-5">
-                    <span class="text-5xl">☕</span>
+                <div
+                    class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-[2rem] shadow-2xl mb-5 overflow-hidden">
+                    <img src="img/folkpresso_logo.png" alt="Folkpresso Logo" class="w-full h-full object-cover">
                 </div>
                 <h1 class="text-4xl font-extrabold text-white tracking-tight">FOLKPRESSO</h1>
             </div>
@@ -576,12 +577,6 @@
                     </div>
                     <span class="text-white/60 ml-1">›</span>
                 </div>
-            </div>
-
-            <!-- Community Goal (hidden but functional) -->
-            <div class="hidden">
-                <span id="goal-counter">0 / 20 Cups</span>
-                <div id="goal-bar" class="h-full bg-blue-600 w-0"></div>
             </div>
 
             <!-- Marquee -->
@@ -847,6 +842,12 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Install App Button (Hidden by default) -->
+            <button id="btn-install-app" onclick="installPWA()"
+                class="hidden w-full bg-slate-800 text-white py-4 rounded-2xl font-bold transition-colors border border-slate-700 mb-3 flex items-center justify-center gap-2">
+                📲 Install Aplikasi
+            </button>
 
             <!-- Logout -->
             <button onclick="logout()"
@@ -3138,6 +3139,90 @@
         function closeSimulationModal() {
             document.getElementById('simulation-payment-modal').classList.add('hidden');
             document.getElementById('simulation-payment-modal').classList.remove('flex');
+        }
+
+        // === PWA INSTALLATION LOGIC ===
+        let deferredPrompt;
+        const installBtn = document.getElementById('btn-install-app');
+
+        // 1. Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('✅ Service Worker Registered'))
+                    .catch(err => console.log('❌ SW Registration Failed:', err));
+            });
+        }
+
+        // 2. Handle Android Install Prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Show install button
+            if (installBtn) {
+                installBtn.classList.remove('hidden');
+                console.log("📲 Install prompt captured, button shown");
+            }
+        });
+
+        // 3. Install Function
+        window.installPWA = async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                deferredPrompt = null;
+                if (outcome === 'accepted') {
+                    if (installBtn) installBtn.classList.add('hidden');
+                }
+            } else {
+                // Determine if iOS
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIOS) {
+                    showToast("📲 Tap 'Share' -> 'Add to Home Screen' untuk install");
+                    // Optional: Show a custom modal explanation for iOS
+                    showIOSInstallGuide();
+                } else {
+                    showToast("⚠️ Aplikasi mungkin sudah terinstall atau browser tidak mendukung.");
+                }
+            }
+        };
+
+        function showIOSInstallGuide() {
+            var popup = document.createElement('div');
+            popup.id = 'ios-install-popup';
+            popup.className = 'fixed inset-0 z-[9999] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4';
+            popup.innerHTML = `
+                <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl slide-up text-center relative">
+                    <button onclick="this.parentElement.parentElement.remove()" class="absolute top-4 right-4 w-8 h-8 bg-slate-100 rounded-full text-slate-500 font-bold">✕</button>
+                    <div class="w-16 h-16 bg-slate-100 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl shadow-sm">🍎</div>
+                    <h3 class="text-lg font-black text-slate-800 dark:text-white mb-2">Install di iPhone</h3>
+                    <p class="text-sm text-slate-500 mb-6">Aplikasi ini bisa diinstall tanpa App Store!</p>
+                    
+                    <div class="flex items-center gap-4 text-left bg-slate-50 dark:bg-slate-800 p-3 rounded-xl mb-2">
+                        <span class="text-2xl">1️⃣</span>
+                        <div><p class="text-xs font-bold text-slate-600 dark:text-slate-300">Tap tombol Share</p><p class="text-[10px] text-slate-400">Ikon kotak dengan panah ke atas di bawah layar</p></div>
+                    </div>
+                    <div class="flex items-center gap-4 text-left bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
+                        <span class="text-2xl">2️⃣</span>
+                        <div><p class="text-xs font-bold text-slate-600 dark:text-slate-300">Pilih 'Add to Home Screen'</p><p class="text-[10px] text-slate-400">Scroll ke bawah sedikit untuk menemukannya</p></div>
+                    </div>
+                    <div class="mt-6 w-full h-1 bg-slate-100 rounded-full"></div>
+                    <p class="text-[10px] text-slate-300 mt-2">Folkpresso iOS Web App</p>
+                </div>
+            `;
+            document.body.appendChild(popup);
+        }
+
+        // Check if app is already installed (standalone mode)
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ App installed successfully');
+            if (installBtn) installBtn.classList.add('hidden');
+        });
+
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('✅ App is running in standalone mode');
+            if (installBtn) installBtn.classList.add('hidden');
         }
     </script>
 </body>
