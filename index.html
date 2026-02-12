@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +12,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/751/751621.png">
-    
+
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -29,83 +30,220 @@
         }
     </script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
 
     <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 80% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes brewBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        .app-page { display: none; }
-        .app-page.active { display: block; animation: slideUp 0.4s ease-out; }
-        .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); }
-        .dark .glass-nav { background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 20s linear infinite; }
-        .anim-brew { animation: brewBounce 1s infinite ease-in-out; }
-        .member-card-gold { background: linear-gradient(135deg, #FFD700, #B8860B); color: #FFF; }
-        .member-card-silver { background: linear-gradient(135deg, #E0E0E0, #9E9E9E); color: #333; }
-        .member-card-bronze { background: linear-gradient(135deg, #CD7F32, #8B4513); color: #FFF; }
-        .grayscale-mode { filter: grayscale(100%); pointer-events: none; opacity: 0.6; }
-        #toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 10001; pointer-events: none; width: 100%; display: flex; flex-direction: column; align-items: center; }
-        .toast { background: #1e3a8a; color: white; padding: 12px 24px; border-radius: 50px; margin-top: 10px; font-size: 12px; font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: popIn 0.3s forwards; }
-        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes marquee {
+            0% {
+                transform: translateX(100%);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            80% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes brewBounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .app-page {
+            display: none;
+        }
+
+        .app-page.active {
+            display: block;
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .dark .glass-nav {
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .animate-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 20s linear infinite;
+        }
+
+        .anim-brew {
+            animation: brewBounce 1s infinite ease-in-out;
+        }
+
+        .member-card-gold {
+            background: linear-gradient(135deg, #FFD700, #B8860B);
+            color: #FFF;
+        }
+
+        .member-card-silver {
+            background: linear-gradient(135deg, #E0E0E0, #9E9E9E);
+            color: #333;
+        }
+
+        .member-card-bronze {
+            background: linear-gradient(135deg, #CD7F32, #8B4513);
+            color: #FFF;
+        }
+
+        .grayscale-mode {
+            filter: grayscale(100%);
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        #toast-container {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10001;
+            pointer-events: none;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .toast {
+            background: #1e3a8a;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            animation: popIn 0.3s forwards;
+        }
+
         /* Modal Layering */
-        #payment-modal, #tracking-modal, #universal-popup { z-index: 9999; }
+        #payment-modal,
+        #tracking-modal,
+        #universal-popup {
+            z-index: 9999;
+        }
     </style>
 </head>
-<body class="bg-[#F8FAFC] text-slate-900 pb-32 dark:bg-slate-950 dark:text-white transition-colors duration-300 font-sans select-none">
+
+<body
+    class="bg-[#F8FAFC] text-slate-900 pb-32 dark:bg-slate-950 dark:text-white transition-colors duration-300 font-sans select-none">
 
     <div id="toast-container"></div>
 
     <div id="universal-popup" class="fixed inset-0 hidden items-center justify-center p-6 backdrop-blur-md bg-black/40">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl transform scale-50 opacity-0 transition-all duration-300" id="popup-content">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl transform scale-50 opacity-0 transition-all duration-300"
+            id="popup-content">
             <div id="popup-icon" class="text-5xl text-center mb-4">✨</div>
-            <h3 id="popup-title" class="text-xl font-black text-center text-blue-900 dark:text-white italic mb-2">Pemberitahuan</h3>
-            <p id="popup-message" class="text-sm text-center text-slate-500 dark:text-slate-400 mb-6 font-medium">Pesan di sini...</p>
+            <h3 id="popup-title" class="text-xl font-black text-center text-blue-900 dark:text-white italic mb-2">
+                Pemberitahuan</h3>
+            <p id="popup-message" class="text-sm text-center text-slate-500 dark:text-slate-400 mb-6 font-medium">Pesan
+                di sini...</p>
             <div id="popup-actions" class="w-full"></div>
         </div>
     </div>
 
-    <div id="payment-modal" class="fixed inset-0 hidden flex items-center justify-center p-6 backdrop-blur-md bg-black/40">
+    <div id="payment-modal"
+        class="fixed inset-0 hidden flex items-center justify-center p-6 backdrop-blur-md bg-black/40">
         <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
             <h3 class="text-2xl font-black text-center text-blue-900 dark:text-white mb-6">Pilih Metode Pembayaran</h3>
             <div class="space-y-3">
-                <button onclick="processPayment('Cash')" class="w-full bg-green-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">💵 Cash</button>
-                <button onclick="processPayment('QRIS')" class="w-full bg-blue-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">📱 QRIS</button>
-                <button onclick="processPayment('Transfer')" class="w-full bg-purple-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">🏦 Transfer</button>
-                <button onclick="closePaymentModal()" class="w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white py-4 rounded-2xl font-bold">Batal</button>
+                <button onclick="processPayment('Cash')"
+                    class="w-full bg-green-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">💵
+                    Cash</button>
+                <button onclick="processPayment('QRIS')"
+                    class="w-full bg-blue-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">📱
+                    QRIS</button>
+                <button onclick="processPayment('Transfer')"
+                    class="w-full bg-purple-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">🏦
+                    Transfer</button>
+                <button onclick="closePaymentModal()"
+                    class="w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white py-4 rounded-2xl font-bold">Batal</button>
             </div>
         </div>
     </div>
 
-    <div id="tracking-modal" class="fixed inset-0 hidden flex items-center justify-center p-6 backdrop-blur-md bg-black/40">
+    <div id="tracking-modal"
+        class="fixed inset-0 hidden flex items-center justify-center p-6 backdrop-blur-md bg-black/40">
         <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl text-center">
             <div id="brew-state">
                 <div class="text-6xl mb-4 anim-brew">☕</div>
                 <h3 id="track-title" class="text-2xl font-black text-blue-900 dark:text-white mb-2">Memproses...</h3>
                 <p id="track-desc" class="text-sm text-slate-500 dark:text-slate-400 mb-6">Pesananmu sedang dibuat</p>
                 <div class="w-full bg-slate-200 dark:bg-slate-700 h-3 rounded-full overflow-hidden">
-                    <div id="anim-bar" class="h-full bg-blue-600 transition-all duration-[3000ms]" style="width: 0%"></div>
+                    <div id="anim-bar" class="h-full bg-blue-600 transition-all duration-[3000ms]" style="width: 0%">
+                    </div>
                 </div>
             </div>
             <div id="finish-state" class="hidden flex-col items-center">
                 <div class="text-6xl mb-4">✅</div>
                 <h3 class="text-2xl font-black text-green-600 mb-2">Pesanan Selesai!</h3>
                 <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Terima kasih sudah order!</p>
-                <button onclick="finishOrder()" class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">Oke!</button>
+                <button onclick="finishOrder()"
+                    class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">Oke!</button>
             </div>
         </div>
     </div>
 
-    <div id="login-screen" class="fixed inset-0 z-[5000] bg-gradient-to-br from-blue-700 to-blue-900 flex flex-col items-center justify-center p-6 transition-all duration-500">
+    <div id="login-screen"
+        class="fixed inset-0 z-[5000] bg-gradient-to-br from-blue-700 to-blue-900 flex flex-col items-center justify-center p-6 transition-all duration-500">
         <div class="mb-8 p-6 bg-white rounded-[2.5rem] shadow-2xl animate-bounce">
             <img src="https://cdn-icons-png.flaticon.com/512/751/751621.png" class="w-20 h-20">
         </div>
         <h1 class="text-5xl font-extrabold text-white mb-3 italic tracking-tight">Folkpresso</h1>
-        <p class="text-blue-100 mb-12 text-center max-w-xs font-medium">Komunitas Kopi & Loyalty App.<br>Masuk untuk kumpulkan poin.</p>
+        <p class="text-blue-100 mb-12 text-center max-w-xs font-medium">Komunitas Kopi & Loyalty App.<br>Masuk untuk
+            kumpulkan poin.</p>
 
-        <button onclick="loginWithGoogle()" class="group w-full max-w-xs bg-white text-blue-900 font-bold py-4 px-6 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4">
+        <button onclick="loginWithGoogle()"
+            class="group w-full max-w-xs bg-white text-blue-900 font-bold py-4 px-6 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-6 h-6">
             <span id="login-text">Masuk dengan Google</span>
         </button>
@@ -116,24 +254,24 @@
         <header class="glass-nav sticky top-0 z-[60]">
             <div class="px-6 py-4 flex justify-between items-center">
                 <div>
-                    <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 tracking-tighter italic">FOLKPRESSO</h1>
+                    <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 tracking-tighter italic">
+                        FOLKPRESSO</h1>
                     <div class="flex items-center gap-3 mt-1">
                         <div id="store-status-badge" class="flex items-center gap-1.5">
                             <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                            <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Open Now</p>
+                            <p
+                                class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
+                                Open Now</p>
                         </div>
                         <div id="broadcast-status" class="flex items-center gap-1.5">
                             <span id="broadcast-indicator" class="w-2 h-2 bg-gray-400 rounded-full"></span>
-                            <p id="broadcast-text" class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Connecting...</p>
+                            <p id="broadcast-text"
+                                class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
+                                Connecting...</p>
                         </div>
                     </div>
                 </div>
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="toggleDark()" class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl">🌙</button>
-                    <button onclick="window.showPage('admin')" class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl text-blue-600 dark:text-blue-400">📊</button>
-                </div>
+                <button onclick="toggleDark()" class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl">🌙</button>
             </div>
             <div class="px-6 pb-4">
                 <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1">
@@ -149,13 +287,16 @@
         <main id="home-page" class="app-page active">
             <div class="px-6 mt-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <img id="profile-photo-nav" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-10 h-10 rounded-full border-2 border-blue-500 object-cover">
+                    <img id="profile-photo-nav" src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
+                        class="w-10 h-10 rounded-full border-2 border-blue-500 object-cover">
                     <div>
                         <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Halo, Friend!</p>
-                        <h2 id="home-username" class="text-sm font-black text-blue-900 dark:text-white truncate max-w-[120px]">Guest</h2>
+                        <h2 id="home-username"
+                            class="text-sm font-black text-blue-900 dark:text-white truncate max-w-[120px]">Guest</h2>
                     </div>
                 </div>
-                <div onclick="window.showPage('profile')" class="bg-blue-100 dark:bg-slate-800 px-3 py-1 rounded-full flex items-center gap-1 cursor-pointer">
+                <div onclick="window.showPage('profile')"
+                    class="bg-blue-100 dark:bg-slate-800 px-3 py-1 rounded-full flex items-center gap-1 cursor-pointer">
                     <span class="text-xs">⭐</span>
                     <span id="home-points" class="text-xs font-bold text-blue-800 dark:text-blue-300">0</span>
                 </div>
@@ -163,16 +304,19 @@
 
             <div class="bg-blue-900 dark:bg-blue-950 py-2 mt-4 overflow-hidden border-y border-blue-800">
                 <div class="animate-marquee text-xs font-bold text-blue-200 tracking-wide">
-                    🔥 "Aren Latte-nya juara!" &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!
+                    🔥 "Aren Latte-nya juara!" &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; •
+                    &nbsp;&nbsp; ☕ Folkpresso Open!
                 </div>
             </div>
 
             <div class="px-6 mt-6 grid grid-cols-2 gap-3">
-                <div onclick="mysteryBrew()" class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[2rem] p-5 text-white shadow-lg active:scale-95 transition-transform">
-                     <h4 class="font-black text-sm">Mystery Brew 🎲</h4>
-                     <p class="text-[10px] opacity-80">Biarkan kami pilih!</p>
+                <div onclick="mysteryBrew()"
+                    class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[2rem] p-5 text-white shadow-lg active:scale-95 transition-transform">
+                    <h4 class="font-black text-sm">Mystery Brew 🎲</h4>
+                    <p class="text-[10px] opacity-80">Biarkan kami pilih!</p>
                 </div>
-                <div onclick="claimQuest()" id="quest-card" class="bg-gradient-to-br from-pink-500 to-orange-500 rounded-[2rem] p-5 text-white shadow-lg active:scale-95 transition-transform">
+                <div onclick="claimQuest()" id="quest-card"
+                    class="bg-gradient-to-br from-pink-500 to-orange-500 rounded-[2rem] p-5 text-white shadow-lg active:scale-95 transition-transform">
                     <h4 class="font-black text-sm">Daily Quest ⚔️</h4>
                     <p id="quest-status" class="text-[10px] opacity-80">Klaim +50 Poin</p>
                 </div>
@@ -184,16 +328,21 @@
         <main id="cart-page" class="app-page px-6 pt-8">
             <h2 class="text-2xl font-black text-blue-900 dark:text-blue-400 mb-6 italic text-center">Keranjang</h2>
             <div id="cart-items" class="space-y-3 min-h-[100px]"></div>
-            <div class="mt-8 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
-                <div class="flex justify-between items-center mb-4"><span class="font-bold text-slate-400 uppercase text-xs">Total</span><span id="cart-total" class="text-xl font-black text-blue-900 dark:text-white">Rp 0</span></div>
-                <button onclick="window.openPayment()" class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">Checkout</button>
+            <div
+                class="mt-8 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
+                <div class="flex justify-between items-center mb-4"><span
+                        class="font-bold text-slate-400 uppercase text-xs">Total</span><span id="cart-total"
+                        class="text-xl font-black text-blue-900 dark:text-white">Rp 0</span></div>
+                <button onclick="window.openPayment()"
+                    class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">Checkout</button>
             </div>
         </main>
 
         <main id="profile-page" class="app-page p-6">
             <h3 class="text-xl font-black mb-6">Pengaturan Profil</h3>
-            
-            <div id="member-card" class="member-card-bronze rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500 mb-6">
+
+            <div id="member-card"
+                class="member-card-bronze rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500 mb-6">
                 <div>
                     <p class="text-[10px] font-bold uppercase tracking-widest opacity-80">Status Member</p>
                     <h2 id="tier-name" class="text-2xl font-black mt-1">BRONZE MEMBER</h2>
@@ -204,39 +353,56 @@
                         <span id="display-points" class="text-xl font-black">0</span>
                     </div>
                     <div class="w-full bg-white/20 h-2 rounded-full overflow-hidden">
-                        <div id="level-bar" class="h-full bg-white transition-all duration-1000" style="width: 0%"></div>
+                        <div id="level-bar" class="h-full bg-white transition-all duration-1000" style="width: 0%">
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="mt-6 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 mb-6">
+
+            <div
+                class="mt-6 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 mb-6">
                 <h4 class="font-bold text-sm mb-4">⚡ Caffeine Meter</h4>
                 <div class="flex items-end gap-2 h-24">
                     <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-t-xl relative overflow-hidden">
-                        <div id="caffeine-bar" class="absolute bottom-0 w-full bg-orange-400 transition-all duration-1000" style="height: 0%"></div>
+                        <div id="caffeine-bar"
+                            class="absolute bottom-0 w-full bg-orange-400 transition-all duration-1000"
+                            style="height: 0%"></div>
                     </div>
                     <div class="text-right">
-                        <h5 id="caffeine-mg" class="text-2xl font-black text-orange-500">0<span class="text-xs text-slate-400">mg</span></h5>
+                        <h5 id="caffeine-mg" class="text-2xl font-black text-orange-500">0<span
+                                class="text-xs text-slate-400">mg</span></h5>
                     </div>
                 </div>
             </div>
-            
-            <div class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800">
+
+            <div
+                class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800">
                 <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nama Custom Kamu</label>
                 <div class="flex gap-2 mt-2">
-                    <input type="text" id="input-username" class="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500" placeholder="Masukkan nama...">
-                    <button onclick="updateCustomName()" id="btn-save-name" class="bg-blue-600 text-white px-4 rounded-xl font-bold text-xs">Simpan</button>
+                    <input type="text" id="input-username"
+                        class="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500"
+                        placeholder="Masukkan nama...">
+                    <button onclick="updateCustomName()" id="btn-save-name"
+                        class="bg-blue-600 text-white px-4 rounded-xl font-bold text-xs">Simpan</button>
                 </div>
-                <p id="name-change-info" class="text-[10px] text-slate-400 mt-2 italic">*Nama ini akan muncul di aplikasi</p>
+                <p id="name-change-info" class="text-[10px] text-slate-400 mt-2 italic">*Nama ini akan muncul di
+                    aplikasi
+                </p>
             </div>
 
-            <button onclick="logout()" class="w-full mt-8 bg-red-100 text-red-600 py-4 rounded-2xl font-bold">Keluar Akun</button>
+            <button onclick="logout()" class="w-full mt-8 bg-red-100 text-red-600 py-4 rounded-2xl font-bold">Keluar
+                Akun</button>
         </main>
 
         <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav p-4 flex justify-around">
-            <button onclick="showPage('home')" id="btn-home" class="flex flex-col items-center text-blue-900 dark:text-blue-400">🏠<span class="text-[10px] font-bold mt-1">Menu</span></button>
-            <button onclick="showPage('cart')" id="btn-cart" class="flex flex-col items-center text-slate-400">🛒<span class="text-[10px] font-bold mt-1">Cart</span></button>
-            <button onclick="showPage('profile')" id="btn-profile" class="flex flex-col items-center text-slate-400">😎<span class="text-[10px] font-bold mt-1">Profile</span></button>
+            <button onclick="showPage('home')" id="btn-home"
+                class="flex flex-col items-center text-blue-900 dark:text-blue-400">🏠<span
+                    class="text-[10px] font-bold mt-1">Menu</span></button>
+            <button onclick="showPage('cart')" id="btn-cart" class="flex flex-col items-center text-slate-400">🛒<span
+                    class="text-[10px] font-bold mt-1">Cart</span></button>
+            <button onclick="showPage('profile')" id="btn-profile"
+                class="flex flex-col items-center text-slate-400">😎<span
+                    class="text-[10px] font-bold mt-1">Profile</span></button>
         </nav>
     </div>
 
@@ -246,99 +412,81 @@
         var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXZpZ2toZmxrcWV0YmZ0dHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTQ3NDAsImV4cCI6MjA4NTYzMDc0MH0.dGq7S_3y2nG8Nrl_ZpzLVuncoedp2rlIzb2u4cZ44Fg";
         var defaultMarquee = `🔥 "Aren Latte-nya juara!" - Andi &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!`;
         var marqueeTimer;
-        var marqueeQueue = [];
+        var marqueeResetTimer = null;
+        var activeMessages = []; // pesan-pesan yang sedang ditampilkan di marquee
         var isDisplayingMarquee = false;
 
-        window.displayMarqueeMessage = function(message, timestamp) {
+        window.displayMarqueeMessage = function (message, timestamp) {
             console.log("📢 displayMarqueeMessage called:", message, "timestamp:", timestamp);
             var marqueeEl = document.querySelector('.animate-marquee');
-            
+
             if (!marqueeEl) {
                 console.error("❌ Marquee element not found!");
                 return;
             }
-            
-            console.log("✅ Marquee element found, adding to queue");
-            
-            // Tambahkan pesan ke antrian dengan timestamp
-            var queueItem = {
-                message: message,
-                timestamp: timestamp || Date.now()
-            };
-            
-            marqueeQueue.push(queueItem);
-            
-            // Sort queue berdasarkan timestamp (yang paling lama duluan)
-            marqueeQueue.sort((a, b) => a.timestamp - b.timestamp);
-            
-            console.log("📋 Queue length:", marqueeQueue.length);
-            console.log("📋 Queue order:", marqueeQueue.map(q => q.message.substring(0, 30) + "..."));
-            
+
+            // Cek duplikat pesan (hindari pesan yang sama muncul lagi)
+            if (activeMessages.indexOf(message) !== -1) {
+                console.log("⏭️ Duplicate message, skipping:", message);
+                return;
+            }
+
+            console.log("✅ Adding message to active display");
+
+            // Tambahkan pesan ke daftar aktif
+            activeMessages.push(message);
+
             // Update indicator
             updateBroadcastIndicator();
-            
-            // Jika tidak sedang menampilkan, mulai proses
-            if (!isDisplayingMarquee) {
-                console.log("▶️ Starting queue process");
-                processMarqueeQueue();
-            } else {
-                console.log("⏸️ Already displaying, message queued");
+
+            // Reset timer setiap kali pesan baru masuk (perpanjang tampilan)
+            if (marqueeResetTimer) {
+                clearTimeout(marqueeResetTimer);
+                marqueeResetTimer = null;
             }
+
+            // Langsung render semua pesan ke marquee (tanpa delay)
+            renderMarqueeMessages();
         };
 
         function updateBroadcastIndicator() {
             const text = document.getElementById('broadcast-text');
-            if (text && marqueeQueue.length > 0) {
-                text.innerText = `Queue: ${marqueeQueue.length}`;
+            if (text && activeMessages.length > 0) {
+                text.innerText = `Live (${activeMessages.length})`;
                 text.className = "text-[10px] text-blue-500 font-bold uppercase tracking-widest";
-            } else if (text && marqueeQueue.length === 0 && window.marqueeChannel) {
+            } else if (text && activeMessages.length === 0) {
                 text.innerText = "Live";
                 text.className = "text-[10px] text-green-500 font-bold uppercase tracking-widest";
             }
         }
 
-        function processMarqueeQueue() {
+        function renderMarqueeMessages() {
             var marqueeEl = document.querySelector('.animate-marquee');
-            if (!marqueeEl || marqueeQueue.length === 0) {
-                console.log("⏹️ Queue empty or element not found");
-                isDisplayingMarquee = false;
-                updateBroadcastIndicator();
+            if (!marqueeEl || activeMessages.length === 0) {
                 return;
             }
-            
+
             isDisplayingMarquee = true;
-            
-            // Ambil pesan pertama dari antrian (yang paling lama)
-            var queueItem = marqueeQueue.shift();
-            var message = queueItem.message;
-            
-            console.log("📺 Displaying message:", message);
-            console.log("⏰ Message timestamp:", new Date(queueItem.timestamp).toLocaleTimeString());
-            console.log("📋 Remaining in queue:", marqueeQueue.length);
-            
-            // Update indicator
-            updateBroadcastIndicator();
-            
-            // Tampilkan pesan
-            marqueeEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${message} &nbsp;&nbsp; • &nbsp;&nbsp; ${defaultMarquee}`;
-            
-            // Setelah 5 detik, proses pesan berikutnya
-            setTimeout(function() {
-                console.log("⏭️ Message timeout, checking queue...");
-                if (marqueeQueue.length > 0) {
-                    console.log("📋 More messages in queue:", marqueeQueue.length);
-                    processMarqueeQueue();
-                } else {
-                    // Jika tidak ada lagi, kembali ke default setelah 3 detik
-                    console.log("⏳ No more messages, resetting in 10s...");
-                    setTimeout(function() {
-                        marqueeEl.innerHTML = defaultMarquee;
-                        isDisplayingMarquee = false;
-                        updateBroadcastIndicator();
-                        console.log("🔄 Reset to default marquee");
-                    }, 10000);
-                }
-            }, 5000);
+
+            // Gabungkan SEMUA pesan aktif jadi satu string marquee
+            var combinedMessages = activeMessages.map(function (msg) {
+                return `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${msg}`;
+            }).join(' &nbsp;&nbsp; • &nbsp;&nbsp; ');
+
+            // Tampilkan semua pesan + default marquee
+            marqueeEl.innerHTML = combinedMessages + ' &nbsp;&nbsp; • &nbsp;&nbsp; ' + defaultMarquee;
+
+            console.log("� Displaying", activeMessages.length, "messages combined");
+
+            // Set timer untuk reset ke default setelah 15 detik tanpa pesan baru
+            marqueeResetTimer = setTimeout(function () {
+                console.log("🔄 Reset to default marquee");
+                activeMessages = [];
+                marqueeEl.innerHTML = defaultMarquee;
+                isDisplayingMarquee = false;
+                marqueeResetTimer = null;
+                updateBroadcastIndicator();
+            }, 15000);
         };
 
         function initSupabase() {
@@ -347,9 +495,9 @@
                     window.supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
                     console.log("✅ Supabase client created");
                     return true;
-                } catch(e) { 
+                } catch (e) {
                     console.error("❌ Supabase init error:", e);
-                    return false; 
+                    return false;
                 }
             }
             return !!window.supabaseClient;
@@ -360,22 +508,22 @@
                 console.log("⚠️ Supabase client not ready");
                 initSupabase();
             }
-            
+
             if (!window.marqueeChannel && window.supabaseClient) {
                 try {
                     console.log("📡 Subscribing to announcements table...");
-                    
+
                     // Subscribe ke perubahan di tabel announcements
                     window.marqueeChannel = window.supabaseClient
                         .channel('announcements-channel')
                         .on(
                             'postgres_changes',
-                            { 
-                                event: 'INSERT', 
-                                schema: 'public', 
-                                table: 'announcements' 
+                            {
+                                event: 'INSERT',
+                                schema: 'public',
+                                table: 'announcements'
                             },
-                            function(payload) {
+                            function (payload) {
                                 console.log("📨 New announcement from database:", payload);
                                 if (payload.new && payload.new.message) {
                                     const message = payload.new.message;
@@ -387,12 +535,12 @@
                                 }
                             }
                         )
-                        .subscribe(function(status, err) {
+                        .subscribe(function (status, err) {
                             console.log("📡 Channel status:", status);
-                            
+
                             const indicator = document.getElementById('broadcast-indicator');
                             const text = document.getElementById('broadcast-text');
-                            
+
                             if (status === 'SUBSCRIBED') {
                                 console.log("✅ Subscribed to announcements table!");
                                 if (indicator) {
@@ -431,11 +579,11 @@
                                 }
                             }
                         });
-                    
+
                     return true;
-                } catch(e) { 
+                } catch (e) {
                     console.error("❌ Channel init error:", e);
-                    return false; 
+                    return false;
                 }
             }
             return !!window.marqueeChannel;
@@ -444,20 +592,20 @@
         // Polling system untuk marquee (lebih reliable daripada Realtime)
         window.lastAnnouncementId = 0;
         window.pollingInterval = null;
-        
+
         function initMarqueePolling() {
             if (!window.supabaseClient) {
                 console.log("⚠️ Supabase client not ready");
                 return false;
             }
-            
+
             if (window.pollingInterval) {
                 console.log("✅ Polling already running");
                 return true;
             }
-            
+
             console.log("🔄 Starting marquee polling every 2 seconds...");
-            
+
             // Update indicator
             const indicator = document.getElementById('broadcast-indicator');
             const text = document.getElementById('broadcast-text');
@@ -468,10 +616,10 @@
                 text.innerText = "Live";
                 text.className = "text-[10px] text-green-500 font-bold uppercase tracking-widest";
             }
-            
-            window.pollingInterval = setInterval(async function() {
+
+            window.pollingInterval = setInterval(async function () {
                 if (!window.supabaseClient) return;
-                
+
                 try {
                     const { data, error } = await window.supabaseClient
                         .from('announcements')
@@ -479,29 +627,29 @@
                         .gt('id', window.lastAnnouncementId)
                         .order('timestamp', { ascending: true })
                         .limit(10);
-                    
+
                     if (error) {
                         console.error("❌ Polling error:", error);
                         return;
                     }
-                    
+
                     if (data && data.length > 0) {
                         console.log("📬 Polling found", data.length, "new messages");
-                        data.forEach(function(row) {
+                        data.forEach(function (row) {
                             console.log("📩 Processing message:", row.message, "timestamp:", row.timestamp);
                             window.displayMarqueeMessage(row.message, row.timestamp);
                             window.lastAnnouncementId = Math.max(window.lastAnnouncementId, row.id);
                         });
                     }
-                } catch(e) {
+                } catch (e) {
                     console.error("❌ Polling exception:", e);
                 }
-            }, 2000);
-            
+            }, 1000);
+
             return true;
         }
 
-        var initInterval = setInterval(function() {
+        var initInterval = setInterval(function () {
             if (initSupabase() && initMarqueePolling()) {
                 clearInterval(initInterval);
                 console.log("✅ Supabase & Polling Ready");
@@ -510,14 +658,14 @@
 
         // === FIREBASE CONFIG ===
         const firebaseConfig = {
-          apiKey: "AIzaSyBR_Er6zVysY-J-ht8PMpKRW0FJ69utN3w",
-          authDomain: "folkpresso.firebaseapp.com",
-          databaseURL: "https://folkpresso-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "folkpresso",
-          storageBucket: "folkpresso.firebasestorage.app",
-          messagingSenderId: "728120023418",
-          appId: "1:728120023418:web:62c8b1271da8af8a67dec3",
-          measurementId: "G-4VRF8TV2E1"
+            apiKey: "AIzaSyBR_Er6zVysY-J-ht8PMpKRW0FJ69utN3w",
+            authDomain: "folkpresso.firebaseapp.com",
+            databaseURL: "https://folkpresso-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "folkpresso",
+            storageBucket: "folkpresso.firebasestorage.app",
+            messagingSenderId: "728120023418",
+            appId: "1:728120023418:web:62c8b1271da8af8a67dec3",
+            measurementId: "G-4VRF8TV2E1"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -552,34 +700,34 @@
             }
         });
 
-        window.loginWithGoogle = function() {
+        window.loginWithGoogle = function () {
             const btn = document.querySelector('button[onclick*="loginWithGoogle"]');
             const text = document.getElementById('login-text');
-            if(btn) btn.classList.add('opacity-50', 'pointer-events-none');
-            if(text) text.innerText = "Membuka Google...";
-            
+            if (btn) btn.classList.add('opacity-50', 'pointer-events-none');
+            if (text) text.innerText = "Membuka Google...";
+
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
-            
+
             // Deteksi mobile device
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            
+
             // Gunakan redirect untuk mobile, popup untuk desktop
-            const loginMethod = isMobile ? 
-                auth.signInWithRedirect(provider) : 
+            const loginMethod = isMobile ?
+                auth.signInWithRedirect(provider) :
                 auth.signInWithPopup(provider);
-            
+
             if (isMobile) {
                 console.log("📱 Mobile detected, using redirect...");
                 return; // Redirect akan handle sendiri
             }
-            
+
             // Untuk desktop (popup)
             loginMethod
                 .then((result) => {
                     console.log("✅ Login berhasil:", result.user.displayName);
                     const user = result.user;
-                    
+
                     // Inisialisasi user baru di Firestore
                     const userRef = db.collection("users").doc(user.uid);
                     userRef.get().then((doc) => {
@@ -600,15 +748,15 @@
                 })
                 .catch((error) => {
                     console.error("❌ Login error:", error);
-                    if(btn) btn.classList.remove('opacity-50', 'pointer-events-none');
-                    if(text) text.innerText = "Masuk dengan Google";
-                    
-                    if(error.code === 'auth/popup-closed-by-user') {
+                    if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
+                    if (text) text.innerText = "Masuk dengan Google";
+
+                    if (error.code === 'auth/popup-closed-by-user') {
                         console.log("User menutup popup");
-                    } else if(error.code === 'auth/popup-blocked') {
+                    } else if (error.code === 'auth/popup-blocked') {
                         console.log("Popup diblokir, coba redirect...");
                         auth.signInWithRedirect(provider);
-                    } else if(error.code === 'auth/unauthorized-domain') {
+                    } else if (error.code === 'auth/unauthorized-domain') {
                         alert("Domain belum terdaftar di Firebase Console!");
                     } else {
                         alert("Login gagal: " + error.message);
@@ -621,7 +769,7 @@
             if (result.user) {
                 console.log("✅ Login redirect berhasil:", result.user.displayName);
                 const user = result.user;
-                
+
                 // Inisialisasi user baru di Firestore
                 const userRef = db.collection("users").doc(user.uid);
                 userRef.get().then((doc) => {
@@ -655,13 +803,13 @@
                     const nameDisplay = document.getElementById('home-username');
                     const pointsDisplay = document.getElementById('home-points');
                     const profilePhoto = document.getElementById('profile-photo-nav');
-                    
-                    if(nameDisplay) nameDisplay.innerText = currentUser;
-                    if(pointsDisplay) pointsDisplay.innerText = userPoints.toLocaleString();
-                    if(profilePhoto && data.photo) profilePhoto.src = data.photo;
-                    
+
+                    if (nameDisplay) nameDisplay.innerText = currentUser;
+                    if (pointsDisplay) pointsDisplay.innerText = userPoints.toLocaleString();
+                    if (profilePhoto && data.photo) profilePhoto.src = data.photo;
+
                     checkQuestStatus(data.lastQuestDate);
-                    updateMemberUI(); 
+                    updateMemberUI();
                 }
             });
         }
@@ -670,13 +818,13 @@
             const today = new Date().toDateString();
             const btn = document.getElementById('quest-card');
             const status = document.getElementById('quest-status');
-            if(!btn) return;
+            if (!btn) return;
             if (lastDate === today) {
                 btn.classList.add('opacity-50');
-                if(status) status.innerText = "Terklaim ✅";
+                if (status) status.innerText = "Terklaim ✅";
             } else {
                 btn.classList.remove('opacity-50');
-                if(status) status.innerText = "Klaim +50 Poin";
+                if (status) status.innerText = "Klaim +50 Poin";
             }
         }
 
@@ -691,11 +839,11 @@
             if (!card || !tierName || !bar || !dispPoints) return;
 
             dispPoints.innerText = userPoints.toLocaleString();
-            
+
             var oldTier = currentTierStatus;
             var newTier = "";
-            
-            if(userPoints > 5000) {
+
+            if (userPoints > 5000) {
                 card.className = "member-card-gold rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500 mb-6";
                 tierName.innerText = "GOLD MEMBER 👑";
                 bar.style.width = "100%";
@@ -717,11 +865,11 @@
                 const broadcastMsg = `👑 Selamat! ${currentUser} naik ke ${newTier}!`;
                 const timestamp = Date.now();
                 console.log("📤 Inserting tier announcement:", broadcastMsg, "at", timestamp);
-                
+
                 // HANYA insert ke database, biarkan Realtime yang handle display
                 window.supabaseClient
                     .from('announcements')
-                    .insert([{ 
+                    .insert([{
                         message: broadcastMsg,
                         timestamp: timestamp
                     }])
@@ -733,7 +881,7 @@
                         }
                     });
             }
-            
+
             currentTierStatus = newTier;
 
             if (cafMg && cafBar) {
@@ -754,7 +902,7 @@
             { name: "Vanilla", price: 15000, cost: 9000, type: "non-coffee", mg: 50, image: "img/vanilla.png" }
         ];
 
-        window.onload = function() {
+        window.onload = function () {
             renderProducts(products);
             communityGoal = parseInt(localStorage.getItem('folkpresso_community_goal')) || 0;
             updateGoalUI();
@@ -762,10 +910,10 @@
 
         function renderProducts(list) {
             var container = document.getElementById('product-list');
-            if(!container) return;
+            if (!container) return;
             container.innerHTML = '';
-            list.forEach(function(p) {
-                var imgSrc = p.image && !p.image.startsWith("img/") ? p.image : "https://cdn-icons-png.flaticon.com/512/751/751621.png";
+            list.forEach(function (p) {
+                var imgSrc = p.image || "img/gula aren.png";
                 container.innerHTML += `
                 <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center gap-4">
                     <div class="w-16 h-16 shrink-0"><img src="${imgSrc}" class="w-full h-full object-cover rounded-2xl shadow-sm bg-slate-50"></div>
@@ -775,16 +923,16 @@
             });
         }
 
-        window.addToCart = function(name, price, mg, cost) {
+        window.addToCart = function (name, price, mg, cost) {
             var item = cart.find(i => i.name === name);
-            if(item) item.quantity++; else cart.push({name, price, mg, cost, quantity: 1});
+            if (item) item.quantity++; else cart.push({ name, price, mg, cost, quantity: 1 });
             showToast(name + " ditambahkan!");
             renderCart();
         };
 
         function renderCart() {
             var list = document.getElementById('cart-items');
-            if(!list) return;
+            if (!list) return;
             var total = 0;
             list.innerHTML = cart.length ? '' : '<p class="text-center text-slate-400 text-xs py-10 italic">Keranjang kosong...</p>';
             cart.forEach((item, index) => {
@@ -800,19 +948,19 @@
                 </div>`;
             });
             const totalEl = document.getElementById('cart-total');
-            if(totalEl) totalEl.innerText = 'Rp ' + total.toLocaleString();
+            if (totalEl) totalEl.innerText = 'Rp ' + total.toLocaleString();
         }
 
-        window.updateQty = function(i, d) {
+        window.updateQty = function (i, d) {
             cart[i].quantity += d;
-            if(cart[i].quantity < 1) cart.splice(i, 1);
+            if (cart[i].quantity < 1) cart.splice(i, 1);
             renderCart();
         };
 
         // --- FUNGSI OPEN PAYMENT YANG DIPERBAIKI (SANGAT AMAN) ---
-        window.openPayment = function() {
-            if(!cart.length) return showToast("Keranjang kosong!");
-            
+        window.openPayment = function () {
+            if (!cart.length) return showToast("Keranjang kosong!");
+
             const modal = document.getElementById('payment-modal');
             if (modal) {
                 modal.classList.remove('hidden');
@@ -822,7 +970,7 @@
             }
         };
 
-        window.closePaymentModal = function() {
+        window.closePaymentModal = function () {
             const modal = document.getElementById('payment-modal');
             if (modal) {
                 modal.classList.add('hidden');
@@ -830,21 +978,21 @@
             }
         };
 
-        window.processPayment = function(method) {
+        window.processPayment = function (method) {
             closePaymentModal();
             const trackModal = document.getElementById('tracking-modal');
             const brewState = document.getElementById('brew-state');
             const finishState = document.getElementById('finish-state');
             const animBar = document.getElementById('anim-bar');
 
-            if(trackModal && brewState && finishState && animBar) {
+            if (trackModal && brewState && finishState && animBar) {
                 trackModal.classList.remove('hidden');
                 brewState.classList.remove('hidden');
                 finishState.classList.add('hidden');
                 animBar.style.width = "0%";
-                
+
                 submitTransaction(method);
-                
+
                 setTimeout(() => {
                     animBar.style.width = "100%";
                     setTimeout(() => {
@@ -857,8 +1005,8 @@
 
         async function submitTransaction(method) {
             const user = auth.currentUser;
-            if(!user) return;
-            
+            if (!user) return;
+
             let totalOrder = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
             let totalCaffeine = cart.reduce((a, b) => a + (b.mg * b.quantity), 0);
             let totalCups = cart.reduce((a, b) => a + b.quantity, 0);
@@ -901,7 +1049,7 @@
                     const { data, error } = await window.supabaseClient
                         .from('transactions')
                         .insert(payload);
-                    
+
                     if (error) {
                         console.error("❌ Supabase Error:", error);
                         showToast("⚠️ Gagal sync database: " + error.message);
@@ -918,17 +1066,17 @@
             }
 
             // Broadcast pesan ke database
-            if(window.supabaseClient) {
+            if (window.supabaseClient) {
                 const orderDetails = cart.map(item => item.quantity + "x " + item.name).join(", ");
                 const broadcastMsg = `☕ ${currentUser} baru saja memesan ${orderDetails} via ${method}!`;
                 const timestamp = Date.now();
                 console.log("📤 Inserting to database:", broadcastMsg, "at", timestamp);
-                
+
                 // HANYA insert ke database, biarkan Realtime yang handle display
                 // Ini memastikan semua user (termasuk yang order) melihat pesan via Realtime
                 window.supabaseClient
                     .from('announcements')
-                    .insert([{ 
+                    .insert([{
                         message: broadcastMsg,
                         timestamp: timestamp
                     }])
@@ -944,7 +1092,7 @@
             }
         }
 
-        window.finishOrder = function() {
+        window.finishOrder = function () {
             document.getElementById('tracking-modal').classList.add('hidden');
             cart = [];
             renderCart();
@@ -952,24 +1100,24 @@
             showToast("Pesanan selesai! Poin bertambah.");
         };
 
-        window.showPage = function(id) {
+        window.showPage = function (id) {
             document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active'));
             const target = document.getElementById(id + '-page');
-            if(target) target.classList.add('active');
-            
+            if (target) target.classList.add('active');
+
             document.querySelectorAll('nav button').forEach(b => {
                 b.className = "flex flex-col items-center text-slate-400";
             });
             const btn = document.getElementById('btn-' + id);
-            if(btn) btn.className = "flex flex-col items-center text-blue-900 dark:text-blue-400";
+            if (btn) btn.className = "flex flex-col items-center text-blue-900 dark:text-blue-400";
 
-            if(id === 'cart') renderCart();
-            if(id === 'profile') updateMemberUI();
+            if (id === 'cart') renderCart();
+            if (id === 'profile') updateMemberUI();
         };
 
         function showToast(msg) {
             var container = document.getElementById('toast-container');
-            if(!container) return;
+            if (!container) return;
             var t = document.createElement('div');
             t.className = 'toast'; t.innerText = msg;
             container.appendChild(t);
@@ -980,26 +1128,26 @@
             var goalPercent = Math.min((communityGoal / 20) * 100, 100);
             const bar = document.getElementById('goal-bar');
             const txt = document.getElementById('goal-counter');
-            if(bar) bar.style.width = goalPercent + "%";
-            if(txt) txt.innerText = communityGoal + " / 20 Cups";
+            if (bar) bar.style.width = goalPercent + "%";
+            if (txt) txt.innerText = communityGoal + " / 20 Cups";
         }
 
-        window.toggleDark = function() { document.documentElement.classList.toggle('dark'); };
+        window.toggleDark = function () { document.documentElement.classList.toggle('dark'); };
 
         // Fungsi test marquee untuk debugging
-        window.testMarquee = function() {
+        window.testMarquee = function () {
             console.log("🧪 Testing marquee with database...");
             console.log("Supabase client:", window.supabaseClient ? "Connected" : "Not connected");
-            
+
             if (window.supabaseClient) {
                 const timestamp = Date.now();
                 const testMsg = `🧪 Test dari ${currentUser} - ${new Date(timestamp).toLocaleTimeString()}`;
                 console.log("Inserting test message:", testMsg, "at", timestamp);
-                
+
                 // HANYA insert ke database, biarkan Realtime yang handle display
                 window.supabaseClient
                     .from('announcements')
-                    .insert([{ 
+                    .insert([{
                         message: testMsg,
                         timestamp: timestamp
                     }])
@@ -1018,66 +1166,66 @@
         };
 
         // Test multiple messages (simulasi 3 user order bersamaan)
-        window.testMultipleMarquee = function() {
+        window.testMultipleMarquee = function () {
             console.log("🧪 Testing multiple messages...");
-            
+
             if (!window.supabaseClient) {
                 console.error("❌ Supabase client not initialized");
                 alert("Supabase client belum terhubung!");
                 return;
             }
-            
+
             var baseTime = Date.now();
-            
+
             // Simulasi 3 user order bersamaan dengan timestamp yang berbeda
             // User A order duluan (timestamp paling kecil)
             window.supabaseClient
                 .from('announcements')
-                .insert([{ 
+                .insert([{
                     message: "☕ User A memesan 2x Aren Coffee via Cash!",
                     timestamp: baseTime + 100
                 }])
                 .then(() => console.log("✅ User A message inserted"));
-            
+
             // User B order kedua
             setTimeout(() => {
                 window.supabaseClient
                     .from('announcements')
-                    .insert([{ 
+                    .insert([{
                         message: "☕ User B memesan 1x Salted Caramel via QRIS!",
                         timestamp: baseTime + 200
                     }])
                     .then(() => console.log("✅ User B message inserted"));
             }, 50);
-            
+
             // User C order ketiga
             setTimeout(() => {
                 window.supabaseClient
                     .from('announcements')
-                    .insert([{ 
+                    .insert([{
                         message: "⚔️ User C berhasil claim Daily Quest +50 poin!",
                         timestamp: baseTime + 300
                     }])
                     .then(() => console.log("✅ User C message inserted"));
             }, 100);
-            
+
             console.log("✅ 3 messages will be inserted with timestamps");
             console.log("Expected order: A → B → C (sorted by timestamp)");
         };
-        window.logout = function() { 
-            if(confirm("Yakin mau keluar?")) {
-                auth.signOut().then(() => location.reload()); 
+        window.logout = function () {
+            if (confirm("Yakin mau keluar?")) {
+                auth.signOut().then(() => location.reload());
             }
         };
 
-        window.claimQuest = function() {
+        window.claimQuest = function () {
             const user = auth.currentUser;
-            if(!user) return;
+            if (!user) return;
             const userRef = db.collection("users").doc(user.uid);
             const today = new Date().toDateString();
 
             userRef.get().then((doc) => {
-                if(doc.exists && doc.data().lastQuestDate === today) {
+                if (doc.exists && doc.data().lastQuestDate === today) {
                     showToast("Sudah diklaim hari ini!");
                 } else {
                     userRef.update({
@@ -1085,17 +1233,17 @@
                         lastQuestDate: today
                     }).then(() => {
                         showToast("🎉 +50 Poin Quest!");
-                        
+
                         // Broadcast pesan daily quest
-                        if(window.supabaseClient) {
+                        if (window.supabaseClient) {
                             const broadcastMsg = `⚔️ ${currentUser} berhasil claim Daily Quest +50 poin!`;
                             const timestamp = Date.now();
                             console.log("📤 Inserting quest announcement:", broadcastMsg, "at", timestamp);
-                            
+
                             // HANYA insert ke database, biarkan Realtime yang handle display
                             window.supabaseClient
                                 .from('announcements')
-                                .insert([{ 
+                                .insert([{
                                     message: broadcastMsg,
                                     timestamp: timestamp
                                 }])
@@ -1112,20 +1260,21 @@
             });
         };
 
-        window.updateCustomName = function() {
+        window.updateCustomName = function () {
             const user = auth.currentUser;
             const name = document.getElementById('input-username').value;
-            if(user && name) {
+            if (user && name) {
                 db.collection("users").doc(user.uid).update({ customName: name });
                 showToast("Nama diupdate!");
             }
         };
 
-        window.mysteryBrew = function() {
+        window.mysteryBrew = function () {
             var random = products[Math.floor(Math.random() * products.length)];
             window.addToCart(random.name, random.price, random.mg, random.cost);
             showToast("✨ " + random.name + " terpilih!");
         };
     </script>
 </body>
+
 </html>
