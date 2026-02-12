@@ -363,64 +363,74 @@
             
             if (!window.marqueeChannel && window.supabaseClient) {
                 try {
-                    console.log("📡 Creating marquee channel...");
-                    window.marqueeChannel = window.supabaseClient.channel('folkpresso-marquee');
+                    console.log("📡 Subscribing to announcements table...");
                     
-                    window.marqueeChannel.on('broadcast', { event: 'announcement' }, function(payload) {
-                        console.log("📨 Received broadcast:", payload);
-                        if (payload.payload && payload.payload.message) {
-                            console.log("📢 Processing message:", payload.payload.message);
-                            var timestamp = payload.payload.timestamp || Date.now();
-                            window.displayMarqueeMessage(payload.payload.message, timestamp);
-                        } else {
-                            console.warn("⚠️ Invalid payload structure:", payload);
-                        }
-                    });
-                    
-                    window.marqueeChannel.subscribe(function(status) {
-                        console.log("📡 Channel status:", status);
-                        
-                        const indicator = document.getElementById('broadcast-indicator');
-                        const text = document.getElementById('broadcast-text');
-                        
-                        if (status === 'SUBSCRIBED') {
-                            console.log("✅ Marquee channel subscribed!");
-                            if (indicator) {
-                                indicator.className = "w-2 h-2 bg-green-500 rounded-full animate-pulse";
+                    // Subscribe ke perubahan di tabel announcements
+                    window.marqueeChannel = window.supabaseClient
+                        .channel('announcements-channel')
+                        .on(
+                            'postgres_changes',
+                            { 
+                                event: 'INSERT', 
+                                schema: 'public', 
+                                table: 'announcements' 
+                            },
+                            function(payload) {
+                                console.log("📨 New announcement from database:", payload);
+                                if (payload.new && payload.new.message) {
+                                    const message = payload.new.message;
+                                    const timestamp = payload.new.timestamp || Date.now();
+                                    console.log("� Processing message:", message, "timestamp:", timestamp);
+                                    window.displayMarqueeMessage(message, timestamp);
+                                } else {
+                                    console.warn("⚠️ Invalid payload structure:", payload);
+                                }
                             }
-                            if (text) {
-                                text.innerText = "Live";
-                                text.className = "text-[10px] text-green-500 font-bold uppercase tracking-widest";
+                        )
+                        .subscribe(function(status, err) {
+                            console.log("📡 Channel status:", status);
+                            
+                            const indicator = document.getElementById('broadcast-indicator');
+                            const text = document.getElementById('broadcast-text');
+                            
+                            if (status === 'SUBSCRIBED') {
+                                console.log("✅ Subscribed to announcements table!");
+                                if (indicator) {
+                                    indicator.className = "w-2 h-2 bg-green-500 rounded-full animate-pulse";
+                                }
+                                if (text) {
+                                    text.innerText = "Live";
+                                    text.className = "text-[10px] text-green-500 font-bold uppercase tracking-widest";
+                                }
+                            } else if (status === 'CHANNEL_ERROR') {
+                                console.error("❌ Channel error:", err);
+                                if (indicator) {
+                                    indicator.className = "w-2 h-2 bg-red-500 rounded-full";
+                                }
+                                if (text) {
+                                    text.innerText = "Error";
+                                    text.className = "text-[10px] text-red-500 font-bold uppercase tracking-widest";
+                                }
+                            } else if (status === 'TIMED_OUT') {
+                                console.error("❌ Channel timeout");
+                                if (indicator) {
+                                    indicator.className = "w-2 h-2 bg-orange-500 rounded-full";
+                                }
+                                if (text) {
+                                    text.innerText = "Timeout";
+                                    text.className = "text-[10px] text-orange-500 font-bold uppercase tracking-widest";
+                                }
+                            } else if (status === 'CLOSED') {
+                                console.warn("⚠️ Channel closed");
+                                if (indicator) {
+                                    indicator.className = "w-2 h-2 bg-gray-500 rounded-full";
+                                }
+                                if (text) {
+                                    text.innerText = "Closed";
+                                    text.className = "text-[10px] text-gray-500 font-bold uppercase tracking-widest";
+                                }
                             }
-                        } else if (status === 'CHANNEL_ERROR') {
-                            console.error("❌ Channel error");
-                            if (indicator) {
-                                indicator.className = "w-2 h-2 bg-red-500 rounded-full";
-                            }
-                            if (text) {
-                                text.innerText = "Error";
-                                text.className = "text-[10px] text-red-500 font-bold uppercase tracking-widest";
-                            }
-                        } else if (status === 'TIMED_OUT') {
-                            console.error("❌ Channel timeout");
-                            if (indicator) {
-                                indicator.className = "w-2 h-2 bg-orange-500 rounded-full";
-                            }
-                            if (text) {
-                                text.innerText = "Timeout";
-                                text.className = "text-[10px] text-orange-500 font-bold uppercase tracking-widest";
-                            }
-                        } else if (status === 'CLOSED') {
-                            console.warn("⚠️ Channel closed");
-                            if (indicator) {
-                                indicator.className = "w-2 h-2 bg-gray-500 rounded-full";
-                            }
-                            if (text) {
-                                text.innerText = "Closed";
-                                text.className = "text-[10px] text-gray-500 font-bold uppercase tracking-widest";
-                            }
-                        }
-                    });
+                        });
                     
                     return true;
                 } catch(e) { 
@@ -643,27 +653,29 @@
             }
 
             // Broadcast jika naik tier
-            if (oldTier !== "" && oldTier !== newTier && window.marqueeChannel) {
+            if (oldTier !== "" && oldTier !== newTier && window.supabaseClient) {
                 const broadcastMsg = `👑 Selamat! ${currentUser} naik ke ${newTier}!`;
                 const timestamp = Date.now();
-                console.log("📤 Sending tier broadcast:", broadcastMsg, "at", timestamp);
+                console.log("📤 Inserting tier announcement:", broadcastMsg, "at", timestamp);
                 
                 // Tampilkan lokal dulu
                 window.displayMarqueeMessage(broadcastMsg, timestamp);
                 
-                // Kirim ke user lain
-                window.marqueeChannel.send({
-                    type: 'broadcast',
-                    event: 'announcement',
-                    payload: { 
+                // Insert ke database
+                window.supabaseClient
+                    .from('announcements')
+                    .insert([{ 
                         message: broadcastMsg,
-                        timestamp: timestamp
-                    }
-                }).then(() => {
-                    console.log("✅ Tier broadcast sent");
-                }).catch((err) => {
-                    console.error("❌ Tier broadcast error:", err);
-                });
+                        timestamp: timestamp,
+                        username: currentUser
+                    }])
+                    .then(({ data, error }) => {
+                        if (error) {
+                            console.error("❌ Database insert error:", error);
+                        } else {
+                            console.log("✅ Tier announcement inserted");
+                        }
+                    });
             }
             
             currentTierStatus = newTier;
@@ -849,31 +861,33 @@
                 showToast("⚠️ Mode offline - data tersimpan lokal");
             }
 
-            // Broadcast pesan
-            if(window.marqueeChannel) {
+            // Broadcast pesan ke database
+            if(window.supabaseClient) {
                 const orderDetails = cart.map(item => item.quantity + "x " + item.name).join(", ");
                 const broadcastMsg = `☕ ${currentUser} baru saja memesan ${orderDetails} via ${method}!`;
                 const timestamp = Date.now();
-                console.log("📤 Sending broadcast:", broadcastMsg, "at", timestamp);
+                console.log("📤 Inserting to database:", broadcastMsg, "at", timestamp);
                 
                 // Tampilkan lokal dulu (untuk user yang order)
                 window.displayMarqueeMessage(broadcastMsg, timestamp);
                 
-                // Kirim ke user lain via broadcast
-                window.marqueeChannel.send({
-                    type: 'broadcast',
-                    event: 'announcement',
-                    payload: { 
+                // Insert ke database (akan trigger realtime ke semua user)
+                window.supabaseClient
+                    .from('announcements')
+                    .insert([{ 
                         message: broadcastMsg,
-                        timestamp: timestamp
-                    }
-                }).then(() => {
-                    console.log("✅ Broadcast sent successfully");
-                }).catch((err) => {
-                    console.error("❌ Broadcast error:", err);
-                });
+                        timestamp: timestamp,
+                        username: currentUser
+                    }])
+                    .then(({ data, error }) => {
+                        if (error) {
+                            console.error("❌ Database insert error:", error);
+                        } else {
+                            console.log("✅ Announcement inserted to database");
+                        }
+                    });
             } else {
-                console.warn("⚠️ Marquee channel not available");
+                console.warn("⚠️ Supabase client not available");
             }
         }
 
@@ -921,33 +935,36 @@
 
         // Fungsi test marquee untuk debugging
         window.testMarquee = function() {
-            console.log("🧪 Testing marquee...");
-            console.log("Channel status:", window.marqueeChannel ? "Connected" : "Not connected");
+            console.log("🧪 Testing marquee with database...");
+            console.log("Supabase client:", window.supabaseClient ? "Connected" : "Not connected");
             
-            if (window.marqueeChannel) {
+            if (window.supabaseClient) {
                 const timestamp = Date.now();
                 const testMsg = `🧪 Test dari ${currentUser} - ${new Date(timestamp).toLocaleTimeString()}`;
-                console.log("Sending test message:", testMsg, "at", timestamp);
+                console.log("Inserting test message:", testMsg, "at", timestamp);
                 
                 // Display lokal
                 window.displayMarqueeMessage(testMsg, timestamp);
                 
-                // Broadcast ke user lain
-                window.marqueeChannel.send({
-                    type: 'broadcast',
-                    event: 'announcement',
-                    payload: { 
+                // Insert ke database
+                window.supabaseClient
+                    .from('announcements')
+                    .insert([{ 
                         message: testMsg,
-                        timestamp: timestamp
-                    }
-                }).then(() => {
-                    console.log("✅ Test message sent");
-                }).catch((err) => {
-                    console.error("❌ Test message error:", err);
-                });
+                        timestamp: timestamp,
+                        username: currentUser
+                    }])
+                    .then(({ data, error }) => {
+                        if (error) {
+                            console.error("❌ Test insert error:", error);
+                            alert("Error: " + error.message);
+                        } else {
+                            console.log("✅ Test message inserted");
+                        }
+                    });
             } else {
-                console.error("❌ Channel not initialized");
-                alert("Channel belum terhubung! Cek console untuk detail.");
+                console.error("❌ Supabase client not initialized");
+                alert("Supabase client belum terhubung! Cek console untuk detail.");
             }
         };
 
@@ -996,27 +1013,29 @@
                         showToast("🎉 +50 Poin Quest!");
                         
                         // Broadcast pesan daily quest
-                        if(window.marqueeChannel) {
+                        if(window.supabaseClient) {
                             const broadcastMsg = `⚔️ ${currentUser} berhasil claim Daily Quest +50 poin!`;
                             const timestamp = Date.now();
-                            console.log("📤 Sending quest broadcast:", broadcastMsg, "at", timestamp);
+                            console.log("📤 Inserting quest announcement:", broadcastMsg, "at", timestamp);
                             
                             // Tampilkan lokal dulu
                             window.displayMarqueeMessage(broadcastMsg, timestamp);
                             
-                            // Kirim ke user lain
-                            window.marqueeChannel.send({
-                                type: 'broadcast',
-                                event: 'announcement',
-                                payload: { 
+                            // Insert ke database
+                            window.supabaseClient
+                                .from('announcements')
+                                .insert([{ 
                                     message: broadcastMsg,
-                                    timestamp: timestamp
-                                }
-                            }).then(() => {
-                                console.log("✅ Quest broadcast sent");
-                            }).catch((err) => {
-                                console.error("❌ Quest broadcast error:", err);
-                            });
+                                    timestamp: timestamp,
+                                    username: currentUser
+                                }])
+                                .then(({ data, error }) => {
+                                    if (error) {
+                                        console.error("❌ Database insert error:", error);
+                                    } else {
+                                        console.log("✅ Quest announcement inserted");
+                                    }
+                                });
                         }
                     });
                 }
