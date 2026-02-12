@@ -117,9 +117,17 @@
             <div class="px-6 py-4 flex justify-between items-center">
                 <div>
                     <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 tracking-tighter italic">FOLKPRESSO</h1>
-                    <div id="store-status-badge" class="flex items-center gap-1.5 mt-1">
-                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Open Now</p>
+                    <div class="flex items-center gap-3 mt-1">
+                        <div id="store-status-badge" class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Open Now</p>
+                        </div>
+                        <div id="broadcast-status" class="flex items-center gap-1.5">
+                            <span id="broadcast-indicator" class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                            <p id="broadcast-text" class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Connecting...</p>
+                        </div>
+                    </div>
+                </div>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -255,6 +263,9 @@
             marqueeQueue.push(message);
             console.log("📋 Queue length:", marqueeQueue.length);
             
+            // Update indicator
+            updateBroadcastIndicator();
+            
             // Jika tidak sedang menampilkan, mulai proses
             if (!isDisplayingMarquee) {
                 console.log("▶️ Starting queue process");
@@ -264,11 +275,23 @@
             }
         };
 
+        function updateBroadcastIndicator() {
+            const text = document.getElementById('broadcast-text');
+            if (text && marqueeQueue.length > 0) {
+                text.innerText = `Queue: ${marqueeQueue.length}`;
+                text.className = "text-[10px] text-blue-500 font-bold uppercase tracking-widest";
+            } else if (text && marqueeQueue.length === 0 && window.marqueeChannel) {
+                text.innerText = "Live";
+                text.className = "text-[10px] text-green-500 font-bold uppercase tracking-widest";
+            }
+        }
+
         function processMarqueeQueue() {
             var marqueeEl = document.querySelector('.animate-marquee');
             if (!marqueeEl || marqueeQueue.length === 0) {
                 console.log("⏹️ Queue empty or element not found");
                 isDisplayingMarquee = false;
+                updateBroadcastIndicator();
                 return;
             }
             
@@ -277,6 +300,10 @@
             // Ambil pesan pertama dari antrian
             var message = marqueeQueue.shift();
             console.log("📺 Displaying message:", message);
+            console.log("📋 Remaining in queue:", marqueeQueue.length);
+            
+            // Update indicator
+            updateBroadcastIndicator();
             
             // Tampilkan pesan
             marqueeEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${message} &nbsp;&nbsp; • &nbsp;&nbsp; ${defaultMarquee}`;
@@ -293,6 +320,7 @@
                     setTimeout(function() {
                         marqueeEl.innerHTML = defaultMarquee;
                         isDisplayingMarquee = false;
+                        updateBroadcastIndicator();
                         console.log("🔄 Reset to default marquee");
                     }, 3000);
                 }
@@ -322,23 +350,60 @@
             if (!window.marqueeChannel && window.supabaseClient) {
                 try {
                     console.log("📡 Creating marquee channel...");
-                    window.marqueeChannel = window.supabaseClient.channel('folkpresso-marquee', { 
-                        config: { broadcast: { self: true } } 
-                    });
+                    window.marqueeChannel = window.supabaseClient.channel('folkpresso-marquee');
                     
                     window.marqueeChannel.on('broadcast', { event: 'announcement' }, function(payload) {
                         console.log("📨 Received broadcast:", payload);
                         if (payload.payload && payload.payload.message) {
+                            console.log("📢 Processing message:", payload.payload.message);
                             window.displayMarqueeMessage(payload.payload.message);
+                        } else {
+                            console.warn("⚠️ Invalid payload structure:", payload);
                         }
                     });
                     
                     window.marqueeChannel.subscribe(function(status) {
                         console.log("📡 Channel status:", status);
+                        
+                        const indicator = document.getElementById('broadcast-indicator');
+                        const text = document.getElementById('broadcast-text');
+                        
                         if (status === 'SUBSCRIBED') {
                             console.log("✅ Marquee channel subscribed!");
+                            if (indicator) {
+                                indicator.className = "w-2 h-2 bg-green-500 rounded-full animate-pulse";
+                            }
+                            if (text) {
+                                text.innerText = "Live";
+                                text.className = "text-[10px] text-green-500 font-bold uppercase tracking-widest";
+                            }
                         } else if (status === 'CHANNEL_ERROR') {
                             console.error("❌ Channel error");
+                            if (indicator) {
+                                indicator.className = "w-2 h-2 bg-red-500 rounded-full";
+                            }
+                            if (text) {
+                                text.innerText = "Error";
+                                text.className = "text-[10px] text-red-500 font-bold uppercase tracking-widest";
+                            }
+                        } else if (status === 'TIMED_OUT') {
+                            console.error("❌ Channel timeout");
+                            if (indicator) {
+                                indicator.className = "w-2 h-2 bg-orange-500 rounded-full";
+                            }
+                            if (text) {
+                                text.innerText = "Timeout";
+                                text.className = "text-[10px] text-orange-500 font-bold uppercase tracking-widest";
+                            }
+                        } else if (status === 'CLOSED') {
+                            console.warn("⚠️ Channel closed");
+                            if (indicator) {
+                                indicator.className = "w-2 h-2 bg-gray-500 rounded-full";
+                            }
+                            if (text) {
+                                text.innerText = "Closed";
+                                text.className = "text-[10px] text-gray-500 font-bold uppercase tracking-widest";
+                            }
                         }
                     });
                     
@@ -567,6 +632,10 @@
                 const broadcastMsg = `👑 Selamat! ${currentUser} naik ke ${newTier}!`;
                 console.log("📤 Sending tier broadcast:", broadcastMsg);
                 
+                // Tampilkan lokal dulu
+                window.displayMarqueeMessage(broadcastMsg);
+                
+                // Kirim ke user lain
                 window.marqueeChannel.send({
                     type: 'broadcast',
                     event: 'announcement',
@@ -767,6 +836,10 @@
                 const broadcastMsg = `☕ ${currentUser} baru saja memesan ${orderDetails} via ${method}!`;
                 console.log("📤 Sending broadcast:", broadcastMsg);
                 
+                // Tampilkan lokal dulu (untuk user yang order)
+                window.displayMarqueeMessage(broadcastMsg);
+                
+                // Kirim ke user lain via broadcast
                 window.marqueeChannel.send({
                     type: 'broadcast',
                     event: 'announcement',
@@ -832,6 +905,10 @@
                 const testMsg = `🧪 Test dari ${currentUser} - ${new Date().toLocaleTimeString()}`;
                 console.log("Sending test message:", testMsg);
                 
+                // Display lokal
+                window.displayMarqueeMessage(testMsg);
+                
+                // Broadcast ke user lain
                 window.marqueeChannel.send({
                     type: 'broadcast',
                     event: 'announcement',
@@ -845,6 +922,26 @@
                 console.error("❌ Channel not initialized");
                 alert("Channel belum terhubung! Cek console untuk detail.");
             }
+        };
+
+        // Test multiple messages (simulasi 3 user order bersamaan)
+        window.testMultipleMarquee = function() {
+            console.log("🧪 Testing multiple messages...");
+            
+            // Simulasi 3 user order bersamaan
+            setTimeout(() => {
+                window.displayMarqueeMessage("☕ User A memesan 2x Aren Coffee via Cash!");
+            }, 100);
+            
+            setTimeout(() => {
+                window.displayMarqueeMessage("☕ User B memesan 1x Salted Caramel via QRIS!");
+            }, 200);
+            
+            setTimeout(() => {
+                window.displayMarqueeMessage("⚔️ User C berhasil claim Daily Quest +50 poin!");
+            }, 300);
+            
+            console.log("✅ 3 messages queued, check marquee!");
         };
         window.logout = function() { 
             if(confirm("Yakin mau keluar?")) {
@@ -873,6 +970,10 @@
                             const broadcastMsg = `⚔️ ${currentUser} berhasil claim Daily Quest +50 poin!`;
                             console.log("📤 Sending quest broadcast:", broadcastMsg);
                             
+                            // Tampilkan lokal dulu
+                            window.displayMarqueeMessage(broadcastMsg);
+                            
+                            // Kirim ke user lain
                             window.marqueeChannel.send({
                                 type: 'broadcast',
                                 event: 'announcement',
