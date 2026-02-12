@@ -658,10 +658,7 @@
                 const timestamp = Date.now();
                 console.log("📤 Inserting tier announcement:", broadcastMsg, "at", timestamp);
                 
-                // Tampilkan lokal dulu
-                window.displayMarqueeMessage(broadcastMsg, timestamp);
-                
-                // Insert ke database
+                // HANYA insert ke database, biarkan Realtime yang handle display
                 window.supabaseClient
                     .from('announcements')
                     .insert([{ 
@@ -868,10 +865,8 @@
                 const timestamp = Date.now();
                 console.log("📤 Inserting to database:", broadcastMsg, "at", timestamp);
                 
-                // Tampilkan lokal dulu (untuk user yang order)
-                window.displayMarqueeMessage(broadcastMsg, timestamp);
-                
-                // Insert ke database (akan trigger realtime ke semua user)
+                // HANYA insert ke database, biarkan Realtime yang handle display
+                // Ini memastikan semua user (termasuk yang order) melihat pesan via Realtime
                 window.supabaseClient
                     .from('announcements')
                     .insert([{ 
@@ -943,10 +938,7 @@
                 const testMsg = `🧪 Test dari ${currentUser} - ${new Date(timestamp).toLocaleTimeString()}`;
                 console.log("Inserting test message:", testMsg, "at", timestamp);
                 
-                // Display lokal
-                window.displayMarqueeMessage(testMsg, timestamp);
-                
-                // Insert ke database
+                // HANYA insert ke database, biarkan Realtime yang handle display
                 window.supabaseClient
                     .from('announcements')
                     .insert([{ 
@@ -972,22 +964,50 @@
         window.testMultipleMarquee = function() {
             console.log("🧪 Testing multiple messages...");
             
+            if (!window.supabaseClient) {
+                console.error("❌ Supabase client not initialized");
+                alert("Supabase client belum terhubung!");
+                return;
+            }
+            
             var baseTime = Date.now();
             
             // Simulasi 3 user order bersamaan dengan timestamp yang berbeda
+            // User A order duluan (timestamp paling kecil)
+            window.supabaseClient
+                .from('announcements')
+                .insert([{ 
+                    message: "☕ User A memesan 2x Aren Coffee via Cash!",
+                    timestamp: baseTime + 100,
+                    username: "User A"
+                }])
+                .then(() => console.log("✅ User A message inserted"));
+            
+            // User B order kedua
             setTimeout(() => {
-                window.displayMarqueeMessage("☕ User A memesan 2x Aren Coffee via Cash!", baseTime + 100);
+                window.supabaseClient
+                    .from('announcements')
+                    .insert([{ 
+                        message: "☕ User B memesan 1x Salted Caramel via QRIS!",
+                        timestamp: baseTime + 200,
+                        username: "User B"
+                    }])
+                    .then(() => console.log("✅ User B message inserted"));
+            }, 50);
+            
+            // User C order ketiga
+            setTimeout(() => {
+                window.supabaseClient
+                    .from('announcements')
+                    .insert([{ 
+                        message: "⚔️ User C berhasil claim Daily Quest +50 poin!",
+                        timestamp: baseTime + 300,
+                        username: "User C"
+                    }])
+                    .then(() => console.log("✅ User C message inserted"));
             }, 100);
             
-            setTimeout(() => {
-                window.displayMarqueeMessage("☕ User B memesan 1x Salted Caramel via QRIS!", baseTime + 200);
-            }, 50); // Kirim lebih cepat tapi timestamp lebih lambat
-            
-            setTimeout(() => {
-                window.displayMarqueeMessage("⚔️ User C berhasil claim Daily Quest +50 poin!", baseTime + 300);
-            }, 10); // Kirim paling cepat tapi timestamp paling lambat
-            
-            console.log("✅ 3 messages queued with timestamps, check marquee!");
+            console.log("✅ 3 messages will be inserted with timestamps");
             console.log("Expected order: A → B → C (sorted by timestamp)");
         };
         window.logout = function() { 
@@ -1018,10 +1038,7 @@
                             const timestamp = Date.now();
                             console.log("📤 Inserting quest announcement:", broadcastMsg, "at", timestamp);
                             
-                            // Tampilkan lokal dulu
-                            window.displayMarqueeMessage(broadcastMsg, timestamp);
-                            
-                            // Insert ke database
+                            // HANYA insert ke database, biarkan Realtime yang handle display
                             window.supabaseClient
                                 .from('announcements')
                                 .insert([{ 
