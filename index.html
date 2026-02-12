@@ -330,13 +330,13 @@
                     processMarqueeQueue();
                 } else {
                     // Jika tidak ada lagi, kembali ke default setelah 3 detik
-                    console.log("⏳ No more messages, resetting in 3s...");
+                    console.log("⏳ No more messages, resetting in 10s...");
                     setTimeout(function() {
                         marqueeEl.innerHTML = defaultMarquee;
                         isDisplayingMarquee = false;
                         updateBroadcastIndicator();
                         console.log("🔄 Reset to default marquee");
-                    }, 3000);
+                    }, 10000);
                 }
             }, 5000);
         };
@@ -441,10 +441,70 @@
             return !!window.marqueeChannel;
         }
 
+        // Polling system untuk marquee (lebih reliable daripada Realtime)
+        window.lastAnnouncementId = 0;
+        window.pollingInterval = null;
+        
+        function initMarqueePolling() {
+            if (!window.supabaseClient) {
+                console.log("⚠️ Supabase client not ready");
+                return false;
+            }
+            
+            if (window.pollingInterval) {
+                console.log("✅ Polling already running");
+                return true;
+            }
+            
+            console.log("🔄 Starting marquee polling every 2 seconds...");
+            
+            // Update indicator
+            const indicator = document.getElementById('broadcast-indicator');
+            const text = document.getElementById('broadcast-text');
+            if (indicator) {
+                indicator.className = "w-2 h-2 bg-green-500 rounded-full animate-pulse";
+            }
+            if (text) {
+                text.innerText = "Live";
+                text.className = "text-[10px] text-green-500 font-bold uppercase tracking-widest";
+            }
+            
+            window.pollingInterval = setInterval(async function() {
+                if (!window.supabaseClient) return;
+                
+                try {
+                    const { data, error } = await window.supabaseClient
+                        .from('announcements')
+                        .select('*')
+                        .gt('id', window.lastAnnouncementId)
+                        .order('timestamp', { ascending: true })
+                        .limit(10);
+                    
+                    if (error) {
+                        console.error("❌ Polling error:", error);
+                        return;
+                    }
+                    
+                    if (data && data.length > 0) {
+                        console.log("📬 Polling found", data.length, "new messages");
+                        data.forEach(function(row) {
+                            console.log("📩 Processing message:", row.message, "timestamp:", row.timestamp);
+                            window.displayMarqueeMessage(row.message, row.timestamp);
+                            window.lastAnnouncementId = Math.max(window.lastAnnouncementId, row.id);
+                        });
+                    }
+                } catch(e) {
+                    console.error("❌ Polling exception:", e);
+                }
+            }, 2000);
+            
+            return true;
+        }
+
         var initInterval = setInterval(function() {
-            if (initSupabase() && initMarqueeChannel()) {
+            if (initSupabase() && initMarqueePolling()) {
                 clearInterval(initInterval);
-                console.log("✅ Supabase Ready");
+                console.log("✅ Supabase & Polling Ready");
             }
         }, 1000);
 
