@@ -478,7 +478,7 @@
 
             console.log("� Displaying", activeMessages.length, "messages combined");
 
-            // Set timer untuk reset ke default setelah 15 detik tanpa pesan baru
+            // Set timer untuk reset ke default setelah 45 detik tanpa pesan baru
             marqueeResetTimer = setTimeout(function () {
                 console.log("🔄 Reset to default marquee");
                 activeMessages = [];
@@ -486,7 +486,7 @@
                 isDisplayingMarquee = false;
                 marqueeResetTimer = null;
                 updateBroadcastIndicator();
-            }, 15000);
+            }, 45000);
         };
 
         function initSupabase() {
