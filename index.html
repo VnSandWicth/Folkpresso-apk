@@ -1935,6 +1935,7 @@
         };
 
         // === GPS ADDRESS ===
+        // === GPS ADDRESS (DIPERBAIKI UNTUK AKURASI TINGGI) ===
         window.getGPSAddress = function () {
             var btn = document.getElementById('btn-gps');
             var status = document.getElementById('gps-status');
@@ -1945,53 +1946,74 @@
                 return;
             }
 
-            if (btn) btn.innerHTML = '⏳ Mencari...';
-            if (status) { status.classList.remove('hidden'); status.innerText = 'Mengakses lokasi GPS...'; }
+            if (btn) btn.innerHTML = '<span class="animate-spin">⌛</span> Mencari...';
+            if (status) { status.classList.remove('hidden'); status.innerText = '📡 Mencari satelit GPS... (Tunggu sebentar)'; }
+
+            // Opsi untuk Akurasi Tinggi
+            var options = {
+                enableHighAccuracy: true, // Paksa gunakan GPS hardware jika ada
+                timeout: 15000,           // Beri waktu 15 detik untuk mencari sinyal terbaik
+                maximumAge: 0             // Jangan gunakan cache lokasi lama
+            };
 
             navigator.geolocation.getCurrentPosition(
                 function (pos) {
                     var lat = pos.coords.latitude;
                     var lon = pos.coords.longitude;
-                    if (status) status.innerText = 'Koordinat: ' + lat.toFixed(6) + ', ' + lon.toFixed(6) + ' — Mencari alamat...';
+                    var accuracy = pos.coords.accuracy; // Akurasi dalam meter
 
-                    // Reverse geocoding via OpenStreetMap Nominatim (free, no API key)
+                    if (status) status.innerText = `Titik ditemukan (Akurasi: ${Math.floor(accuracy)}m). Mengambil alamat...`;
+
+                    // Reverse geocoding via OpenStreetMap Nominatim
                     fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon + '&zoom=18&addressdetails=1', {
                         headers: { 'Accept-Language': 'id' }
                     })
                         .then(function (r) { return r.json(); })
                         .then(function (data) {
                             if (data && data.display_name) {
-                                if (addrInput) addrInput.value = data.display_name;
-                                if (status) status.innerText = '✅ Alamat ditemukan!';
-                                showToast('📡 Lokasi GPS berhasil!');
+                                // Format alamat agar lebih rapi (menghapus kode pos/negara jika terlalu panjang)
+                                var cleanAddress = data.display_name;
+
+                                if (addrInput) addrInput.value = cleanAddress;
+
+                                // UPDATE VARIABEL GLOBAL & DATABASE USER LANGSUNG
+                                window.userAddress = cleanAddress;
+                                if (auth.currentUser) {
+                                    db.collection('users').doc(auth.currentUser.uid).update({ address: cleanAddress });
+                                }
+
+                                if (status) status.innerText = '✅ Alamat: ' + cleanAddress;
+                                showToast('📍 Lokasi Akurat Ditemukan!');
                             } else {
-                                if (addrInput) addrInput.value = lat.toFixed(6) + ', ' + lon.toFixed(6);
-                                if (status) status.innerText = '⚠️ Alamat tidak ditemukan, koordinat digunakan';
+                                // Fallback jika alamat tidak ditemukan nominatim
+                                var coords = lat.toFixed(6) + ', ' + lon.toFixed(6);
+                                if (addrInput) addrInput.value = coords;
+                                window.userAddress = coords;
+                                if (status) status.innerText = '⚠️ Alamat jalan tidak terdeteksi, menggunakan koordinat.';
                             }
-                            if (btn) btn.innerHTML = '📡 Gunakan GPS';
+                            if (btn) btn.innerHTML = '📡 Update Lokasi';
                         })
                         .catch(function (err) {
                             console.error('Geocoding error:', err);
-                            if (addrInput) addrInput.value = lat.toFixed(6) + ', ' + lon.toFixed(6);
-                            if (status) status.innerText = '⚠️ Gagal geocoding, koordinat digunakan';
+                            var coords = lat.toFixed(6) + ', ' + lon.toFixed(6);
+                            if (addrInput) addrInput.value = coords;
+                            window.userAddress = coords;
+                            if (status) status.innerText = '⚠️ Gagal mengambil nama jalan, koordinat digunakan.';
                             if (btn) btn.innerHTML = '📡 Gunakan GPS';
                         });
                 },
                 function (err) {
                     console.error('GPS error:', err);
                     if (btn) btn.innerHTML = '📡 Gunakan GPS';
-                    if (err.code === 1) {
-                        showToast('❌ Izin lokasi ditolak. Aktifkan GPS di pengaturan browser.');
-                        if (status) { status.classList.remove('hidden'); status.innerText = '❌ Izin lokasi ditolak'; }
-                    } else if (err.code === 2) {
-                        showToast('❌ Lokasi tidak tersedia');
-                        if (status) { status.classList.remove('hidden'); status.innerText = '❌ Lokasi tidak tersedia'; }
-                    } else {
-                        showToast('❌ Timeout mengakses GPS');
-                        if (status) { status.classList.remove('hidden'); status.innerText = '❌ Timeout GPS'; }
-                    }
+                    let msg = 'Gagal mengambil lokasi.';
+                    if (err.code === 1) msg = '❌ Izin lokasi ditolak. Cek pengaturan browser.';
+                    else if (err.code === 2) msg = '❌ Sinyal GPS lemah / tidak tersedia.';
+                    else if (err.code === 3) msg = '❌ Waktu habis (Timeout). Coba lagi di area terbuka.';
+
+                    showToast(msg);
+                    if (status) { status.classList.remove('hidden'); status.innerText = msg; }
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                options // Masukkan opsi akurasi di sini
             );
         };
 
