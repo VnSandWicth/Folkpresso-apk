@@ -858,24 +858,19 @@
         <!-- ===== BOTTOM NAV ===== -->
         <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav py-2 px-4">
             <div class="flex justify-around">
-                <button onclick="showPage('home')" id="btn-home"
-                    class="flex flex-col items-center text-blue-900 dark:text-blue-400">
-                    <div class="nav-icon"
-                        style="background:#dbeafe;border-radius:12px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;">
-                        🏠</div>
+                <button onclick="showPage('home')" id="btn-home" class="bottom-nav-item active">
+                    <div class="nav-icon">🏠</div>
                     <span class="text-[10px] font-bold mt-1">Home</span>
                 </button>
-                <button onclick="showPage('menu')" id="btn-menu" class="flex flex-col items-center text-slate-400">
+                <button onclick="showPage('menu')" id="btn-menu" class="bottom-nav-item">
                     <div class="nav-icon">📋</div>
                     <span class="text-[10px] font-bold mt-1">Menu</span>
                 </button>
-                <button onclick="showPage('cart')" id="btn-cart"
-                    class="flex flex-col items-center text-slate-400 relative">
+                <button onclick="showPage('cart')" id="btn-cart" class="bottom-nav-item relative">
                     <div class="nav-icon">🛒</div>
                     <span class="text-[10px] font-bold mt-1">Cart</span>
                 </button>
-                <button onclick="showPage('profile')" id="btn-profile"
-                    class="flex flex-col items-center text-slate-400">
+                <button onclick="showPage('profile')" id="btn-profile" class="bottom-nav-item">
                     <div class="nav-icon">👤</div>
                     <span class="text-[10px] font-bold mt-1">Profile</span>
                 </button>
@@ -2437,11 +2432,12 @@
             const target = document.getElementById(id + '-page');
             if (target) target.classList.add('active');
 
-            document.querySelectorAll('nav button').forEach(b => {
-                b.className = "flex flex-col items-center text-slate-400";
+            // Update Navbar Active State
+            document.querySelectorAll('.bottom-nav-item').forEach(b => {
+                b.classList.remove('active');
             });
             const btn = document.getElementById('btn-' + id);
-            if (btn) btn.className = "flex flex-col items-center text-blue-900 dark:text-blue-400";
+            if (btn) btn.classList.add('active');
 
             if (id === 'cart') {
                 renderCart();
