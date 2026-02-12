@@ -1934,86 +1934,123 @@
             });
         };
 
-        // === GPS ADDRESS ===
-        // === GPS ADDRESS (DIPERBAIKI UNTUK AKURASI TINGGI) ===
+        // === GPS ADDRESS (DIPERBAIKI: LEBIH DETAIL & SPESIFIK) ===
         window.getGPSAddress = function () {
             var btn = document.getElementById('btn-gps');
             var status = document.getElementById('gps-status');
             var addrInput = document.getElementById('input-address');
 
             if (!navigator.geolocation) {
-                showToast('❌ GPS tidak didukung di browser ini');
+                showToast('❌ GPS tidak didukung browser ini');
                 return;
             }
 
-            if (btn) btn.innerHTML = '<span class="animate-spin">⌛</span> Mencari...';
-            if (status) { status.classList.remove('hidden'); status.innerText = '📡 Mencari satelit GPS... (Tunggu sebentar)'; }
+            if (btn) btn.innerHTML = '<span class="animate-spin">⌛</span> Melacak...';
+            if (status) { status.classList.remove('hidden'); status.innerText = '📡 Mencari titik akurat...'; }
 
-            // Opsi untuk Akurasi Tinggi
             var options = {
-                enableHighAccuracy: true, // Paksa gunakan GPS hardware jika ada
-                timeout: 15000,           // Beri waktu 15 detik untuk mencari sinyal terbaik
-                maximumAge: 0             // Jangan gunakan cache lokasi lama
+                enableHighAccuracy: true,
+                timeout: 20000,
+                maximumAge: 0
             };
 
             navigator.geolocation.getCurrentPosition(
                 function (pos) {
                     var lat = pos.coords.latitude;
                     var lon = pos.coords.longitude;
-                    var accuracy = pos.coords.accuracy; // Akurasi dalam meter
 
-                    if (status) status.innerText = `Titik ditemukan (Akurasi: ${Math.floor(accuracy)}m). Mengambil alamat...`;
+                    if (status) status.innerText = 'Titik didapat. Mengambil detail jalan...';
 
-                    // Reverse geocoding via OpenStreetMap Nominatim
-                    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon + '&zoom=18&addressdetails=1', {
-                        headers: { 'Accept-Language': 'id' }
+                    // Fetch ke Nominatim dengan zoom level tertinggi (18)
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
+                        headers: { 'Accept-Language': 'id-ID, id;q=0.9, en;q=0.8' }
                     })
-                        .then(function (r) { return r.json(); })
-                        .then(function (data) {
-                            if (data && data.display_name) {
-                                // Format alamat agar lebih rapi (menghapus kode pos/negara jika terlalu panjang)
-                                var cleanAddress = data.display_name;
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data && data.address) {
+                                // --- LOGIKA PENYUSUNAN ALAMAT MANUAL AGAR TIDAK RANCU ---
+                                let a = data.address;
+                                let parts = [];
 
-                                if (addrInput) addrInput.value = cleanAddress;
-
-                                // UPDATE VARIABEL GLOBAL & DATABASE USER LANGSUNG
-                                window.userAddress = cleanAddress;
-                                if (auth.currentUser) {
-                                    db.collection('users').doc(auth.currentUser.uid).update({ address: cleanAddress });
+                                // 1. Nama Tempat/Gedung (Jika ada)
+                                if (a.amenity || a.shop || a.building) {
+                                    parts.push(a.amenity || a.shop || a.building);
                                 }
 
-                                if (status) status.innerText = '✅ Alamat: ' + cleanAddress;
-                                showToast('📍 Lokasi Akurat Ditemukan!');
+                                // 2. Jalan & Nomor
+                                if (a.road) {
+                                    let jalan = a.road;
+                                    if (a.house_number) jalan += " No. " + a.house_number;
+                                    parts.push(jalan);
+                                }
+
+                                // 3. Lingkungan / Kampung / Dusun (Penting untuk daerah tanpa nama jalan)
+                                if (a.neighbourhood) parts.push(a.neighbourhood);
+                                if (a.hamlet) parts.push(a.hamlet);
+                                if (a.residential) parts.push(a.residential);
+
+                                // 4. Kelurahan / Desa (Penting!)
+                                if (a.village) parts.push("Kel. " + a.village);
+
+                                // 5. Kecamatan
+                                if (a.suburb || a.city_district) parts.push("Kec. " + (a.suburb || a.city_district));
+
+                                // 6. Kota / Kabupaten
+                                if (a.city || a.town || a.county) parts.push(a.city || a.town || a.county);
+
+                                // Gabungkan jadi satu string
+                                var finalAddress = parts.join(", ");
+
+                                // Fallback: Jika hasilnya terlalu pendek (misal cuma "Parung"), pakai display_name bawaan tapi dibersihkan
+                                if (parts.length < 2 && data.display_name) {
+                                    finalAddress = data.display_name.split(', ').slice(0, 4).join(', ');
+                                }
+
+                                // Jika masih kosong, pakai koordinat
+                                if (!finalAddress) finalAddress = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+
+                                // Tampilkan hasilnya
+                                if (addrInput) addrInput.value = finalAddress;
+
+                                // Simpan ke Global & Database
+                                window.userAddress = finalAddress;
+                                if (auth.currentUser) {
+                                    db.collection('users').doc(auth.currentUser.uid).update({ address: finalAddress });
+                                }
+
+                                if (status) status.innerText = '✅ ' + finalAddress;
+                                showToast('📍 Lokasi Detail Ditemukan!');
+
                             } else {
-                                // Fallback jika alamat tidak ditemukan nominatim
-                                var coords = lat.toFixed(6) + ', ' + lon.toFixed(6);
+                                // Fallback total jika gagal decode
+                                var coords = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
                                 if (addrInput) addrInput.value = coords;
                                 window.userAddress = coords;
-                                if (status) status.innerText = '⚠️ Alamat jalan tidak terdeteksi, menggunakan koordinat.';
+                                if (status) status.innerText = '⚠️ Nama jalan tidak ditemukan, koordinat dipakai.';
                             }
                             if (btn) btn.innerHTML = '📡 Update Lokasi';
                         })
-                        .catch(function (err) {
+                        .catch(err => {
                             console.error('Geocoding error:', err);
-                            var coords = lat.toFixed(6) + ', ' + lon.toFixed(6);
+                            var coords = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
                             if (addrInput) addrInput.value = coords;
                             window.userAddress = coords;
-                            if (status) status.innerText = '⚠️ Gagal mengambil nama jalan, koordinat digunakan.';
-                            if (btn) btn.innerHTML = '📡 Gunakan GPS';
+                            if (status) status.innerText = '⚠️ Gagal memuat nama jalan.';
+                            if (btn) btn.innerHTML = '📡 Update Lokasi';
                         });
                 },
                 function (err) {
                     console.error('GPS error:', err);
                     if (btn) btn.innerHTML = '📡 Gunakan GPS';
                     let msg = 'Gagal mengambil lokasi.';
-                    if (err.code === 1) msg = '❌ Izin lokasi ditolak. Cek pengaturan browser.';
-                    else if (err.code === 2) msg = '❌ Sinyal GPS lemah / tidak tersedia.';
-                    else if (err.code === 3) msg = '❌ Waktu habis (Timeout). Coba lagi di area terbuka.';
+                    if (err.code === 1) msg = '❌ Izin lokasi ditolak.';
+                    if (err.code === 2) msg = '❌ Sinyal GPS tidak ditemukan.';
+                    if (err.code === 3) msg = '❌ Waktu habis. Coba di luar ruangan.';
 
                     showToast(msg);
                     if (status) { status.classList.remove('hidden'); status.innerText = msg; }
                 },
-                options // Masukkan opsi akurasi di sini
+                options
             );
         };
 
