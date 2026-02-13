@@ -1537,35 +1537,7 @@
                 if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
             });
         });
-        // --- SAMPAI SINI ---
 
-        // Handle redirect result untuk mobile
-        auth.getRedirectResult().then((result) => {
-            if (result.user) {
-                console.log("✅ Login redirect berhasil:", result.user.displayName);
-                const user = result.user;
-
-                // Inisialisasi user baru di Firestore
-                const userRef = db.collection("users").doc(user.uid);
-                userRef.get().then((doc) => {
-                    if (!doc.exists) {
-                        userRef.set({
-                            username: user.displayName,
-                            customName: user.displayName,
-                            email: user.email,
-                            photo: user.photoURL,
-                            points: 0,
-                            caffeine: 0,
-                            nameChangeCount: 0,
-                            lastQuestDate: "",
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    }
-                });
-            }
-        }).catch((error) => {
-            console.error("❌ Redirect error:", error);
-        });
 
         function startFolkSync(uid) {
             db.collection("users").doc(uid).onSnapshot((doc) => {
