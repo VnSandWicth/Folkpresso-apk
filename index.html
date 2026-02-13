@@ -19,6 +19,12 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] } } }
+        };
+    </script>
     <!-- Midtrans Snap.js Sandbox -->
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-yIcpNrBNbMzCnZzQ"></script>
 
@@ -45,23 +51,28 @@
         </div>
     </div>
 
-    <div id="payment-modal"
-        class="fixed inset-0 hidden flex items-center justify-center p-6 backdrop-blur-md bg-black/40">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
-            <h3 class="text-2xl font-black text-center text-blue-900 dark:text-white mb-6">Pilih Metode Pembayaran</h3>
-            <div class="space-y-3">
-                <button onclick="processPayment('Cash')"
-                    class="w-full bg-green-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">💵
-                    Cash</button>
-                <button onclick="processPayment('QRIS')"
-                    class="w-full bg-blue-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">📱
-                    QRIS</button>
-                <button onclick="processPayment('Transfer')"
-                    class="w-full bg-purple-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">🏦
-                    Transfer</button>
-                <button onclick="closePaymentModal()"
-                    class="w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white py-4 rounded-2xl font-bold">Batal</button>
+    <div id="payment-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-6 backdrop-blur-md bg-black/50 transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl transform scale-95 transition-all duration-300">
+            <div class="text-center mb-8">
+                <h3 class="text-2xl font-black text-blue-900 dark:text-white mb-2">Metode Pembayaran</h3>
+                <p class="text-slate-500 text-sm">Pilih cara bayar yang kamu suka</p>
             </div>
+            <div class="space-y-4">
+                <button onclick="processPayment('gopay')" class="group w-full flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 hover:border-blue-500 active:scale-[0.98] transition-all shadow-sm">
+                    <div class="flex items-center space-x-4">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" alt="GoPay" class="h-8 w-auto object-contain">
+                    </div>
+                    <span class="text-[10px] font-bold bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full">Instant</span>
+                </button>
+                <button onclick="processPayment('other_qris')" class="group w-full flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 hover:border-emerald-500 active:scale-[0.98] transition-all shadow-sm">
+                    <div class="flex items-center space-x-4">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_QRIS.svg" alt="QRIS" class="h-9 w-auto object-contain">
+                         <div class="text-left"><span class="block font-bold text-slate-700 dark:text-slate-200">QRIS Dinamis</span><span class="text-[10px] text-slate-400">Scan pakai apa saja</span></div>
+                    </div>
+                    <span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full">Semua E-Wallet</span>
+                </button>
+            </div>
+            <button onclick="closePaymentModal()" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-500 py-4 rounded-2xl font-bold mt-6 transition-colors">Batal Pesan</button>
         </div>
     </div>
 
@@ -358,9 +369,8 @@
                         </button>
                         <div id="voucher-panel" class="hidden mt-2 space-y-2"></div>
                     </div>
-                    <button onclick="window.openPayment()"
-                        class="w-full bg-blue-700 hover:bg-blue-800 text-white py-4 rounded-2xl font-extrabold shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
-                        <span>🛒</span> Lanjutkan Pembayaran
+                    <button onclick="window.openPayment()" class="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-transform mt-2">
+                        Lanjutkan Pembayaran
                     </button>
                 </div>
             </div>
@@ -369,7 +379,7 @@
         <!-- ===== PROFILE PAGE ===== -->
         <main id="profile-page" class="app-page p-5">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">Profil Pengguna</h3>
+                <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">Profile Pengguna</h3>
                 <div class="flex gap-2">
                     <button onclick="showWrapped()"
                         class="px-3 h-9 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-xl shadow-lg hover:shadow-purple-500/30 transition-all active:scale-95 flex items-center gap-1">
@@ -546,64 +556,6 @@
         </nav>
     </div>
 
-    <!-- ===== SIMULATION PAYMENT MODAL ===== -->
-    <div id="simulation-payment-modal"
-        class="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl slide-up">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h3 class="text-lg font-extrabold text-slate-800 dark:text-white">Pilih Pembayaran</h3>
-                    <p class="text-xs text-slate-500">Mode Simulasi (CORS Fallback)</p>
-                </div>
-                <button onclick="closeSimulationModal()"
-                    class="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400 font-bold hover:bg-slate-200">✕</button>
-            </div>
-
-            <div class="space-y-3">
-                <button onclick="handlePaymentSuccess('GoPay')"
-                    class="w-full flex items-center justify-between p-4 bg-sky-50 hover:bg-sky-100 border border-sky-100 rounded-xl transition-all">
-                    <div class="flex items-center gap-3">
-                        <span class="text-xl">🟢</span>
-                        <span class="font-bold text-slate-700">GoPay</span>
-                    </div>
-                    <span class="text-xs font-bold text-sky-600 bg-sky-100 px-2 py-1 rounded-lg">Pilih</span>
-                </button>
-
-                <button onclick="handlePaymentSuccess('ShopeePay')"
-                    class="w-full flex items-center justify-between p-4 bg-orange-50 hover:bg-orange-100 border border-orange-100 rounded-xl transition-all">
-                    <div class="flex items-center gap-3">
-                        <span class="text-xl">🟧</span>
-                        <span class="font-bold text-slate-700">ShopeePay</span>
-                    </div>
-                    <span class="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-lg">Pilih</span>
-                </button>
-
-                <button onclick="handlePaymentSuccess('Dana')"
-                    class="w-full flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl transition-all">
-                    <div class="flex items-center gap-3">
-                        <span class="text-xl">🔵</span>
-                        <span class="font-bold text-slate-700">Dana</span>
-                    </div>
-                    <span class="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-lg">Pilih</span>
-                </button>
-
-                <button onclick="handlePaymentSuccess('QRIS')"
-                    class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all">
-                    <div class="flex items-center gap-3">
-                        <span class="text-xl">🔳</span>
-                        <span class="font-bold text-slate-700">QRIS</span>
-                    </div>
-                    <span class="text-xs font-bold text-slate-600 bg-slate-200 px-2 py-1 rounded-lg">Pilih</span>
-                </button>
-            </div>
-
-            <p class="text-[10px] text-slate-400 text-center mt-6">
-                *Simulasi ini muncul karena koneksi ke Midtrans API diblokir browser.
-            </p>
-        </div>
-    </div>
-    </div>
-
     <!-- ===== PRODUCT CUSTOMIZATION MODAL ===== -->
     <div id="product-modal"
         class="fixed inset-0 z-[100] hidden items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -666,6 +618,28 @@
             <div class="space-y-2">
                 <button onclick="handleSubscribe()" class="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Ya, Aktifkan</button>
                 <button onclick="closeNotifModal()" class="w-full text-slate-400 text-xs font-bold py-2">Nanti Saja</button>
+            </div>
+        </div>
+    </div>
+    <div id="wrapped-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative border border-slate-700">
+            <button onclick="closeWrapped()" class="absolute top-4 right-4 w-8 h-8 bg-slate-800 rounded-full text-slate-400 font-bold hover:bg-slate-700 transition-colors">✕</button>
+            <div id="slide-1" class="wrapped-slide text-center">
+                <h3 class="text-2xl font-black text-white mb-2">Folkpresso Wrapped</h3>
+                <p class="text-slate-400 text-sm mb-6">Perjalanan ngopimu sejauh ini...</p>
+                <div class="text-6xl mb-4" id="wrap-persona-icon">☕</div>
+                <h4 class="text-xl font-bold text-white" id="wrap-persona-title">Daily Sipper</h4>
+                <p class="text-slate-400 text-xs mt-2" id="wrap-persona-desc">Kopi adalah bensin harianmu.</p>
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Total Cups</p>
+                        <p class="text-3xl font-black text-white" id="wrap-total-cups">0</p>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Caffeine</p>
+                        <p class="text-3xl font-black text-orange-500"><span id="wrap-caffeine">0</span><span class="text-sm">mg</span></p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
