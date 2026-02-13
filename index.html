@@ -20,7 +20,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Midtrans Snap.js Sandbox -->
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-yIcpNrBNbMzCnZzQ"></script>
-
+    <!-- Midtrans Snap.js Sandbox -->
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-yIcpNrBNbMzCnZzQ"></script>
 
     <script>
         tailwind.config = {
@@ -1310,8 +1311,29 @@
 
 
         // === AUTH HANDLER (PERBAIKAN AGAR TIDAK FLICKER) ===
-        // Dihapus karena duplicate dengan handler di bawah
-        // auth.onAuthStateChanged((user) => { ... });
+        auth.onAuthStateChanged((user) => {
+            const loginScreen = document.getElementById('login-screen');
+            const mainApp = document.getElementById('main-app');
+
+            if (user) {
+                // JIKA USER SUDAH LOGIN:
+                // Langsung sembunyikan login screen dan tampilkan app utama tanpa delay/animasi
+                loginScreen.classList.add('hidden');
+                loginScreen.style.opacity = '0';
+                mainApp.classList.remove('hidden');
+
+                // Mulai sinkronisasi data
+                startFolkSync(user.uid);
+            } else {
+                // JIKA USER BELUM LOGIN:
+                // Tampilkan laman login
+                loginScreen.classList.remove('hidden');
+                setTimeout(() => {
+                    loginScreen.style.opacity = '1';
+                }, 10);
+                mainApp.classList.add('hidden');
+            }
+        });
 
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
@@ -1478,76 +1500,71 @@
             }
         };
 
+        // --- HAPUS DARI SINI ---
         // 3. REVISI AUTH STATE HANDLER (Agar tidak stuck)
         auth.onAuthStateChanged((user) => {
             const loginScreen = document.getElementById('login-screen');
             const mainApp = document.getElementById('main-app');
 
-            if (user) {
-                // JIKA USER SUDAH LOGIN:
-                console.log("✅ User authenticated:", user.email);
+            // Cek apakah ada hasil dari proses redirect (hasil login dari Google)
+            auth.getRedirectResult().then((result) => {
+                if (user || (result && result.user)) {
+                    // Jika user terdeteksi atau baru saja sukses redirect login
+                    const activeUser = user || result.user;
 
-                loginScreen.classList.add('hidden');
-                loginScreen.style.opacity = '0';
-                mainApp.classList.remove('hidden');
+                    loginScreen.classList.add('hidden');
+                    loginScreen.style.opacity = '0';
+                    mainApp.classList.remove('hidden');
 
-                // Mulai sinkronisasi data Folkpresso (Pastikan tidak double call)
-                if (typeof startFolkSync === "function" && !window.isSyncing) {
-                    window.isSyncing = true;
-                    startFolkSync(user.uid);
+                    // Mulai sinkronisasi data Folkpresso
+                    if (typeof startFolkSync === "function") {
+                        startFolkSync(activeUser.uid);
+                    }
+                } else {
+                    // Jika benar-benar tidak ada user, baru tampilkan login
+                    loginScreen.classList.remove('hidden');
+                    setTimeout(() => {
+                        loginScreen.style.opacity = '1';
+                    }, 10);
+                    mainApp.classList.add('hidden');
                 }
-            } else {
-                // JIKA USER BELUM LOGIN / LOGOUT:
-                console.log("🔒 User signed out / Not authenticated");
-
+            }).catch((error) => {
+                console.error("Auth Redirect Error:", error);
+                // Jika terjadi error (seperti blokir COOP), pastikan login screen tetap muncul agar tidak blank
                 loginScreen.classList.remove('hidden');
-                setTimeout(() => {
-                    loginScreen.style.opacity = '1';
-                }, 10);
-                mainApp.classList.add('hidden');
-
-                window.isSyncing = false; // Reset sync flag
-            }
+                loginScreen.style.opacity = '1';
+                if (text) text.innerText = "Login dengan Google";
+                if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
+            });
         });
+        // --- SAMPAI SINI ---
 
-        // Handle redirect result untuk mobile (SEKALI SAJA SAAT LOAD)
+        // Handle redirect result untuk mobile
         auth.getRedirectResult().then((result) => {
-            if (user || (result && result.user)) {
-                // Jika user terdeteksi atau baru saja sukses redirect login
-                const activeUser = user || result.user;
+            if (result.user) {
+                console.log("✅ Login redirect berhasil:", result.user.displayName);
+                const user = result.user;
 
-                loginScreen.classList.add('hidden');
-                loginScreen.style.opacity = '0';
-                mainApp.classList.remove('hidden');
-
-                // Mulai sinkronisasi data Folkpresso
-                if (typeof startFolkSync === "function") {
-                    startFolkSync(activeUser.uid);
-                }
-            } else {
-                // Jika benar-benar tidak ada user, baru tampilkan login
-                loginScreen.classList.remove('hidden');
-                setTimeout(() => {
-                    loginScreen.style.opacity = '1';
-                }, 10);
-                mainApp.classList.add('hidden');
+                // Inisialisasi user baru di Firestore
+                const userRef = db.collection("users").doc(user.uid);
+                userRef.get().then((doc) => {
+                    if (!doc.exists) {
+                        userRef.set({
+                            username: user.displayName,
+                            customName: user.displayName,
+                            email: user.email,
+                            photo: user.photoURL,
+                            points: 0,
+                            caffeine: 0,
+                            nameChangeCount: 0,
+                            lastQuestDate: "",
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                });
             }
         }).catch((error) => {
-            console.error("Auth Redirect Error:", error);
-            // Jika terjadi error (seperti blokir COOP), pastikan login screen tetap muncul agar tidak blank
-            loginScreen.classList.remove('hidden');
-            loginScreen.style.opacity = '1';
-            if (text) text.innerText = "Login dengan Google";
-            if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
-        });
-            
-
-            
-        .catch ((error) => {
             console.error("❌ Redirect error:", error);
-            // Jika error (misal user cancel atau network), biarkan onAuthStateChanged handle UI
-            // Tidak perlu force show login screen di sini karena onAuthStateChanged akan menanganinya
-            showToast("⚠️ Login: " + error.message);
         });
 
         function startFolkSync(uid) {
