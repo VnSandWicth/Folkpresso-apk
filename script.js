@@ -75,6 +75,38 @@ window.insertAnnouncement = async function (message) {
     } catch (e) { console.error(e); }
 };
 
+async function subscribeUser() {
+    try {
+        // 1. Cek siapa yang lagi login (Firebase Auth)
+        const user = firebase.auth().currentUser;
+        const currentUid = user ? user.uid : 'Guest-User'; // Pake UID asli kalo ada
+
+        const registration = await navigator.serviceWorker.ready;
+        
+        // 2. Minta izin & kunci alamat dari browser
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: 'BIFxetjxyNIQSdbF9hNsJonNK1lXhEperjC7g7WqzsKtIZOAWA_UlW8P8t36WgBm2SJdZaUEafz-OctAXULKMEE'
+        });
+
+        // 3. SIMPAN KE SUPABASE (Pake window.supabaseClient biar gak error)
+        const { error } = await window.supabaseClient.from('user_subscriptions').insert([
+            { 
+                subscription: subscription, 
+                user_id: currentUid // SEKARANG SUDAH OTOMATIS MENGIKUTI USER
+            }
+        ]);
+
+        if (error) throw error;
+        
+        alert('✅ Notifikasi Aktif untuk Akun Anda!');
+        console.log('HP Terdaftar dengan ID:', currentUid);
+    } catch (err) {
+        console.error('Gagal daftar notif:', err);
+        alert('Gagal daftar: ' + err.message);
+    }
+}
+
 function updateBroadcastIndicator() {
     const text = document.getElementById('broadcast-text');
     if (text && activeMessages.length > 0) {
