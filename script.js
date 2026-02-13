@@ -157,7 +157,6 @@ async function syncStoreStatus() {
     const { data } = await window.supabaseClient
         .from('broadcast_notifications')
         .select('message')
-        .eq('title', 'SYSTEM_STORE_STATUS')
         .order('id', { ascending: false })
         .limit(1);
 
@@ -181,7 +180,7 @@ function updateStoreVisuals() {
             statusBadge.classList.remove('hidden');
             statusBadge.innerHTML = '<span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> <span class="text-[9px] font-bold text-red-500 ml-1">TUTUP</span>';
         }
-        showToast("🔒 Toko Sedang Tutup");
+      
     } else {
         // JIKA BUKA
         if (statusBadge) statusBadge.classList.add('hidden');
@@ -302,11 +301,9 @@ function initNotificationChannel() {
 
                 // 3. Tampilkan Toast / Pop-up Sesuai Status
                 if (window.isStoreOpen) {
-                    showToast("🔓 UPDATE: Toko Sudah BUKA! Silahkan pesan.");
                     // Getar pendek 2x tanda buka
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                 } else {
-                    showToast("🔒 UPDATE: Toko TUTUP Sementara.");
                     // Getar panjang tanda tutup
                     if (navigator.vibrate) navigator.vibrate([500]);
                 }
@@ -1188,7 +1185,7 @@ function setupRealtimeNotifications() {
             if (!document.getElementById('profile-page').classList.contains('active')) {
                 if (badge) badge.classList.remove('hidden');
             }
-            showToast('📢 Ada pengumuman baru!');
+           
         })
         .subscribe();
 }
@@ -2263,7 +2260,6 @@ window.initNotificationListener = function () {
             if (badge && !document.getElementById('profile-page').classList.contains('active')) {
                 badge.classList.remove('hidden');
             }
-            showToast("🔔 Info Baru: " + payload.new.title);
 
             // If on profile page, refresh list
             if (document.getElementById('profile-page').classList.contains('active')) {
