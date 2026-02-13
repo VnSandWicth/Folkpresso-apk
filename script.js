@@ -34,7 +34,7 @@ if (typeof supabase !== 'undefined') {
     console.error("❌ Supabase SDK not found!");
 }
 
-var defaultMarquee = `🔥 "Aren Latte-nya juara!" - Andi &nbsp;&nbsp; • &nbsp;&nbsp; 🎵 Now Playing: The 1975 &nbsp;&nbsp; • &nbsp;&nbsp; ☕ Folkpresso Open!`;
+var defaultMarquee = `🔥 Fuel Your Day Witsh a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!`;
 var marqueeTimer;
 var marqueeResetTimer = null;
 var activeMessages = []; // [{message, timestamp}, ...] - urut kronologis (duluan = tampil duluan)
@@ -124,12 +124,12 @@ function renderMarqueeMessages() {
 
     } else {
         // --- MODE TOKO (LOOPING INFINITE) ---
-        if (textEl.innerHTML.indexOf("Folkpresso Open") !== -1 && textEl.classList.contains('animate-marquee')) return;
+        if (textEl.innerHTML === defaultMarquee && textEl.classList.contains('animate-marquee')) return;
         container.innerHTML = '';
         var defEl = document.createElement('div');
         defEl.id = 'marquee-text';
         defEl.className = 'animate-marquee text-xs font-bold text-blue-200 tracking-wide';
-        defEl.innerHTML = defaultMarquee;
+        defEl.innerHTML = defaultMarquee; // Pake variabel yang sudah kita update tadi
         container.appendChild(defEl);
         container.setAttribute('data-status', 'idle');
     }
@@ -152,22 +152,24 @@ function initSupabase() {
 // --- CEK STATUS TOKO ---
 async function syncStoreStatus() {
     if (!window.supabaseClient) return;
-
-    // 1. Ambil status terakhir dari Database
     const { data } = await window.supabaseClient
         .from('broadcast_notifications')
         .select('message')
-        .order('id', { ascending: false })
-        .limit(1);
+        .eq('title', 'SYSTEM_STORE_STATUS')
+        .order('id', { ascending: false }).limit(1);
 
     if (data && data.length > 0) {
-        const status = data[0].message; // 'OPEN' atau 'CLOSED'
-
-        // Update Variabel Global
+        const status = data[0].message;
         window.isStoreOpen = (status === 'OPEN');
 
-        // Update UI Indikator (Banner Marquee / Badge)
+        // UPDATE TEKS BERDASARKAN STATUS DATABASE
+        if (window.isStoreOpen) {
+            defaultMarquee = `🔥 Fuel Your Day Witsh a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!`;
+        } else {
+            defaultMarquee = `🔥 Fuel Your Day Witsh a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Closed!`;
+        }
         updateStoreVisuals();
+        renderMarqueeMessages(); // Langsung update tampilan
     }
 }
 
@@ -279,51 +281,35 @@ function initMarqueeChannel() {
 function initNotificationChannel() {
     if (!window.supabaseClient) return;
 
-    // Hapus channel lama jika ada (untuk mencegah duplikasi listener)
     if (window.storeChannel) window.supabaseClient.removeChannel(window.storeChannel);
 
-    // Buat Channel Baru
     window.storeChannel = window.supabaseClient
         .channel('public:broadcast_notifications_v2')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
             const data = payload.new;
             if (!data) return;
 
-            console.log("📡 SIGNAL DITERIMA:", data.title, data.message);
-
-            // === KASUS 1: STATUS TOKO BERUBAH (REALTIME) ===
+            // === KASUS: STATUS TOKO BERUBAH (REALTIME) ===
             if (data.title === 'SYSTEM_STORE_STATUS') {
-                // 1. Update Variable Global
                 window.isStoreOpen = (data.message === 'OPEN');
-
-                // 2. Paksa Update Tampilan (Badge) Detik Itu Juga
-                updateStoreVisuals();
-
-                // 3. Tampilkan Toast / Pop-up Sesuai Status
+                
+                // UPDATE TEKS REAL-TIME SAAT TOMBOL DIKLIK
                 if (window.isStoreOpen) {
-                    // Getar pendek 2x tanda buka
-                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    defaultMarquee = `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!`;
                 } else {
-                    // Getar panjang tanda tutup
-                    if (navigator.vibrate) navigator.vibrate([500]);
+                    defaultMarquee = `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Closed!`;
                 }
+
+                updateStoreVisuals();
+                renderMarqueeMessages(); // Paksa marquee ganti teks detik itu juga
             }
-
-            // === KASUS 2: NOTIFIKASI DARI OWNER (PROMO DLL) ===
             else {
-                // Refresh list notifikasi karena ada pesan baru
                 loadNotifications();
-
-                // Munculkan Toast Pesan
                 showToast("📩 Pesan Baru: " + data.title);
-                if (navigator.vibrate) navigator.vibrate(200);
             }
         })
-        .subscribe((status) => {
-            console.log("Status Koneksi Realtime:", status);
-        });
+        .subscribe();
 }
-
 // Polling system untuk marquee (lebih reliable daripada Realtime)
 window.lastAnnouncementTs = 0;
 window.pollingInterval = null;
@@ -1968,11 +1954,7 @@ window.getGPSAddress = function () {
         status.innerText = '📡 Menghubungkan satelit...';
     }
 
-    var options = {
-        enableHighAccuracy: true,
-        timeout: 20000,
-        maximumAge: 0
-    };
+    var options = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
 
     navigator.geolocation.getCurrentPosition(
         function (pos) {
@@ -1982,77 +1964,69 @@ window.getGPSAddress = function () {
             if (status) status.innerText = 'Titik didapat. Mengurai alamat lengkap...';
 
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
-                headers: {
-                    'Accept-Language': 'id-ID, id;q=0.9'
-                }
+                headers: { 'Accept-Language': 'id-ID, id;q=0.9' }
             })
-                .then(r => r.json())
-                .then(data => {
-                    if (data && data.address) {
-                        let a = data.address;
-                        let parts = [];
-                        let jalan = a.road || a.street || a.footway || a.path || a.track || a.pedestrian;
-                        if (jalan) {
-                            if (a.house_number) parts.push(jalan + " No. " + a.house_number);
-                            else parts.push(jalan);
-                        } else {
-                            let poi = a.amenity || a.building || a.shop || a.office || a.leisure;
-                            if (poi) parts.push(poi);
-                        }
-                        let lingkungan = a.neighbourhood || a.hamlet || a.quarter || a.residential;
-                        if (lingkungan) parts.push(lingkungan);
-                        let kelurahan = a.village || a.town_hall;
-                        if (!kelurahan) {
-                            if (a.suburb && !a.city_district && !a.county) kelurahan = a.suburb;
-                        }
-                        if (kelurahan) parts.push("Kel/Desa " + kelurahan);
-                        let kecamatan = a.city_district || a.district || a.county || a.municipality;
-                        let kota = a.city || a.town || a.regency;
-                        if (kecamatan && kecamatan !== kota && kecamatan !== kelurahan) {
-                            parts.push("Kec. " + kecamatan);
-                        } else if (a.suburb && !kelurahan) {
-                            parts.push("Kec. " + a.suburb);
-                        }
-                        if (kota) parts.push(kota);
-                        if (a.postcode) parts.push(a.postcode);
-                        let uniqueParts = [...new Set(parts)];
-                        var finalAddr = uniqueParts.join(", ");
-                        if (finalAddr.length < 5) finalAddr = data.display_name;
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.address) {
+                    let a = data.address;
+                    let parts = [];
 
-                        if (addrInput) addrInput.value = finalAddr;
-                        window.userAddress = finalAddr; // Base address
-
-                        if (status) status.innerText = '✅ Terdeteksi: ' + finalAddr;
-                        showToast('📍 Alamat Ditemukan! Silakan isi detail.');
-
-                        // Focus on detail input
-                        if (detailInput) {
-                            detailInput.value = '';
-                            detailInput.focus();
-                            detailInput.placeholder = "Contoh: Pagar Hitam, Lantai 2...";
-                        }
-
-                    } else {
-                        var backup = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
-                        if (addrInput) addrInput.value = backup;
-                        window.userAddress = backup;
-                        if (status) status.innerText = '⚠️ Nama jalan tidak terdaftar di peta.';
+                    // 1. NAMA JALAN & NOMOR RUMAH (Prioritas Utama)
+                    let jalan = a.road || a.street || a.pedestrian || a.suburb;
+                    let nomor = a.house_number || "";
+                    if (jalan) {
+                        parts.push(jalan + (nomor ? " No. " + nomor : ""));
                     }
-                    if (btn) btn.innerHTML = '📡 Update Lokasi';
-                })
-                .catch(err => {
-                    console.error(err);
-                    if (btn) btn.innerHTML = '📡 Gunakan GPS';
-                    if (status) status.innerText = '⚠️ Gagal mengambil detail alamat.';
-                });
+
+                    // 2. NAMA GEDUNG / POI (Gedung, Toko, atau Patokan)
+                    let poi = a.building || a.amenity || a.shop || a.office;
+                    if (poi && poi !== jalan) parts.push(poi);
+
+                    // 3. LINGKUNGAN / KELURAHAN (Kelurahan/Desa)
+                    let desa = a.village || a.neighbourhood || a.hamlet || a.suburb;
+                    if (desa) parts.push("Kel/Desa " + desa);
+
+                    // 4. KECAMATAN
+                    let kec = a.city_district || a.district || a.county || a.municipality;
+                    if (kec && kec !== desa) parts.push("Kec. " + kec);
+
+                    // 5. KOTA & KODEPOS
+                    let kota = a.city || a.town || a.regency;
+                    if (kota) parts.push(kota);
+                    if (a.postcode) parts.push(a.postcode);
+
+                    let uniqueParts = [...new Set(parts)];
+                    var finalAddr = uniqueParts.join(", ");
+                    if (finalAddr.length < 5) finalAddr = data.display_name;
+
+                    if (addrInput) addrInput.value = finalAddr;
+                    window.userAddress = finalAddr;
+
+                    if (status) status.innerText = '✅ Terdeteksi: ' + finalAddr;
+                    showToast('📍 Alamat Ditemukan!');
+
+                    // Otomatis focus ke Detail Alamat buat isi RT/RW/Patokan
+                    if (detailInput) {
+                        detailInput.focus();
+                        detailInput.placeholder = "Isi RT/RW, No Rumah, atau Patokan di sini...";
+                    }
+
+                } else {
+                    var backup = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                    if (addrInput) addrInput.value = backup;
+                    window.userAddress = backup;
+                }
+                if (btn) btn.innerHTML = '📡 Update Lokasi';
+            })
+            .catch(err => {
+                if (btn) btn.innerHTML = '📡 Gunakan GPS';
+                if (status) status.innerText = '⚠️ Gagal mengambil detail alamat.';
+            });
         },
         function (err) {
             if (btn) btn.innerHTML = '📡 Gunakan GPS';
-            let errorMsg = 'Gagal melacak lokasi.';
-            if (err.code === 1) errorMsg = '❌ Izin GPS ditolak.';
-            if (err.code === 3) errorMsg = '❌ Waktu habis (Timeout).';
-            showToast(errorMsg);
-            if (status) status.innerText = errorMsg;
+            showToast('❌ Gagal melacak lokasi.');
         },
         options
     );
