@@ -1512,36 +1512,38 @@
 
         // Handle redirect result untuk mobile (SEKALI SAJA SAAT LOAD)
         auth.getRedirectResult().then((result) => {
-            if (result.user) {
-                console.log("✅ Login redirect berhasil:", result.user.displayName);
-                const user = result.user;
+            if (user || (result && result.user)) {
+                // Jika user terdeteksi atau baru saja sukses redirect login
+                const activeUser = user || result.user;
 
-                // Cek & Buat user baru di Firestore jika belum ada
-                const userRef = db.collection("users").doc(user.uid);
-                userRef.get().then((doc) => {
-                    if (!doc.exists) {
-                        console.log("🆕 Creating new user profile for:", user.email);
-                        userRef.set({
-                            username: user.displayName || user.email.split('@')[0],
-                            customName: user.displayName || user.email.split('@')[0],
-                            email: user.email,
-                            phone: user.phoneNumber || "",
-                            photo: user.photoURL || "",
-                            points: 0,
-                            caffeine: 0,
-                            nameChangeCount: 0,
-                            lastQuestDate: "",
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }).then(() => {
-                            console.log("✅ New user profile created!");
-                            showToast("👋 Selamat Datang, " + (user.displayName || "Kakak") + "!");
-                        }).catch(err => console.error("❌ Failed to create profile:", err));
-                    } else {
-                        console.log("👋 Welcome back existing user");
-                    }
-                });
+                loginScreen.classList.add('hidden');
+                loginScreen.style.opacity = '0';
+                mainApp.classList.remove('hidden');
+
+                // Mulai sinkronisasi data Folkpresso
+                if (typeof startFolkSync === "function") {
+                    startFolkSync(activeUser.uid);
+                }
+            } else {
+                // Jika benar-benar tidak ada user, baru tampilkan login
+                loginScreen.classList.remove('hidden');
+                setTimeout(() => {
+                    loginScreen.style.opacity = '1';
+                }, 10);
+                mainApp.classList.add('hidden');
             }
         }).catch((error) => {
+            console.error("Auth Redirect Error:", error);
+            // Jika terjadi error (seperti blokir COOP), pastikan login screen tetap muncul agar tidak blank
+            loginScreen.classList.remove('hidden');
+            loginScreen.style.opacity = '1';
+            if (text) text.innerText = "Login dengan Google";
+            if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
+        });
+            
+
+            
+        .catch ((error) => {
             console.error("❌ Redirect error:", error);
             // Jika error (misal user cancel atau network), biarkan onAuthStateChanged handle UI
             // Tidak perlu force show login screen di sini karena onAuthStateChanged akan menanganinya
