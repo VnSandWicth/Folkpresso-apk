@@ -1284,7 +1284,7 @@
             } catch (e) { console.error("Unread check error:", e); }
         }
 
-        // === FIREBASE CONFIG ===
+        // --- KODE PERBAIKAN (PASTE DI SINI) ---
         const firebaseConfig = {
             apiKey: "AIzaSyBR_Er6zVysY-J-ht8PMpKRW0FJ69utN3w",
             authDomain: "folkpresso.firebaseapp.com",
@@ -1296,9 +1296,24 @@
             measurementId: "G-4VRF8TV2E1"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        // Inisialisasi Firebase Mode Compat (Agar tidak error white screen)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        // Definisikan Variable Global (PENTING: Agar kode di bawahnya bisa jalan)
+        const app = firebase.app();
         const auth = firebase.auth();
         const db = firebase.firestore();
+
+        // Set Persistence agar login tidak hilang saat refresh/pindah page
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .then(() => {
+                console.log("✅ Auth Persistence set to LOCAL");
+            })
+            .catch((error) => {
+                console.error("❌ Auth Persistence Error:", error);
+            });
 
         // === GLOBAL VARS ===
         var currentUser = "Guest";
@@ -1310,31 +1325,40 @@
         var communityGoal = 0;
 
 
-        // === AUTH HANDLER (PERBAIKAN AGAR TIDAK FLICKER) ===
+        // === AUTH HANDLER YANG LEBIH KUAT ===
         auth.onAuthStateChanged((user) => {
             const loginScreen = document.getElementById('login-screen');
             const mainApp = document.getElementById('main-app');
 
             if (user) {
-                // JIKA USER SUDAH LOGIN:
-                // Langsung sembunyikan login screen dan tampilkan app utama tanpa delay/animasi
+                // User sudah login
                 loginScreen.classList.add('hidden');
-                loginScreen.style.opacity = '0';
                 mainApp.classList.remove('hidden');
-
-                // Mulai sinkronisasi data
                 startFolkSync(user.uid);
             } else {
-                // JIKA USER BELUM LOGIN:
-                // Tampilkan laman login
-                loginScreen.classList.remove('hidden');
-                setTimeout(() => {
-                    loginScreen.style.opacity = '1';
-                }, 10);
-                mainApp.classList.add('hidden');
+                // Cek apakah ini kembalian dari Redirect Login?
+                auth.getRedirectResult()
+                    .then((result) => {
+                        if (result.user) {
+                            console.log("✅ Login Redirect Berhasil");
+                            checkAndSaveUser(result.user);
+                            // onAuthStateChanged akan terpanggil lagi otomatis
+                        } else {
+                            // Benar-benar belum login
+                            loginScreen.classList.remove('hidden');
+                            loginScreen.style.opacity = '1';
+                            mainApp.classList.add('hidden');
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Redirect Error:", error);
+                        // Jika error, tetap tampilkan layar login agar tidak white screen
+                        loginScreen.classList.remove('hidden');
+                        loginScreen.style.opacity = '1';
+                        alert("Gagal Login (Redirect): " + error.message);
+                    });
             }
         });
-
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
         // === TAB SWITCHER ===
@@ -1363,12 +1387,46 @@
             }
         };
 
-        // === LOGIN DENGAN GOOGLE ===
+        // === PERBAIKAN: HYBRID LOGIN (Popup dengan Fallback ke Redirect) ===
         window.loginWithGoogle = function () {
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
-            auth.signInWithRedirect(provider);
+
+            // 1. Coba pakai Popup dulu (Lebih cepat)
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    console.log("✅ Login Popup Berhasil:", result.user.email);
+                    // Simpan data user baru (sama seperti sebelumnya)
+                    checkAndSaveUser(result.user);
+                })
+                .catch((error) => {
+                    // 2. Jika Popup GAGAL karena COOP/Blocker, otomatis ganti ke Redirect
+                    console.warn("⚠️ Popup diblokir browser, mencoba metode Redirect...", error);
+
+                    if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.message.includes('Cross-Origin')) {
+                        auth.signInWithRedirect(provider);
+                    } else {
+                        alert("Login Gagal: " + error.message);
+                    }
+                });
         };
+
+        // Fungsi bantuan untuk simpan data (biar kode rapi)
+        function checkAndSaveUser(user) {
+            const userRef = db.collection('users').doc(user.uid);
+            userRef.get().then((doc) => {
+                if (!doc.exists) {
+                    userRef.set({
+                        username: user.displayName || user.email.split('@')[0],
+                        email: user.email,
+                        photo: user.photoURL,
+                        points: 0,
+                        caffeine: 0,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            });
+        }
 
         // === LOGIN DENGAN EMAIL & PASSWORD ===
         window.loginWithEmail = function () {
@@ -1499,44 +1557,6 @@
                 errEl.classList.remove('hidden');
             }
         };
-
-        // --- HAPUS DARI SINI ---
-        // 3. REVISI AUTH STATE HANDLER (Agar tidak stuck)
-        auth.onAuthStateChanged((user) => {
-            const loginScreen = document.getElementById('login-screen');
-            const mainApp = document.getElementById('main-app');
-
-            // Cek apakah ada hasil dari proses redirect (hasil login dari Google)
-            auth.getRedirectResult().then((result) => {
-                if (user || (result && result.user)) {
-                    // Jika user terdeteksi atau baru saja sukses redirect login
-                    const activeUser = user || result.user;
-
-                    loginScreen.classList.add('hidden');
-                    loginScreen.style.opacity = '0';
-                    mainApp.classList.remove('hidden');
-
-                    // Mulai sinkronisasi data Folkpresso
-                    if (typeof startFolkSync === "function") {
-                        startFolkSync(activeUser.uid);
-                    }
-                } else {
-                    // Jika benar-benar tidak ada user, baru tampilkan login
-                    loginScreen.classList.remove('hidden');
-                    setTimeout(() => {
-                        loginScreen.style.opacity = '1';
-                    }, 10);
-                    mainApp.classList.add('hidden');
-                }
-            }).catch((error) => {
-                console.error("Auth Redirect Error:", error);
-                // Jika terjadi error (seperti blokir COOP), pastikan login screen tetap muncul agar tidak blank
-                loginScreen.classList.remove('hidden');
-                loginScreen.style.opacity = '1';
-                if (text) text.innerText = "Login dengan Google";
-                if (btn) btn.classList.remove('opacity-50', 'pointer-events-none');
-            });
-        });
 
 
         function startFolkSync(uid) {
@@ -3119,15 +3139,42 @@
         let deferredPrompt;
         const installBtn = document.getElementById('btn-install-app');
 
-        // 1. Register Service Worker
+        // === PWA AUTO UPDATE LOGIC ===
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('✅ Service Worker Registered'))
-                    .catch(err => console.log('❌ SW Registration Failed:', err));
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('✅ Service Worker Registered');
+
+                    // Cek update setiap kali halaman dibuka/fokus
+                    reg.update();
+
+                    // Jika ada SW yang sedang menunggu (waiting), paksa update
+                    if (reg.waiting) {
+                        postMessageToSW(reg.waiting);
+                    }
+
+                    // Deteksi update baru saat install
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            // Jika SW baru sudah terinstall
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log("🔄 New update found, reloading...");
+                            }
+                        });
+                    });
+                }).catch(err => console.log('❌ SW Registration Failed:', err));
+
+                // EVENT LISTENER: JIKA SW BERUBAH, RELOAD HALAMAN
+                let refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (!refreshing) {
+                        refreshing = true;
+                        window.location.reload(); // <--- INI KUNCI AUTO RELOADNYA
+                    }
+                });
             });
         }
-
         // 2. Handle Android Install Prompt
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
