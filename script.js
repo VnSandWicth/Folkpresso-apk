@@ -2,11 +2,12 @@ function requestNotificationPermission() {
     if ('Notification' in window) {
         Notification.requestPermission().then(permission => {
             if (permission === 'granted') {
-                console.log('✅ Izin notifikasi diberikan');
+                console.log('✅ Izin Pop-up Notifikasi Diberikan');
             }
         });
     }
 }
+// Panggil saat user pertama kali masuk
 requestNotificationPermission();
 
 
@@ -403,7 +404,7 @@ var initInterval = setInterval(function () {
 async function checkUnreadNotifications() {
     if (!window.supabaseClient) return;
     try {
-        const { data, error } = await window.supabaseClient
+        const { data } = await window.supabaseClient
             .from('broadcast_notifications')
             .select('created_at')
             .order('created_at', { ascending: false })
@@ -411,12 +412,18 @@ async function checkUnreadNotifications() {
             .single();
 
         if (data) {
-            var latestTime = new Date(data.created_at).getTime();
+            var latestNotifTime = new Date(data.created_at).getTime();
+            // Ambil catatan kapan terakhir kali user buka menu notif
             var lastViewTime = parseInt(localStorage.getItem('folkpresso_last_notif_view')) || 0;
             var badge = document.getElementById('notif-badge');
 
-            if (badge && latestTime > lastViewTime) {
-                badge.classList.remove('hidden');
+            if (badge) {
+                // Badge CUMA muncul kalo ada notif yang lebih baru dari kunjungan terakhir
+                if (latestNotifTime > lastViewTime) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
             }
         }
     } catch (e) { console.error("Unread check error:", e); }
@@ -2129,7 +2136,8 @@ async function loadNotifications() {
 
     if (document.getElementById('profile-page').classList.contains('active')) {
         localStorage.setItem('folkpresso_last_notif_view', Date.now());
-        if (badge) badge.classList.add('hidden');
+        const badge = document.getElementById('notif-badge');
+    if (badge) badge.classList.add('hidden');
     }
 }
 

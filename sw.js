@@ -22,7 +22,26 @@ supabase.channel('background-notifs')
     .subscribe();
 
 // Saat notifikasi diklik
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close();
-    event.waitUntil(clients.openWindow(event.notification.data.url));
+self.addEventListener('push', function(event) {
+  const data = event.data ? event.data.json() : { title: 'Folkpresso', body: 'Ada info baru!' };
+  
+  const options = {
+      body: data.body,
+      icon: 'img/FPLOGO.png',
+      badge: 'img/FPLOGO.png',
+      vibrate: [200, 100, 200],
+      data: { url: '/index.html' }
+  };
+
+  event.waitUntil(
+      self.registration.showNotification(data.title, options)
+  );
+});
+
+// Klik notif langsung buka aplikasi
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  event.waitUntil(
+      clients.openWindow(event.notification.data.url)
+  );
 });
