@@ -75,35 +75,54 @@ window.insertAnnouncement = async function (message) {
     } catch (e) { console.error(e); }
 };
 
+// Munculkan modal otomatis 2 detik setelah login
+function checkNotifPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        setTimeout(() => {
+            const modal = document.getElementById('notif-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }, 2000);
+    }
+}
+
+async function handleSubscribe() {
+    closeNotifModal();
+    await subscribeUser(); // Panggil fungsi pendaftaran asli
+}
+
+function closeNotifModal() {
+    const modal = document.getElementById('notif-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+// Update fungsi subscribeUser asli lu
 async function subscribeUser() {
     try {
-        // 1. Cek siapa yang lagi login (Firebase Auth)
         const user = firebase.auth().currentUser;
-        const currentUid = user ? user.uid : 'Guest-User'; // Pake UID asli kalo ada
+        const currentUid = user ? user.uid : 'Guest-' + Date.now();
 
         const registration = await navigator.serviceWorker.ready;
-        
-        // 2. Minta izin & kunci alamat dari browser
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: 'BIFxetjxyNIQSdbF9hNsJonNK1lXhEperjC7g7WqzsKtIZOAWA_UlW8P8t36WgBm2SJdZaUEafz-OctAXULKMEE'
         });
 
-        // 3. SIMPAN KE SUPABASE (Pake window.supabaseClient biar gak error)
+        // SIMPAN KE DATABASE (Gunakan window.supabaseClient)
         const { error } = await window.supabaseClient.from('user_subscriptions').insert([
-            { 
-                subscription: subscription, 
-                user_id: currentUid // SEKARANG SUDAH OTOMATIS MENGIKUTI USER
-            }
+            { subscription: subscription, user_id: currentUid }
         ]);
 
         if (error) throw error;
-        
-        alert('✅ Notifikasi Aktif untuk Akun Anda!');
-        console.log('HP Terdaftar dengan ID:', currentUid);
+        showToast('✅ Notifikasi Berhasil Diaktifkan!');
     } catch (err) {
         console.error('Gagal daftar notif:', err);
-        alert('Gagal daftar: ' + err.message);
+        showToast('Gagal: ' + err.message);
     }
 }
 
@@ -487,27 +506,19 @@ auth.onAuthStateChanged((user) => {
         loginScreen.classList.add('hidden');
         mainApp.classList.remove('hidden');
         startFolkSync(user.uid);
+        
+        // --- TAMBAHKAN INI BIAR OTOMATIS TAPI ELEGAN ---
+        // Kita kasih delay 2 detik biar user gak kaget pas baru masuk
+        setTimeout(() => {
+            if (Notification.permission === 'default') {
+                subscribeUser(); // Bakal manggil popup izin browser
+            }
+        }, 2000);
+        
     } else {
-        auth.getRedirectResult()
-            .then((result) => {
-                if (result.user) {
-                    console.log("✅ Login Redirect Berhasil");
-                    checkAndSaveUser(result.user);
-                } else {
-                    loginScreen.classList.remove('hidden');
-                    loginScreen.style.opacity = '1';
-                    mainApp.classList.add('hidden');
-                }
-            })
-            .catch((error) => {
-                console.error("Redirect Error:", error);
-                loginScreen.classList.remove('hidden');
-                loginScreen.style.opacity = '1';
-                alert("Gagal Login (Redirect): " + error.message);
-            });
+        // ... (kode logout lu yang lama)
     }
 });
-
 window.switchAuthTab = function (tab) {
     const tabLogin = document.getElementById('tab-login');
     const tabRegister = document.getElementById('tab-register');

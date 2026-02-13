@@ -658,6 +658,17 @@
     </div>
 
     <script src="script.js"></script>
+    <div id="notif-modal" class="fixed inset-0 z-[10000] hidden items-center justify-center p-6 backdrop-blur-md bg-black/60">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl text-center transform transition-all duration-300">
+            <div class="text-5xl mb-4">🔔</div>
+            <h3 class="text-xl font-black text-blue-900 dark:text-white mb-2">Aktifkan Notifikasi?</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium">Dapatkan info pesanan siap dan promo eksklusif Folkpresso langsung di HP-mu!</p>
+            <div class="space-y-2">
+                <button onclick="handleSubscribe()" class="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Ya, Aktifkan</button>
+                <button onclick="closeNotifModal()" class="w-full text-slate-400 text-xs font-bold py-2">Nanti Saja</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 
