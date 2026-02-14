@@ -1129,7 +1129,7 @@ function checkPointsReset(userData) {
 // END OF CHUNK 2
 
 var manualProducts = [
-    { name: "Aren", price: 15000, type: "signature", image: "img/gula aren.png", mg: 80, cost: 9000 },
+    { name: "Aren", price: 100, type: "signature", image: "img/gula aren.png", mg: 80, cost: 9000 },
     { name: "Salted Caramel ", price: 15000, type: "signature", image: "img/salted.png", mg: 85, cost: 9000 },
     { name: "Spanish Coffee", price: 15000, type: "signature", image: "img/spanish.png", mg: 85, cost: 9000 },
     { name: "Pistachio", price: 15000, type: "signature", image: "img/pistacio.png", mg: 85, cost: 9000 },
@@ -2309,3 +2309,4 @@ function listenToAdminUpdates() {
 
 // Jalankan fungsi saat app mulai
 listenToAdminUpdates();
+
