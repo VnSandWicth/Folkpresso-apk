@@ -355,7 +355,17 @@ window.logout = function () {
         auth.signOut().then(() => location.reload());
     }
 };
-
+window.bindGoPay = async function() {
+    if (!window.userPhone) return showToast("Lengkapi nomor HP dulu!");
+    let cleanPhone = window.userPhone.replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('62')) cleanPhone = cleanPhone.substring(2);
+    
+    showToast('⏳ Menghubungkan GoPay...');
+    const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
+        body: { type: 'linking', payload: { payment_type: "gopay", gopay_partner: { phone_number: cleanPhone, country_code: "62", redirect_url: window.location.origin } } }
+    });
+    if (data && data.actions) window.location.href = data.actions[0].url;
+};
 // ==========================================
 // 5. CAFFEINE & TIER SYSTEM
 // ==========================================
@@ -734,105 +744,68 @@ window.closePaymentModal = function () {
     }
 };
 
+/// === UPDATE FUNGSI PEMBAYARAN NORMAL ===
 window.processPayment = async function (method) {
-    if (!auth.currentUser) return showToast("Login dulu ya!");
+    if (!auth.currentUser) return showToast("Login dulu ya, bb!");
     if (cart.length === 0) return showToast("Keranjang kosong!");
     
     const orderId = 'FP-' + Date.now();
-    let subtotal = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
-    let discount = window.activeVoucher ? Math.min(window.activeVoucher.discount, subtotal) : 0;
-    let finalAmount = Math.round(subtotal - discount); // Pastikan angka bulat
+    let subtotal = cart.reduce((a, b) => a + (Math.round(b.price) * Math.round(b.quantity)), 0);
+    let discount = window.activeVoucher ? Math.min(Math.round(window.activeVoucher.discount), subtotal) : 0;
+    let finalAmount = subtotal - discount;
 
+    if (finalAmount < 100) return showToast("❌ Minimal bayar Rp 100");
     showToast('⏳ Menghubungkan ke Kasir...');
 
-    // Susun daftar item dengan ID yang super aman
-    const items = cart.map(item => ({
-        id: item.name.substring(0, 10).replace(/[^a-zA-Z0-9]/g, ''), // Hanya alfanumerik
-        price: Math.round(item.price),
-        quantity: item.quantity,
-        name: item.name.substring(0, 50)
-    }));
-
-    // Voucher harus masuk sebagai item minus biar hitungan Midtrans cocok
-    if (discount > 0) {
-        items.push({
-            id: 'VOUCHER',
-            price: -Math.round(discount),
-            quantity: 1,
-            name: ('Voucher: ' + window.activeVoucher.label).substring(0, 50)
-        });
-    }
-
-    // BERSIHKAN NOMOR HP DARI SPASI & KARAKTER LAIN
-    const cleanPhone = (window.userPhone || "").replace(/[^0-9]/g, '');
+    const payloadData = {
+        payment_type: method === 'other_qris' ? 'qris' : 'gopay',
+        transaction_details: { order_id: orderId, gross_amount: finalAmount },
+        item_details: [{ id: 'ORDER-01', price: finalAmount, quantity: 1, name: 'Pesanan Folkpresso' }],
+        customer_details: { 
+            first_name: (currentUser || "Customer").substring(0, 20), 
+            email: auth.currentUser.email,
+            phone: (window.userPhone || "08111111111").replace(/[^0-9]/g, '') 
+        }
+    };
 
     try {
-        const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
-            body: { 
-                type: 'charge', 
-                payload: {
-                    payment_type: method === 'other_qris' ? 'qris' : 'gopay',
-                    transaction_details: { order_id: orderId, gross_amount: finalAmount },
-                    item_details: items,
-                    customer_details: { 
-                        first_name: (currentUser || "Customer").substring(0, 20), 
-                        email: auth.currentUser.email,
-                        phone: cleanPhone // Nomor HP sekarang murni angka saja
-                    }
-                }
-            }
+        const response = await fetch(SB_URL + '/functions/v1/midtrans-snap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
+            body: JSON.stringify({ type: 'charge', payload: payloadData })
         });
 
-        if (error) throw error;
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Gagal konek server");
 
-        // Simpan transaksi sebagai pending di database
+        // Simpan data pending agar tercatat di Supabase
         await savePendingTransaction(orderId, method, finalAmount);
 
-        if (method === 'other_qris' && data.qr_string) {
-            document.getElementById('qris-image').src = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}`;
-            document.getElementById('qris-total').innerText = 'Rp ' + finalAmount.toLocaleString();
-            document.getElementById('qris-modal').classList.remove('hidden');
-            document.getElementById('qris-modal').classList.add('flex');
-        } else if (method === 'gopay' && data.actions) {
-            const deeplink = data.actions.find(a => a.name === 'deeplink-redirect');
-            if (deeplink) window.location.href = deeplink.url;
-        }
-    } catch (err) {
-        console.error("Payment Error:", err);
-        // Pesan error lebih detail biar kita tau salahnya di mana
-        showToast("❌ Gagal: Data ditolak server. Cek kembali nomor HP/Voucher.");
-    }
-};
-
-window.bindGoPay = async function() {
-    const user = auth.currentUser;
-    if (!user) return showToast("Login dulu ya, bb!");
-    if (!window.userPhone) return showToast("Lengkapi nomor HP di biodata dulu!");
-
-    // Hilangkan tanda + biar gak Error 400
-    const cleanPhone = window.userPhone.replace('+', '');
-
-    try {
-        const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
-            body: { 
-                type: 'linking', 
-                payload: {
-                    payment_type: "gopay",
-                    gopay_partner: {
-                        phone_number: cleanPhone, 
-                        country_code: "62",
-                        redirect_url: window.location.origin
-                    }
-                }
+        if (method === 'other_qris') {
+            let qrSource = "";
+            if (data.qr_string) {
+                qrSource = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}`;
+            } else if (data.actions) {
+                const qrAction = data.actions.find(a => a.name === 'generate-qr-code');
+                if (qrAction) qrSource = qrAction.url;
             }
-        });
-        if (error) throw error;
-        if (data.actions) {
-            const bindUrl = data.actions.find(a => a.name === 'activation-link');
-            if (bindUrl) window.location.href = bindUrl.url;
+
+            if (qrSource) {
+                // FIX ID: Di index.html namanya 'dynamic-qr'
+                document.getElementById('dynamic-qr').src = qrSource;
+                document.getElementById('qris-total-label').innerText = 'Rp ' + finalAmount.toLocaleString();
+                document.getElementById('premium-modal').classList.remove('hidden');
+                document.getElementById('modal-qris-display').classList.remove('hidden');
+            }
+        } else if (method === 'gopay' && data.actions) {
+            const deeplink = data.actions.find(a => a.name === 'deeplink-redirect' || a.name === 'simulator');
+            if (deeplink) {
+                window.open(deeplink.url, '_blank');
+                showPaymentConfirmation(orderId, finalAmount, method);
+            }
         }
     } catch (err) {
-        showToast("❌ Gagal Hubungkan: " + err.message);
+        alert("🚨 Error: " + err.message);
     }
 };
 
@@ -889,18 +862,26 @@ async function submitTransaction(method) {
 
 async function savePendingTransaction(orderId, method, total) {
     const user = auth.currentUser;
+    if (!user) return;
+
+    // Masukkan SEMUA data biar sinkron sama tabel transactions lu
     const payload = cart.map(item => ({
         order_id: orderId,
         date: new Date().toISOString().split('T')[0],
+        full_time: new Date().toLocaleString('id-ID'), // Tambahkan waktu lengkap
         name: item.name,
+        type: 'in', // Kategori masuk
         qty: item.quantity,
+        unit_price: item.price,
+        unit_cost: item.cost || 0,
         total: item.price * item.quantity,
         method: method,
         payment_status: 'pending',
         user_id: user.uid
     }));
 
-    await window.supabaseClient.from('transactions').insert(payload);
+    const { error } = await window.supabaseClient.from('transactions').insert(payload);
+    if (error) console.error("❌ Gagal simpan:", error.message);
 }
 
 // ==========================================
@@ -1244,3 +1225,136 @@ function startBannerAutoSlide() {
 window.addEventListener('load', () => {
     startBannerAutoSlide();
 });
+
+// === JARING PENANGKAP STATUS MIDTRANS (TARUH DI PALING BAWAH SCRIPT.JS) ===
+window.addEventListener('load', async () => {
+    // 1. Tangkap data dari link URL setelah Midtrans nge-redirect balik ke web
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('order_id');
+    const txStatus = urlParams.get('transaction_status');
+
+    // 2. Kalau ada order_id dan statusnya lunas (settlement/capture)
+    if (orderId && (txStatus === 'settlement' || txStatus === 'capture')) {
+        if (!window.supabaseClient) return;
+
+        try {
+            // Cek dulu ke database, apakah transaksi ini masih pending?
+            const { data: txData, error } = await window.supabaseClient
+                .from('transactions')
+                .select('*')
+                .eq('order_id', orderId);
+
+            // Kalau masih pending, kita eksekusi jadi SUCCESS
+            if (txData && txData.length > 0 && txData[0].payment_status === 'pending') {
+                
+                // A. Ubah status di Supabase jadi success
+                await window.supabaseClient
+                    .from('transactions')
+                    .update({ payment_status: 'success' })
+                    .eq('order_id', orderId);
+
+                // B. Hitung poin untuk user (Total belanja dibagi 1000)
+                let totalBelanja = txData.reduce((sum, item) => sum + (item.total || 0), 0);
+                let pointsEarned = Math.floor(totalBelanja / 1000);
+                
+                if (auth.currentUser) {
+                    db.collection("users").doc(auth.currentUser.uid).update({
+                        points: firebase.firestore.FieldValue.increment(pointsEarned)
+                    });
+                }
+
+                showToast("✅ Pembayaran Lunas! Kamu dapat +" + pointsEarned + " Poin");
+                
+                // C. Bersihkan URL biar sistem nggak nge-update terus kalau halaman di-refresh
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // D. Buka riwayat pesanan biar pelanggan bisa langsung lihat
+                showPage('profile');
+                setTimeout(() => {
+                    if(typeof loadOrderHistory === 'function') loadOrderHistory();
+                }, 1000);
+            } else {
+                // Kalau udah success dari awal, cukup bersihin URL aja
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        } catch (err) {
+            console.error("Gagal konfirmasi pembayaran:", err);
+        }
+    } 
+    // Kalau pelanggan batalin pembayaran di tengah jalan
+    else if (orderId && (txStatus === 'cancel' || txStatus === 'deny')) {
+        showToast("❌ Pembayaran Dibatalkan");
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
+
+// === SISTEM KONFIRMASI MANUAL UNTUK SANDBOX TESTING ===
+
+// === SISTEM KONFIRMASI MANUAL (VERSI ALARM ADMIN AKTIF) ===
+function showPaymentConfirmation(orderId, finalAmount, method) {
+    var popup = document.getElementById('universal-popup');
+    var content = document.getElementById('popup-content');
+    if (!popup || !content) return;
+
+    popup.classList.remove('hidden');
+    popup.classList.add('flex');
+    
+    setTimeout(() => {
+        content.classList.remove('scale-50', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+
+    document.getElementById('popup-icon').innerText = '⏳';
+    document.getElementById('popup-title').innerText = 'Menunggu Pembayaran';
+    document.getElementById('popup-message').innerText = 'Silakan selesaikan pembayaran di tab GoPay yang baru terbuka. Jika sudah sukses, klik tombol di bawah.';
+    
+    // Kirim data 'method' ke tombol
+    document.getElementById('popup-actions').innerHTML = `
+        <button onclick="confirmManualPayment('${orderId}', ${finalAmount}, '${method}')" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-2xl shadow-lg mb-3 active:scale-95 transition-all">✅ Saya Sudah Bayar</button>
+        <button onclick="closeUniversalPopup()" class="w-full bg-slate-100 text-slate-500 font-bold py-3.5 rounded-2xl active:scale-95 transition-all">Nanti Saja</button>
+    `;
+}
+
+wwindow.confirmManualPayment = async function(orderId, finalAmount, method) {
+    closeUniversalPopup();
+    showToast("⏳ Sinkronisasi data ke Admin...");
+
+    try {
+        // 1. HAPUS data pending agar tidak dobel
+        await window.supabaseClient.from('transactions').delete().eq('order_id', orderId);
+
+        // 2. INSERT data baru sebagai SUKSES (Ini yang bikin admin bunyi)
+        const payload = cart.map(item => ({
+            order_id: orderId,
+            date: new Date().toISOString().split('T')[0],
+            full_time: new Date().toLocaleString('id-ID'),
+            name: item.name,
+            type: 'in',
+            qty: item.quantity,
+            unit_price: item.price,
+            unit_cost: item.cost || 0,
+            total: item.price * item.quantity,
+            method: method || 'gopay',
+            payment_status: 'success',
+            user_id: auth.currentUser.uid
+        }));
+
+        await window.supabaseClient.from('transactions').insert(payload);
+
+        // 3. Bunyikan Alarm Pengumuman
+        const msg = `🛒 ${currentUser} memesan ${cart.map(i => i.name).join(', ')} via ${method}!`;
+        await window.insertAnnouncement(msg);
+
+        // 4. Update Poin & Goal
+        db.collection("users").doc(auth.currentUser.uid).update({
+            points: firebase.firestore.FieldValue.increment(Math.floor(finalAmount / 1000))
+        });
+
+        showToast("✅ Pembayaran Berhasil!");
+        cart = [];
+        renderCart();
+        showPage('home');
+    } catch(e) {
+        showToast("❌ Gagal update.");
+    }
+};
