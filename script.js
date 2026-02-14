@@ -697,7 +697,7 @@ window.processPayment = async function (method) {
     showToast('⏳ Menyiapkan pembayaran...');
 
     try {
-        // NEMBAK LANGSUNG KE SUPABASE EDGE FUNCTION LU!
+        // NEMBAK AMAN KE SUPABASE EDGE FUNCTION!
         const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
             body: transactionData
         });
@@ -712,12 +712,15 @@ window.processPayment = async function (method) {
             });
         } else {
             showToast('❌ Gagal mendapatkan token Midtrans');
+            console.error("Detail Error Midtrans:", data);
         }
     } catch (err) {
         console.error("Payment Error:", err);
         showToast("❌ Error koneksi ke server pembayaran");
     }
 };
+
+
 async function submitTransaction(method) {
     const user = auth.currentUser;
     if (!user) return;
