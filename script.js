@@ -1398,7 +1398,8 @@ window.processPayment = async function (method) {
         const data = await response.json();
 
         // Cek status code Midtrans (200 ok, 201 pending)
-        if (!response.ok || (data.status_code != '200' && data.status_code != '201')) {
+        // Kalo ada redirect_url, berarti sukses (Snap API)
+        if (!data.redirect_url && (!response.ok || (data.status_code != '200' && data.status_code != '201'))) {
             let errorMsg = data.status_message || "Gagal memproses transaksi";
             if (data.validation_messages) {
                 errorMsg += "\n" + data.validation_messages.join("\n");
