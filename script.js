@@ -40,7 +40,8 @@ let userPoints = 0;
 let userCaffeine = 0;
 let currentTierStatus = "";
 let cart = [];
-let isStoreOpen = true;
+window.isStoreOpen = true;
+let defaultMarquee = `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!`;
 let communityGoal = 0;
 
 // Variabel Modal Product (Cukup 1 kali deklarasi)
@@ -48,8 +49,7 @@ let currentProduct = null;
 let currentSugar = 'Normal';
 window.modalQty = 1;
 
-let defaultMarquee = `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!`;
-let activeMessages = [];
+
 window.shownMessageIds = new Set();
 window.lastNotifiedTier = "";
 
@@ -87,8 +87,8 @@ window.addEventListener('load', async () => {
     }
 
     // C. Fetch Announcements & Store Status
-    await fetchLatestAnnouncement();
-    await syncStoreStatus();
+    // fetchLatestAnnouncement removed as undefined
+    await syncInitialStoreStatus();
     setupAnnouncementRealtime();
 
     // D. Initial Load
@@ -100,61 +100,17 @@ window.addEventListener('load', async () => {
 
     // E. Handle Midtrans Return (The "JARING")
     handleMidtransReturn();
+
+    // F. Register Service Worker (Fix SyntaxError & Hang issues)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js', { type: 'module' })
+            .then(reg => console.log('✅ SW Registered:', reg.scope))
+            .catch(err => console.error('❌ SW Registration Failed:', err));
+    }
 });
 
-async function fetchLatestAnnouncement() {
-    const marqueeElement = document.getElementById('marquee-text');
-    if (!marqueeElement) return;
+// Merged with unified version around line 1400
 
-    try {
-        const { data } = await window.supabaseClient
-            .from('announcements')
-            .select('message')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-        if (data) {
-            defaultMarquee = `☕ ${data.message} • Folkpresso Open!`;
-            if (typeof renderMarqueeMessages === 'function') renderMarqueeMessages();
-        }
-    } catch (e) { console.error(e); }
-}
-
-async function syncStoreStatus() {
-    try {
-        const { data } = await window.supabaseClient
-            .from('broadcast_notifications')
-            .select('message')
-            .eq('title', 'SYSTEM_STORE_STATUS')
-            .order('id', { ascending: false })
-            .limit(1)
-            .single();
-
-        if (data) {
-            isStoreOpen = (data.message === 'OPEN');
-            updateStoreUI();
-        }
-
-        window.supabaseClient
-            .channel('public:store_status')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications', filter: 'title=eq.SYSTEM_STORE_STATUS' }, payload => {
-                isStoreOpen = (payload.new.message === 'OPEN');
-                updateStoreUI();
-                showToast(isStoreOpen ? "🟢 Toko BUKA Kembali!" : "🔴 Toko TUTUP Sementara");
-            })
-            .subscribe();
-    } catch (e) { console.error(e); }
-}
-
-function updateStoreUI() {
-    const marquee = document.getElementById('marquee-text');
-    if (!isStoreOpen) {
-        if (marquee) marquee.innerHTML = "🔴 MAAF, FOLKPRESSO SEDANG TUTUP • KEMBALI LAGI BESOK YA! 🔴";
-    } else {
-        if (marquee) marquee.innerHTML = defaultMarquee;
-    }
-}
 
 function setupAnnouncementRealtime() {
     if (!window.supabaseClient) return;
@@ -162,10 +118,18 @@ function setupAnnouncementRealtime() {
     window.supabaseClient
         .channel('public:announcements')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, payload => {
+            const msg = payload.new.message;
+            const nid = "rt_" + payload.new.id;
+
+            console.log("📢 Realtime Announcement received:", msg);
+
+            // Masukkan ke antrian untuk tayang SEKALI LEWAT
             if (typeof window.displayMarqueeMessage === 'function') {
-                window.displayMarqueeMessage(payload.new.message, Date.now(), "rt_" + payload.new.id);
+                window.displayMarqueeMessage(msg, Date.now(), nid);
             }
-            defaultMarquee = `☕ ${payload.new.message} • Folkpresso Open!`;
+
+            // JANGAN overwrite defaultMarquee di sini, biarkan marquee balik ke status toko/info default
+            // Kecuali admin mau bikin ini jadi loop selamanya (biasanya tidak u/ order/quest)
         })
         .subscribe();
 }
@@ -434,25 +398,39 @@ function updateMemberUI() {
     // Definisikan oldTier secara aman
     var oldTier = window.currentTierStatus || "";
     var newTier = "";
-    var cardBase = 'shimmer-card member-card-bronze rounded-[2rem] pt-10 px-6 pb-4 shadow-2xl relative h-52 flex flex-col justify-between transition-all duration-500 mb-6';
+    // Logika Ganti Tier & Progress Bar
+    var pct = 0;
+    var nextLimit = 300;
 
+    // Bersihkan class lama cardBase biar ga numpuk 'member-card-bronze'
+    var commonClass = 'shimmer-card rounded-[2rem] pt-10 px-6 pb-4 shadow-2xl relative h-52 flex flex-col justify-between transition-all duration-500 mb-6';
+
+    // UPDATE TAMPILAN POIN (PENTING BIAR GAK 0)
     dispPoints.innerText = userPoints.toLocaleString();
 
-    // Logika Ganti Tier
     if (userPoints >= 801) {
-        card.className = 'member-card-platinum ' + cardBase;
+        card.className = 'member-card-platinum ' + commonClass;
         newTier = 'FOLK PLATINUM 💎';
+        pct = 100;
     } else if (userPoints >= 501) {
-        card.className = 'member-card-gold ' + cardBase;
+        card.className = 'member-card-gold ' + commonClass;
         newTier = 'FOLK GOLD 👑';
+        // 501 - 800 (Range 300)
+        pct = ((userPoints - 500) / 300) * 100;
     } else if (userPoints >= 301) {
-        card.className = 'member-card-silver ' + cardBase;
+        card.className = 'member-card-silver ' + commonClass;
         newTier = 'FOLK SILVER ⚔️';
+        // 301 - 500 (Range 200)
+        pct = ((userPoints - 300) / 200) * 100;
     } else {
-        card.className = 'member-card-bronze ' + cardBase;
+        card.className = 'member-card-bronze ' + commonClass;
         newTier = 'FOLK BRONZE 🥉';
+        // 0 - 300 (Range 300)
+        pct = (userPoints / 300) * 100;
     }
 
+    // Update Progress Bar
+    bar.style.width = Math.min(Math.max(pct, 5), 100) + '%'; // Min 5% biar keliatan
     tierName.innerText = newTier;
 
     // Gunakan oldTier yang sudah didefinisikan
@@ -502,20 +480,55 @@ function showCaffeineMilestonePopup(milestone) {
 // 6. QUEST & VOUCHERS
 // ==========================================
 window.claimQuest = function () {
+    console.log("🖱️ Claim Quest Clicked");
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+        alert("Login dulu bang biar dapet poin!");
+        return;
+    }
+
     const userRef = db.collection("users").doc(user.uid);
     const today = new Date().toDateString();
 
+    console.log("⏳ Checking Quest Status for UID:", user.uid);
     userRef.get().then((doc) => {
-        if (doc.exists && doc.data().lastQuestDate === today) {
+        let canClaim = true;
+        if (doc.exists) {
+            const data = doc.data();
+            console.log("📄 User Data Found:", data);
+            if (data.lastQuestDate === today) {
+                canClaim = false;
+            }
+        }
+
+        if (!canClaim) {
             showToast("Sudah diklaim hari ini!");
         } else {
-            userRef.update({ points: firebase.firestore.FieldValue.increment(50), lastQuestDate: today }).then(() => {
+            console.log("🚀 Claiming Point...");
+            const updateData = {
+                points: firebase.firestore.FieldValue.increment(50),
+                lastQuestDate: today,
+                username: user.displayName || user.email.split('@')[0],
+                email: user.email
+            };
+
+            const task = doc.exists ? userRef.update(updateData) : userRef.set(updateData, { merge: true });
+
+            task.then(() => {
+                console.log("✅ Point added to Firebase");
                 showToast("🎉 +50 Poin Quest!");
-                if (window.supabaseClient) window.insertAnnouncement("⚔️ " + currentUser + " berhasil menyelesaikan Daily Quest (+50 Poin)!");
+                // BROADCAST GLOBAL
+                if (window.insertAnnouncement) {
+                    window.insertAnnouncement("⚔️ " + (currentUser || user.displayName || "User") + " berhasil menyelesaikan Daily Quest (+50 Poin)!");
+                }
+            }).catch(err => {
+                console.error("❌ Gagal claim quest (Firestore):", err);
+                alert("DATABASE ERROR: " + err.message);
             });
         }
+    }).catch(err => {
+        console.error("❌ Gagal ambil data user (Firestore):", err);
+        alert("PULSA/KONEKSI ERROR: " + err.message);
     });
 };
 
@@ -536,7 +549,7 @@ function checkQuestStatus(lastDate) {
 window.activeVoucher = null;
 window.userVouchers = [];
 
-function grantTierVoucher(tierName) {
+async function grantTierVoucher(tierName) {
     var user = auth.currentUser;
     var tierVoucherMap = {
         'FOLK SILVER ⚔️': { discount: 3000, label: 'Silver Upgrade - Rp 3.000' },
@@ -545,13 +558,17 @@ function grantTierVoucher(tierName) {
     };
     if (!user || !tierVoucherMap[tierName]) return;
 
-    db.collection('users').doc(user.uid).get().then((doc) => {
+    db.collection('users').doc(user.uid).get().then(async (doc) => {
         if (doc.exists) {
             var data = doc.data();
             var grantedTiers = data.grantedTiers || [];
+            var grantedTiers = data.grantedTiers || [];
             if (grantedTiers.includes(tierName)) return;
 
-            if (window.supabaseClient) window.insertAnnouncement("👑 " + currentUser + " naik peringkat menjadi " + tierName + "!");
+            // BROADCAST GLOBAL TIER UP
+            if (window.insertAnnouncement) {
+                window.insertAnnouncement("👑 " + (currentUser || "User") + " naik level ke " + tierName + "!");
+            }
             var v = tierVoucherMap[tierName];
             var voucher = { tier: tierName, discount: v.discount, label: v.label, used: false, createdAt: new Date().toISOString() };
 
@@ -596,8 +613,11 @@ async function loadUserVouchers() {
 
                 const isTargetFullfilled = v.target === 'all' || v.target === user.uid;
                 const isNotExpired = !v.expiry_date || v.expiry_date >= now;
+
+                // FIX LOGIKA KUOTA: Handle jika used_by masih null (belum ada yang pakai)
+                const usedCount = (v.used_by && Array.isArray(v.used_by)) ? v.used_by.length : 0;
                 const userAlreadyUsed = v.used_by && v.used_by.includes(user.uid);
-                const hasQuota = !v.max_users || (v.used_by && v.used_by.length < v.max_users);
+                const hasQuota = !v.max_users || usedCount < v.max_users;
 
                 if (isTargetFullfilled && isNotExpired && !userAlreadyUsed && hasQuota) {
                     window.userVouchers.push({
@@ -605,7 +625,10 @@ async function loadUserVouchers() {
                         label: v.label,
                         discount: parseInt(v.discount),
                         source: 'admin', // Tandai dari admin
-                        supabase_id: v.id // Simpan real ID buat dipake pas checkout
+                        supabase_id: v.id, // Simpan real ID buat dipake pas checkout
+                        expiry: v.expiry_date,
+                        max: v.max_users,
+                        used: usedCount
                     });
                 }
             });
@@ -639,9 +662,17 @@ function loadVoucherPanel() {
     panel.innerHTML = window.userVouchers.map(function (v) {
         var isActive = window.activeVoucher && window.activeVoucher.id === v.id;
         var btnClass = isActive ? 'bg-green-500 text-white' : 'bg-white border border-amber-500 text-amber-600';
+
+        let infoStr = `Diskon Rp ${v.discount.toLocaleString()}`;
+        if (v.expiry) infoStr += ` • Exp: ${v.expiry.split('-').reverse().join('/')}`;
+        if (v.max) infoStr += ` • Sisa: ${v.max - v.used} User`;
+
         return `
-        <div class="flex items-center justify-between p-3 rounded-xl border ${btnClass}">
-            <div><p class="text-xs font-bold">${v.label}</p><p class="text-[10px]">Diskon Rp ${v.discount.toLocaleString()}</p></div>
+        <div class="flex items-center justify-between p-3 rounded-xl border ${btnClass} mb-2 transition-all">
+            <div>
+                <p class="text-xs font-bold">${v.label}</p>
+                <p class="text-[10px] opacity-80">${infoStr}</p>
+            </div>
             <button onclick="${isActive ? 'removeVoucher()' : `applyVoucher('${v.id}', ${v.discount}, '${v.label}', '${v.source}')`}" class="px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm border border-slate-200">${isActive ? '❌ Batal' : 'Gunakan'}</button>
         </div>`;
     }).join('');
@@ -921,11 +952,12 @@ async function submitTransaction(method) {
     updateGoalUI();
 
     db.collection("users").doc(user.uid).update({
-        points: firebase.firestore.FieldValue.increment(Math.floor(totalOrder / 1000)),
+        points: firebase.firestore.FieldValue.increment(totalOrder), // 1:1 Ratio for testing/general use
         caffeine: firebase.firestore.FieldValue.increment(totalCaffeine)
     });
 
     const payload = cart.map(item => ({
+        order_id: "FOLK-LOCAL-" + Date.now() + "-" + Math.floor(Math.random() * 1000), // Generate Local ID
         date: new Date().toISOString().split('T')[0],
         full_time: new Date().toLocaleString('id-ID'),
         name: item.name,
@@ -936,7 +968,11 @@ async function submitTransaction(method) {
         total: item.price * item.quantity,
         method: method,
         payment_status: 'success',
-        user_id: user.uid
+        user_id: user.uid,
+        notes: item.note || '',
+        customer_name: (currentUser || "Customer"),
+        phone: (window.userPhone || ""),
+        address: (window.userAddress || "")
     }));
 
     if (window.supabaseClient) {
@@ -995,62 +1031,80 @@ async function savePendingTransaction(orderId, method, total) {
 // ==========================================
 // 9. SUPABASE REALTIME & NOTIFICATIONS
 // ==========================================
-window.insertAnnouncement = async function (message) {
-    if (!window.supabaseClient) return;
-    try {
-        console.log("📤 Sending Announcement to Supabase with Timestamp...");
-        // Balikin timestamp sesuai screenshot user (int8)
-        const { error } = await window.supabaseClient.from('announcements').insert([{
-            message: message,
-            timestamp: Date.now()
-        }]);
-
-        if (error) {
-            console.error("❌ Announcements Insert Error:", error);
-        } else {
-            console.log("✅ Announcement Saved Successfully");
-        }
-
-        // Optimistic UI: Langsung munculin di marquee user yg mesen
-        if (typeof window.displayMarqueeMessage === 'function') {
-            window.displayMarqueeMessage(message, Date.now(), "local_" + Date.now());
-        }
-    } catch (e) {
-        console.error("Crash In InsertAnnouncement:", e);
-    }
-};
+var activeMessages = []; // [{message, timestamp}, ...] - urut kronologis (duluan = tampil duluan)
+var isDisplayingMarquee = false;
+// Memori supaya pesan yang sama (berdasarkan ID) gak muncul dua kali
+window.shownMessageIds = new Set();
+// Memori supaya naik level gak teriak-teriak terus
+window.lastNotifiedTier = "";
 
 window.displayMarqueeMessage = function (message, timestamp, id) {
     var marqueeEl = document.querySelector('.animate-marquee') || document.getElementById('marquee-text');
     if (!marqueeEl) return;
+
+    // JIKA ID SUDAH PERNAH TAMPIL, TOLAK!
     if (id && window.shownMessageIds.has(id)) return;
     if (id) window.shownMessageIds.add(id);
 
-    if (activeMessages.some(m => m.message === message)) return;
+    // Cek duplikat konten yang lagi antre
+    if (activeMessages.some(function (m) { return m.message === message; })) return;
+
     activeMessages.push({ message: message, timestamp: timestamp || Date.now() });
     renderMarqueeMessages();
 };
 
+window.insertAnnouncement = async function (message) {
+    if (!window.supabaseClient) {
+        console.error("Supabase Client hilang!");
+        // alert("SYSTEM ERROR: Supabase Client not found inside insertAnnouncement");
+        return;
+    }
+    try {
+        console.log("📤 Sending Announcement:", message);
+        // Kita pake ID random biar bisa dilock di sisi client
+        var tempId = "msg_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
+        // Optimistic UI: Tampil DULUAN di layar sendiri sebelum kirim database
+        window.displayMarqueeMessage(message, Date.now(), tempId);
+
+        // Hapus timestamp manual biar Supabase yang handle created_at otomatis
+        // Ini menghindari error 400 Bad Request karena tipe data gak cocok
+        var { error } = await window.supabaseClient
+            .from('announcements')
+            .insert([{ message: message }]);
+
+        if (!error) {
+            console.log("✅ Announcement Saved Successfully");
+        } else {
+            console.error("❌ Announcements Insert Error:", error);
+        }
+    } catch (e) { console.error(e); }
+};
+
 function renderMarqueeMessages() {
     var textEl = document.getElementById('marquee-text');
+    if (!textEl) textEl = document.querySelector('.animate-marquee');
     if (!textEl) return;
-    var container = textEl.parentElement;
 
-    // Jika sedang ada pesan yang jalan, jangan interupsi
+    var container = textEl.parentElement;
     if (container.getAttribute('data-status') === 'playing') return;
 
     if (activeMessages.length > 0) {
+        // --- MODE PESAN USER (SEKALI LEWAT) ---
         container.setAttribute('data-status', 'playing');
-
-        // Urutkan biar yang pesan duluan muncul duluan (FIFO)
-        activeMessages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        activeMessages.sort(function (a, b) { return (a.timestamp || 0) - (b.timestamp || 0); });
         var msg = activeMessages.shift();
 
-        // Mode "Sekali Lewat" untuk Pesanan/Info Baru
-        textEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black mr-2">INFO:</span> ${msg.message}`;
-        textEl.classList.remove('animate-marquee'); // Matikan mode looping
+        // TAMPILKAN SEKALI LEWAT
+        textEl.style.whiteSpace = 'nowrap'; // Pastikan satu baris panjang
+        textEl.style.display = 'inline-block';
+        textEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black mr-2 uppercase">INFO 🔥</span> ${msg.message}`;
+        textEl.classList.remove('animate-marquee'); // Matikan loop default
 
-        // Jalankan animasi sekali lewat menggunakan Web Animations API
+        // Reset posisi ke kanan layar
+        textEl.style.transform = 'translateX(100vw)';
+
+        // Animasi jalan ke kiri
         var duration = 15000; // 15 detik biar kebaca
         var anim = textEl.animate([
             { transform: 'translateX(100vw)' },
@@ -1062,14 +1116,21 @@ function renderMarqueeMessages() {
         });
 
         anim.onfinish = function () {
+            anim.cancel();
             container.setAttribute('data-status', 'idle');
             // Cek antrian berikutnya
             renderMarqueeMessages();
         };
     } else {
-        // Jika antrian habis, balik ke Default Marquee (Looping)
-        textEl.innerHTML = defaultMarquee;
+        // --- MODE DEFAULT (LOOPING TERUS) ---
+        textEl.innerHTML = window.isStoreOpen ? defaultMarquee : "🔴 MAAF, FOLKPRESSO SEDANG TUTUP • KEMBALI LAGI BESOK YA! 🔴";
+
+        // Reset animasi CSS biar looping mulus dari awal
+        textEl.classList.remove('animate-marquee');
+        void textEl.offsetWidth; // Trigger Reflow (Penting!)
         textEl.classList.add('animate-marquee');
+
+        textEl.style.transform = ''; // Hapus transform manual biar CSS yang handle
         container.setAttribute('data-status', 'idle');
     }
 }
@@ -1093,29 +1154,9 @@ setTimeout(() => {
             } catch (e) { }
         }, 2000);
 
-        // Listen for Broadcasts / Status
-        window.supabaseClient.channel('public:broadcast_notifications')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
-                const data = payload.new;
-                if (data.title === 'SYSTEM_STORE_STATUS') {
-                    window.isStoreOpen = (data.message === 'OPEN');
-                    defaultMarquee = window.isStoreOpen ? `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!` : `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Closed!`;
-                    renderMarqueeMessages();
-                    const statusBadge = document.getElementById('store-status-badge');
-                    if (statusBadge) {
-                        if (!window.isStoreOpen) {
-                            statusBadge.classList.remove('hidden');
-                            statusBadge.innerHTML = '<span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> <span class="text-[9px] font-bold text-red-500 ml-1">TUTUP</span>';
-                        } else { statusBadge.classList.add('hidden'); }
-                    }
-                } else {
-                    // Update daftar notif & badge
-                    if (window.displayMarqueeMessage) {
-                        window.displayMarqueeMessage("📢 " + data.title + " - " + data.message, Date.now(), data.id);
-                    }
-                    showToast("📩 Pesan Baru: " + data.title);
-                }
-            }).subscribe();
+        // Listen for Broadcasts (Now handled by unified syncInitialStoreStatus & its listener)
+        // loadOrderHistory still needed here?
+        loadOrderHistory();
 
         loadOrderHistory();
     }
@@ -1125,15 +1166,39 @@ setTimeout(() => {
 window.handleSubscribe = async function () {
     const modal = document.getElementById('notif-modal');
     if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+
+    if (!('serviceWorker' in navigator)) {
+        return showToast('❌ Browser tidak didukung');
+    }
+
     try {
         const user = auth.currentUser;
         const uid = user ? user.uid : 'Guest-' + Date.now();
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: PUBLIC_VAPID_KEY });
-        const { error } = await window.supabaseClient.from('user_subscriptions').insert([{ subscription: subscription, user_id: uid }]);
+
+        showToast('⏳ Memproses Notifikasi...');
+
+        // Timeout biar gak hang kalo SW gagal
+        const registration = await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout Service Worker")), 5000))
+        ]);
+
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: (typeof PUBLIC_VAPID_KEY !== 'undefined' ? PUBLIC_VAPID_KEY : null)
+        });
+
+        const { error } = await window.supabaseClient.from('user_subscriptions').insert([{
+            subscription: subscription,
+            user_id: uid
+        }]);
+
         if (error) throw error;
         showToast('✅ Notifikasi Aktif!');
-    } catch (err) { console.error('Gagal daftar notif:', err); }
+    } catch (err) {
+        console.error('Gagal daftar notif:', err);
+        showToast('❌ Gagal: ' + err.message);
+    }
 }
 
 window.closeNotifModal = function () {
@@ -1335,6 +1400,12 @@ if (window.supabaseClient) {
                 updateStoreUI();
                 // MUNCULIN NOTIFIKASI TOKO BUKA/TUTUP DI LAYAR PELANGGAN
                 showToast(window.isStoreOpen ? "🟢 Hore! Folkpresso Sekarang BUKA!" : "🔴 Maaf, Folkpresso Sekarang TUTUP!");
+            } else {
+                // Notifikasi reguler (Banner/Promo dll)
+                if (window.displayMarqueeMessage) {
+                    window.displayMarqueeMessage("📢 " + data.title + ": " + data.message, Date.now(), data.id);
+                }
+                showToast("📩 Pesan Baru: " + data.title);
             }
         }).subscribe();
 }
@@ -1361,6 +1432,17 @@ function startBannerAutoSlide() {
 // Pastikan fungsi ini dipanggil saat web dibuka
 window.addEventListener('load', () => {
     startBannerAutoSlide();
+    handleMidtransReturn(); // Cek status pembayaran saat reload
+
+    // Cek Pending Announcement dari LocalStorage (Biar abis reload tetep muncul)
+    const pendingMsg = localStorage.getItem('folkpresso_pending_msg');
+    if (pendingMsg && window.insertAnnouncement) {
+        // Delay dikit biar render UI kelar dulu
+        setTimeout(() => {
+            window.insertAnnouncement(pendingMsg);
+            localStorage.removeItem('folkpresso_pending_msg'); // Hapus biar gak muncul terus2an
+        }, 1500);
+    }
 });
 
 // === PENANGKAP STATUS MIDTRANS (BARU & ROBUST) ===
@@ -1372,7 +1454,9 @@ async function handleMidtransReturn() {
     if (!orderId) return;
 
     // A. Handle Sukses
-    if (txStatus === 'settlement' || txStatus === 'capture') {
+    if (txStatus === 'settlement' || txStatus === 'capture' || txStatus === 'success') {
+        // (Optimistic Marquee dihapus di sini karena kita butuh detail produk dari DB dulu)
+
         // CEK APAKAH SUDAH PERNAH DI-PROSES (Biar gak dobel poin kalo refresh)
         const processed = localStorage.getItem('processed_' + orderId);
         if (processed) {
@@ -1393,6 +1477,15 @@ async function handleMidtransReturn() {
                 if (txData && txData.length > 0) {
                     const currentStatus = txData[0].payment_status;
                     console.log("🔍 Order Status Check:", currentStatus);
+
+                    // Construct Message Detail
+                    const itemsStr = txData.map(t => `${t.name} (${t.qty || t.quantity})`).join(', ');
+                    const broadcastMsg = `🛒 ${currentUser || 'Guest'} baru saja memesan ${itemsStr} via Online Pay!`;
+
+                    // BROADCAST DISINI (Setelah dapet detail)
+                    if (window.insertAnnouncement) {
+                        window.insertAnnouncement(broadcastMsg);
+                    }
 
                     // Update status di Supabase biar sinkron
                     if (currentStatus === 'pending') {
@@ -1421,15 +1514,15 @@ async function handleMidtransReturn() {
                             } else {
                                 const data = snap.data();
                                 nameForBroadcast = data.customName || data.username || currentUser;
+                                // FORCE UPDATE POIN & CAFFEINE
                                 await userRef.update({
-                                    points: firebase.firestore.FieldValue.increment(totalPoin)
+                                    points: firebase.firestore.FieldValue.increment(totalPoin),
+                                    caffeine: firebase.firestore.FieldValue.increment(txData.reduce((s, i) => s + (i.mg || 0), 0))
                                 });
+                                console.log("🔥 Points & Caffeine Increment Success");
                             }
 
-                            // BROADCAST PESANAN SUKSES KE MARQUEE
-                            if (window.insertAnnouncement) {
-                                window.insertAnnouncement(`🛒 ${nameForBroadcast} baru saja memesan via Online Pay!`);
-                            }
+                            // BROADCAST PESANAN SUKSES KE MARQUEE (Udah di handle di awal biar cepet)
 
                             alert("✅ POIN BERHASIL DITAMBAH!\n\nOrder: " + orderId + "\nPoin: +" + totalPoin);
                         } catch (pointsError) {
@@ -1437,7 +1530,7 @@ async function handleMidtransReturn() {
                             alert("❌ Error Point: " + pointsError.message);
                         }
                     } else {
-                        alert("⚠️ Gagal Tambah Poin: Total Belanja tidak valid (0).");
+                        console.warn("⚠️ totalPoin is 0 for order:", orderId);
                     }
 
                     // Tandai sudah diproses
@@ -1485,7 +1578,6 @@ function showPaymentConfirmation(orderId, finalAmount, method) {
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
             <p class="text-xs text-slate-400">Menunggu info dari server...</p>
         </div>
-        <button onclick="closeUniversalPopup()" class="w-full bg-slate-100 text-slate-500 font-bold py-3.5 rounded-2xl active:scale-95 transition-all">Tutup (Cek Nanti)</button>
     `;
 
     // === LIVE STATUS CHECKER (Polling) ===
@@ -1506,8 +1598,46 @@ function showPaymentConfirmation(orderId, finalAmount, method) {
                 if (status === 'paid' || status === 'success' || status === 'settlement') {
                     clearInterval(window.paymentPoll);
                     closeUniversalPopup();
-                    alert("🎉 Pembayaran Diterima! Terima kasih.");
-                    window.location.reload();
+
+                    // BROADCAST MARQUEE SEBELUM RELOAD & SET PENDING MSG
+                    // Kita bisa ambil detail dari mana? Polling cuma balikin status. 
+                    // TAPI di fungsi ini 'cart' masih ada karena halaman belum reload!
+                    const orderDetails = cart.map(item => `${item.name} (${item.quantity})`).join(', ');
+                    const msg = `🛒 ${(currentUser || 'Guest')} baru saja memesan ${orderDetails} via Online Pay!`;
+
+                    if (window.insertAnnouncement) {
+                        window.insertAnnouncement(msg);
+                    }
+                    // Simpan buat abis reload
+                    localStorage.setItem('folkpresso_pending_msg', msg);
+
+                    // === FIX POIN GA MASUK DI MODE POLLING ===
+                    const pollUser = firebase.auth().currentUser;
+                    if (pollUser) {
+                        // let totalReal = cart.reduce((sum, i) => sum + (Number(i.price) * Number(i.quantity)), 0);
+                        let totalMg = cart.reduce((sum, i) => sum + (Number(i.mg) * Number(i.quantity)), 0);
+
+                        // USER REQUEST: Poin diset flat 50 dulu
+                        let pEarned = 50;
+
+                        // Update Local & Firebase
+                        userPoints += pEarned;
+                        userCaffeine += totalMg;
+                        updateMemberUI();
+
+                        db.collection("users").doc(pollUser.uid).set({
+                            points: firebase.firestore.FieldValue.increment(pEarned),
+                            caffeine: firebase.firestore.FieldValue.increment(totalMg)
+                        }, { merge: true }).catch(err => console.error("Poll Point Error:", err));
+                    }
+                    // ==========================================
+
+                    // alert("🎉 Pembayaran Diterima! Terima kasih.");
+
+                    // Kasih jeda dikit biar proses insertAnnouncement sempet jalan networknya
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
                 }
                 if (status === 'failed') {
                     clearInterval(window.paymentPoll);
@@ -1577,6 +1707,61 @@ window.closeUniversalPopup = function () {
 window.confirmManualPayment = async function (orderId, finalAmount, method) {
     if (typeof closeUniversalPopup === 'function') closeUniversalPopup();
 
+    // OPTIMISTIC MARQUEE DENGAN DETAIL
+    const orderDetails = cart.map(item => `${item.name} (${item.quantity})`).join(', ');
+    const msg = `🛒 ${(currentUser || 'Guest')} baru saja memesan ${orderDetails} via ${method}!`;
+
+    // SAFE MARQUEE: Dibungkus try-catch biar gak ngerusak logic poin
+    try {
+        if (typeof window.insertAnnouncement === 'function') {
+            window.insertAnnouncement(msg);
+        }
+    } catch (marqueeErr) {
+        console.warn("Marquee Error (Ignored):", marqueeErr);
+    }
+    // === PRIORITAS UTAMA: UPDATE POIN & UI (Biar User Seneng Dulu) ===
+    const currentUserObj = firebase.auth().currentUser;
+    console.log("DEBUG AUTH STATE:", currentUserObj);
+
+    if (currentUserObj) {
+        try {
+            // HITUNG POIN (FIXED 50 POIN PER TRANSAKSI)
+            // let totalReal = cart.reduce((sum, i) => sum + (Number(i.price) * Number(i.quantity)), 0);
+            let totalMg = cart.reduce((sum, i) => sum + (Number(i.mg) * Number(i.quantity)), 0);
+
+            // USER REQUEST: Poin diset flat 50 dulu (Dummy Price Issue)
+            let pEarned = 50;
+            let uid = currentUserObj.uid;
+
+            console.log("💎 EARLY DEBUG POINTS:", { pEarned, totalMg, uid });
+
+            if (pEarned > 0) {
+                // 1. UPDATE LOKAL (OPTIMISTIC)
+                userPoints += pEarned;
+                userCaffeine += totalMg;
+                updateMemberUI();
+
+                // 2. UPDATE FIREBASE (BACKGROUND)
+                db.collection("users").doc(uid).set({
+                    points: firebase.firestore.FieldValue.increment(pEarned),
+                    caffeine: firebase.firestore.FieldValue.increment(totalMg)
+                }, { merge: true }).then(() => {
+                    console.log("✅ Firebase Point Updated (Background)");
+                }).catch(err => {
+                    console.error("❌ Firebase Point Gagal:", err);
+                });
+
+                alert("✅ POIN DITAMBAH: +" + pEarned + "\n(Total Poin: " + userPoints + ")");
+            }
+        } catch (e) {
+            console.error("❌ Error Hitung Poin Awal:", e);
+        }
+    } else {
+        console.warn("⚠️ USER TIDAK TERDETEKSI LOGIN. POIN TIDAK DITAMBAH.");
+        alert("⚠️ PERHATIAN: Poin tidak bertambah karena Anda tidak terdeteksi Login.\nSilakan Refresh atau Login ulang.");
+    }
+    // ================================================================
+
     // Pastikan QRIS modal juga tertutup kalau dari jalur QRIS
     const qrisModal = document.getElementById('qris-modal');
     if (qrisModal) qrisModal.classList.add('hidden');
@@ -1614,29 +1799,9 @@ window.confirmManualPayment = async function (orderId, finalAmount, method) {
         await consumeActiveVoucher(orderId);
 
         // Notif ke semua user & Tambah poin
-        if (typeof window.insertAnnouncement === 'function') {
-            await window.insertAnnouncement(`🛒 ${(currentUser || 'Guest')} memesan via ${method}!`);
-        }
+        // Notif ke semua user & Tambah poin
 
-        if (auth.currentUser) {
-            // HITUNG POIN: 1 Poin setiap Rp 1 (Ratio 1:1)
-            let totalReal = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-            let pEarned = Math.floor(totalReal);
-
-            if (pEarned > 0) {
-                try {
-                    await db.collection("users").doc(auth.currentUser.uid).update({
-                        points: firebase.firestore.FieldValue.increment(pEarned)
-                    });
-                    alert("✅ TRANSAKSI BERHASIL!\n\nPoin Berhasil Ditambah: +" + pEarned);
-                    console.log("💎 Points Added:", pEarned);
-                } catch (pErr) {
-                    console.error("Gagal tambah poin manual:", pErr);
-                    alert("❌ Gagal simpan poin ke Google: " + pErr.message);
-                }
-            }
-        }
-
+        // (Lanjut ke reset cart & redirect)
         showToast("✅ Pembayaran Berhasil!");
         cart = [];
         renderCart();
@@ -1664,24 +1829,49 @@ async function savePendingTransaction(orderId, method, total) {
     }
 
     // 1. Simpan ke Supabase (Status Pending)
-    const payload = cart.map(item => ({
-        order_id: orderId,
-        date: new Date().toISOString().split('T')[0],
-        full_time: new Date().toLocaleString('id-ID'),
-        name: item.name,
-        type: 'in',
-        qty: item.quantity,
-        unit_price: item.price,
-        unit_cost: item.cost || 0,
-        total: item.price * item.quantity,
-        notes: item.note || '',
-        method: method,
-        payment_status: 'pending',
-        user_id: user.uid,
-        customer_name: (currentUser || "Customer"),
-        phone: (window.userPhone || ""),
-        address: (window.userAddress || "")
-    }));
+    // 1. Simpan ke Supabase (Status Pending)
+    // HITUNG DISKON PROPORTIONAL BIAR LAPORAN SESUAI BAYAR
+    let cartTotal = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
+    let discountAmount = 0;
+    let voucherLabel = "";
+
+    if (window.activeVoucher && cartTotal > 0) {
+        discountAmount = Math.min(window.activeVoucher.discount, cartTotal);
+        // Format: (Voucher: PROMO - Potongan Rp 5,000)
+        voucherLabel = ` (Voucher: ${window.activeVoucher.label} - Potongan Rp ${discountAmount.toLocaleString()})`;
+    }
+
+    // Ratio pembayaran (Misal Bayar 10k dari 15k, ratio = 0.66)
+    // Kalau diskon 0, ratio = 1
+    let payRatio = cartTotal > 0 ? (cartTotal - discountAmount) / cartTotal : 1;
+
+    const payload = cart.map((item, index) => {
+        let originalTotal = item.price * item.quantity;
+        let finalItemTotal = Math.round(originalTotal * payRatio);
+
+        // Catatan: Tambahin info voucher di item pertama aja biar ga spam, atau di semua gpp.
+        // Di sini kita taruh di semua biar admin noticable per row.
+        let finalNote = (item.note || '') + (discountAmount > 0 ? voucherLabel : '');
+
+        return {
+            order_id: orderId,
+            date: new Date().toISOString().split('T')[0],
+            full_time: new Date().toLocaleString('id-ID'),
+            name: item.name,
+            type: 'in',
+            qty: item.quantity,
+            unit_price: item.price, // Harga asli per item tetap dicatat
+            unit_cost: item.cost || 0,
+            total: finalItemTotal, // <--- INI HASIL DISKON (Sesuai Permintaan User)
+            notes: finalNote,
+            method: method,
+            payment_status: 'pending',
+            user_id: user.uid,
+            customer_name: (currentUser || "Customer"),
+            phone: (window.userPhone || ""),
+            address: (window.userAddress || "")
+        };
+    });
 
     const { error } = await window.supabaseClient.from('transactions').insert(payload);
     if (error) {
@@ -1713,13 +1903,21 @@ window.processPayment = async function (method) {
 
     showToast('⏳ Menghubungkan ke Midtrans...');
 
-    // PENTING: Karena generic 'qris' channel belum aktif, kita paksa pakai 'gopay'
-    // GoPay Core API juga support QR Code (QRIS Dinamis GoPay)
-    const paymentType = 'gopay';
+    // DETEKSI METODE PEMBAYARAN DARI INPUT USER
+    // Jika user klik tombol 'GoPay', method='gopay'. Jika 'QRIS', method='qris'.
+    // Default: Tampilkan semua jika tidak spesifik.
+    let enabledPayments = ['gopay', 'shopeepay', 'qris', 'other_qris'];
+
+    if (method && typeof method === 'string') {
+        const m = method.toLowerCase();
+        if (m.includes('gopay')) enabledPayments = ['gopay'];
+        if (m.includes('qris')) enabledPayments = ['qris', 'other_qris'];
+    }
 
     // Persiapkan Data untuk Backend (Edge Function Core API)
     const payloadData = {
-        payment_type: paymentType,
+        payment_type: "gopay", // Default Core API param (Snap ignores this mostly if enabled_payments is set)
+        enabled_payments: enabledPayments,
         transaction_details: {
             order_id: orderId,
             gross_amount: finalAmount
@@ -1732,7 +1930,7 @@ window.processPayment = async function (method) {
         })),
         customer_details: {
             first_name: (currentUser || "Customer").substring(0, 20),
-            email: auth.currentUser.email,
+            email: auth.currentUser ? auth.currentUser.email : "guest@folkpresso.com",
             phone: (window.userPhone || "08111111111").replace(/[^0-9]/g, '')
         }
     };
