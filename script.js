@@ -1409,100 +1409,19 @@ window.processPayment = async function (method) {
         // Simpan transaksi status PENDING dulu
         await savePendingTransaction(orderId, method === 'other_qris' ? 'QRIS' : 'GO_PAY', finalAmount);
 
-        // === HANDLING CORE API RESPONSE ===
+        // === HANDLING SNAP API RESPONSE (SAFE PRODUCTION) ===
+        // Midtrans Snap mengembalikan 'redirect_url'
+        if (data.redirect_url) {
+            closePaymentModal();
 
-        // 1. JALUR QRIS
-        if (method === 'other_qris') {
-            // Prioritas: URL Gambar dari Midtrans > QR String (Render sendiri)
-            let qrSource = null;
+            // Buka Halaman Pembayaran Midtrans (Aman & Pasti Support)
+            // User akan melihat QRIS atau GoPay di halaman resmi Midtrans
+            window.open(data.redirect_url, '_blank');
 
-            // Cek Actions (generate-qr-code)
-            if (data.actions) {
-                const qrisAction = data.actions.find(a => a.name === 'generate-qr-code');
-                if (qrisAction) qrSource = qrisAction.url;
-            }
-
-            // Fallback ke QR String (Google Charts)
-            if (!qrSource && data.qr_string) {
-                qrSource = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}`;
-            }
-
-            if (qrSource) {
-                closePaymentModal();
-                document.getElementById('qris-image').src = qrSource;
-                document.getElementById('qris-total').innerText = 'Rp ' + finalAmount.toLocaleString();
-
-                const qrisModal = document.getElementById('qris-modal');
-                const btnSelesai = qrisModal.querySelector('button');
-
-                btnSelesai.onclick = function () {
-                    confirmManualPayment(orderId, finalAmount, 'QRIS');
-                };
-
-                qrisModal.classList.remove('hidden');
-            } else {
-                throw new Error("QR Code tidak ditemukan dalam respon Midtrans.");
-            }
-
-            // 2. JALUR GOPAY
-        } else if (method === 'gopay') {
-            // Deteksi Mobile Device
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            let gopayAction = null;
-            let qrUrlToDisplay = null;
-
-            if (isMobile && data.actions) {
-                // Di HP -> Cari Deeplink
-                gopayAction = data.actions.find(a => a.name === 'deeplink-redirect');
-            }
-
-            // Logika Desktop / Fallback
-            if (!gopayAction && data.actions) {
-                // Coba cari native QR dulu
-                const nativeQr = data.actions.find(a => a.name === 'generate-qr-code');
-
-                if (nativeQr) {
-                    qrUrlToDisplay = nativeQr.url;
-                    gopayAction = nativeQr; // Set flag biar masuk blok render
-                } else {
-                    // FALLBACK: Generate QR dari Deeplink
-                    const deepLink = data.actions.find(a => a.name === 'deeplink-redirect');
-                    if (deepLink) {
-                        qrUrlToDisplay = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(deepLink.url)}`;
-                        gopayAction = { name: 'generated-qr', url: qrUrlToDisplay }; // Mock action object
-                    }
-                }
-            }
-
-            if (gopayAction) {
-                closePaymentModal();
-
-                // Jika itu QR (Native atau Generated) -> Tampilkan Modal
-                if (gopayAction.name === 'generate-qr-code' || gopayAction.name === 'generated-qr') {
-                    document.getElementById('qris-image').src = qrUrlToDisplay;
-                    document.getElementById('qris-total').innerText = 'Rp ' + finalAmount.toLocaleString();
-
-                    const qrisModal = document.getElementById('qris-modal');
-                    const btnSelesai = qrisModal.querySelector('button');
-
-                    btnSelesai.onclick = function () {
-                        confirmManualPayment(orderId, finalAmount, 'GoPay');
-                    };
-
-                    qrisModal.classList.remove('hidden');
-                    // Ganti teks instruksi sedikit biar jelas
-                    const instructionObj = document.getElementById('qris-instruction-text');
-                    // (Asumsi ada element ID di HTML, kalau nggak ada showToast aja)
-                    showToast("📲 Scan QR Code ini pakai aplikasi Gojek!");
-
-                } else {
-                    // Murni Deeplink (Mobile)
-                    window.open(gopayAction.url, '_blank');
-                    showPaymentConfirmation(orderId, finalAmount, 'GoPay');
-                }
-            } else {
-                throw new Error("Link pembayaran tidak ditemukan. Silakan coba metode lain.");
-            }
+            showPaymentConfirmation(orderId, finalAmount, method === 'other_qris' ? 'QRIS' : 'GoPay');
+            showToast("✅ Membuka halaman pembayaran...");
+        } else {
+            throw new Error("Link pembayaran tidak ditemukan (Snap Error).");
         }
 
     } catch (err) {
@@ -1516,6 +1435,8 @@ window.processPayment = async function (method) {
         showToast("❌ Pembayaran Gagal");
     }
 };
+
+
 
 // === 4. FUNGSI HUBUNGKAN GOPAY (Real Core API Linking) ===
 window.bindGoPay = async function () {
