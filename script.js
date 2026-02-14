@@ -680,46 +680,71 @@ window.closePaymentModal = function () {
 
 window.processPayment = async function (method) {
     closePaymentModal(); 
-    
     var totalOrder = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
     if (window.activeVoucher) totalOrder = Math.max(0, totalOrder - window.activeVoucher.discount);
     
     const finalAmount = Math.round(totalOrder);
     const orderId = 'FP-' + Date.now();
 
-    var transactionData = {
+    var payload = {
+        payment_type: method === 'other_qris' ? 'qris' : 'gopay',
         transaction_details: { order_id: orderId, gross_amount: finalAmount },
         item_details: cart.map(item => ({ id: item.name.replace(/\s+/g, '-').toLowerCase(), price: item.price, quantity: item.quantity, name: item.name })),
-        customer_details: { first_name: currentUser, email: (auth.currentUser && auth.currentUser.email) || 'customer@folkpresso.com' },
-        enabled_payments: [method] // 'gopay' atau 'other_qris'
+        customer_details: { first_name: currentUser, email: (auth.currentUser && auth.currentUser.email) || 'customer@folkpresso.com' }
     };
 
-    showToast('⏳ Menyiapkan pembayaran...');
+    showToast('⏳ Memproses...');
 
     try {
-        // NEMBAK AMAN KE SUPABASE EDGE FUNCTION!
         const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
-            body: transactionData
+            body: { type: 'charge', payload: payload }
         });
 
         if (error) throw error;
 
-        if (data && data.token) {
-            window.snap.pay(data.token, {
-                onSuccess: () => submitTransaction(method === 'other_qris' ? 'QRIS' : 'GoPay'),
-                onPending: () => showToast('⏳ Menunggu pembayaran...'),
-                onError: () => showToast('❌ Pembayaran Gagal')
-            });
-        } else {
-            showToast('❌ Gagal mendapatkan token Midtrans');
-            console.error("Detail Error Midtrans:", data);
+        // --- MULAI PENGINTAIAN REALTIME (CALLBACK) ---
+        const paymentTracker = window.supabaseClient
+            .channel('any')
+            .on('postgres_changes', { 
+                event: 'UPDATE', 
+                schema: 'public', 
+                table: 'transactions', 
+                filter: `order_id=eq.${orderId}` 
+            }, payload => {
+                if (payload.new.payment_status === 'success') {
+                    // CALLBACK KEMBALI KE HOME
+                    document.getElementById('qris-modal').classList.add('hidden');
+                    showPage('home');
+                    showToast("✅ Pembayaran Berhasil! Pesanan diproses.");
+                    paymentTracker.unsubscribe(); // Stop pengintaian
+                }
+            })
+            .subscribe();
+
+        // Handle QRIS
+        if (method === 'other_qris' && data.qr_string) {
+            const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}`;
+            document.getElementById('qris-image').src = qrUrl;
+            document.getElementById('qris-total').innerText = 'Rp ' + finalAmount.toLocaleString();
+            document.getElementById('qris-modal').classList.remove('hidden');
+            document.getElementById('qris-modal').classList.add('flex');
+            
+            // Simpan data awal ke DB dengan status 'pending'
+            savePendingTransaction(orderId, method, finalAmount);
+        } 
+        // Handle GoPay
+        else if (method === 'gopay' && data.actions) {
+            const deeplink = data.actions.find(a => a.name === 'deeplink-redirect');
+            if (deeplink) {
+                window.location.href = deeplink.url;
+                savePendingTransaction(orderId, method, finalAmount);
+            }
         }
     } catch (err) {
         console.error("Payment Error:", err);
-        showToast("❌ Error koneksi ke server pembayaran");
+        showToast("❌ Gagal membuat transaksi");
     }
 };
-
 
 async function submitTransaction(method) {
     const user = auth.currentUser;

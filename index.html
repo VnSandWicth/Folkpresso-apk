@@ -26,7 +26,7 @@
         };
     </script>
     <!-- Midtrans Snap.js Sandbox -->
-    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-yIcpNrBNbMzCnZzQ"></script>
+    <script src="https://app.midtrans.com/snap/snap.js" data-client-key="Mid-client-eqKF-nDs2VYSLE84"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
         rel="stylesheet">
@@ -57,6 +57,7 @@
                 <h3 class="text-2xl font-black text-blue-900 dark:text-white mb-2">Metode Pembayaran</h3>
                 <p class="text-slate-500 text-sm">Pilih cara bayar yang kamu suka</p>
             </div>
+            
             <div class="space-y-4">
                 <button onclick="processPayment('gopay')" class="group w-full flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 hover:border-blue-500 active:scale-[0.98] transition-all shadow-sm">
                     <div class="flex items-center space-x-4">
@@ -64,15 +65,36 @@
                     </div>
                     <span class="text-[10px] font-bold bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full">Instant</span>
                 </button>
+    
                 <button onclick="processPayment('other_qris')" class="group w-full flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 hover:border-emerald-500 active:scale-[0.98] transition-all shadow-sm">
                     <div class="flex items-center space-x-4">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_QRIS.svg" alt="QRIS" class="h-9 w-auto object-contain">
-                         <div class="text-left"><span class="block font-bold text-slate-700 dark:text-slate-200">QRIS Dinamis</span><span class="text-[10px] text-slate-400">Scan pakai apa saja</span></div>
+                        <div class="text-left">
+                            <span class="block font-bold text-slate-700 dark:text-slate-200">QRIS Dinamis</span>
+                            <span class="text-[10px] text-slate-400">Scan pakai e-wallet apa saja</span>
+                        </div>
                     </div>
-                    <span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full">Semua E-Wallet</span>
+                    <span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full">Otomatis</span>
                 </button>
             </div>
-            <button onclick="closePaymentModal()" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-500 py-4 rounded-2xl font-bold mt-6 transition-colors">Batal Pesan</button>
+    
+            <button onclick="closePaymentModal()" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-500 py-4 rounded-2xl font-bold mt-6 active:scale-95 transition-all">Kembali</button>
+        </div>
+    </div>
+    
+    <div id="qris-modal" class="fixed inset-0 hidden z-[10000] flex items-center justify-center p-6 backdrop-blur-md bg-black/60 transition-all duration-300">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl text-center">
+            <h3 class="text-xl font-black text-blue-900 dark:text-white mb-2">Scan QRIS</h3>
+            <p class="text-xs text-slate-500 mb-6">SS halaman ini dan upload ke e-wallet kamu</p>
+            
+            <div class="bg-white p-4 rounded-3xl border-4 border-blue-50 mb-6 flex justify-center shadow-inner">
+                <img id="qris-image" src="" alt="QRIS Code" class="w-64 h-64 object-contain">
+            </div>
+    
+            <p class="text-2xl font-black text-blue-700 dark:text-blue-400 mb-6" id="qris-total">Rp 0</p>
+            
+            <button onclick="document.getElementById('qris-modal').classList.add('hidden')" 
+                class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95">Selesai</button>
         </div>
     </div>
 
