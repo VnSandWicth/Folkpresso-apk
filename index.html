@@ -26,7 +26,8 @@
         };
     </script>
     <!-- Midtrans Snap.js Sandbox -->
-    <script src="https://app.midtrans.com/snap/snap.js" data-client-key="Mid-client-eqKF-nDs2VYSLE84"></script>
+    <!-- Midtrans Snap.js (Removed: Using Core API) -->
+    <!-- <script src="https://app.midtrans.com/snap/snap.js" data-client-key="Mid-client-eqKF-nDs2VYSLE84"></script> -->
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
         rel="stylesheet">
@@ -51,33 +52,43 @@
         </div>
     </div>
 
-    <div id="payment-modal" class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-6 backdrop-blur-md bg-black/50 transition-all duration-300 opacity-0 pointer-events-none">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl transform scale-95 transition-all duration-300 border border-slate-100 dark:border-slate-800">
+    <div id="payment-modal"
+        class="fixed inset-0 hidden z-[9999] flex items-center justify-center p-6 backdrop-blur-md bg-black/50 transition-all duration-300 opacity-0 pointer-events-none">
+        <div
+            class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl transform scale-95 transition-all duration-300 border border-slate-100 dark:border-slate-800">
             <div class="text-center mb-8">
                 <h3 class="text-2xl font-black text-blue-900 dark:text-white mb-2">Metode Pembayaran</h3>
                 <p class="text-slate-500 dark:text-slate-400 text-xs font-medium">Pilih cara bayar yang kamu suka</p>
             </div>
-            
+
             <div class="space-y-3">
-                <button onclick="processPayment('gopay')" class="gopay-glow group w-full min-h-[85px] flex items-center justify-between bg-white dark:bg-slate-800 p-5 rounded-2xl border-2 border-slate-100 dark:border-slate-700 active:scale-[0.98] transition-all shadow-sm">
+                <button onclick="processPayment('gopay')"
+                    class="gopay-glow group w-full min-h-[85px] flex items-center justify-between bg-white dark:bg-slate-800 p-5 rounded-2xl border-2 border-slate-100 dark:border-slate-700 active:scale-[0.98] transition-all shadow-sm">
                     <div class="flex items-center space-x-4">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" alt="GoPay" class="h-7 w-auto object-contain dark:invert dark:grayscale">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" alt="GoPay"
+                            class="h-7 w-auto object-contain dark:invert dark:grayscale">
                     </div>
-                    <span class="text-[9px] font-black bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1.5 rounded-lg uppercase tracking-wider">Instant</span>
+                    <span
+                        class="text-[9px] font-black bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1.5 rounded-lg uppercase tracking-wider">Instant</span>
                 </button>
-            
-                <button onclick="processPayment('other_qris')" class="qris-glow group w-full min-h-[85px] flex items-center justify-between bg-white dark:bg-slate-800 p-5 rounded-2xl border-2 border-slate-100 dark:border-slate-700 active:scale-[0.98] transition-all shadow-sm">
+
+                <button onclick="processPayment('other_qris')"
+                    class="qris-glow group w-full min-h-[85px] flex items-center justify-between bg-white dark:bg-slate-800 p-5 rounded-2xl border-2 border-slate-100 dark:border-slate-700 active:scale-[0.98] transition-all shadow-sm">
                     <div class="flex items-center space-x-4">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_QRIS.svg" alt="QRIS" class="h-8 w-auto object-contain">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_QRIS.svg" alt="QRIS"
+                            class="h-8 w-auto object-contain">
                         <div class="text-left">
-                            <span class="block font-black text-xs text-slate-700 dark:text-slate-200 uppercase">QRIS Dinamis</span>
+                            <span class="block font-black text-xs text-slate-700 dark:text-slate-200 uppercase">QRIS
+                                Dinamis</span>
                             <span class="text-[9px] text-slate-400 font-medium">Scan e-wallet apa saja</span>
                         </div>
                     </div>
-                    <span class="text-[9px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-lg uppercase tracking-wider">Otomatis</span>
+                    <span
+                        class="text-[9px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-lg uppercase tracking-wider">Otomatis</span>
                 </button>
             </div>
-            <button onclick="closePaymentModal()" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-2xl font-black text-xs mt-6 active:scale-95 transition-all border border-transparent dark:border-slate-700 uppercase tracking-widest">Kembali</button>
+            <button onclick="closePaymentModal()"
+                class="w-full bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 py-4 rounded-2xl font-black text-xs mt-6 active:scale-95 transition-all border border-transparent dark:border-slate-700 uppercase tracking-widest">Kembali</button>
         </div>
     </div>
 
@@ -207,7 +218,7 @@
                 <div class="flex items-center gap-3">
                     <div id="store-status-badge" class="hidden"><span
                             class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span></div>
-                 
+
                     <button onclick="toggleDark()"
                         class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-sm">🌙</button>
                     <div onclick="showPage('profile'); setTimeout(() => document.getElementById('notification-section')?.scrollIntoView({behavior: 'smooth'}), 100);"
@@ -256,43 +267,57 @@
             <div class="px-5 mt-5">
                 <div class="relative rounded-[2rem] overflow-hidden h-44 shadow-xl group">
                     <div id="banner-slider" class="flex transition-transform duration-700 ease-in-out h-full">
-                        
+
                         <div class="w-full h-full shrink-0 relative">
                             <img src="img/1st rend.png" class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-transparent flex items-center p-6">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-transparent flex items-center p-6">
                                 <div>
-                                    <p class="text-[10px] font-bold text-blue-200 uppercase tracking-widest mb-1">Special Offer</p>
-                                    <h3 class="text-white font-extrabold text-lg leading-tight">30% Off All Lattes<br>With Membership!</h3>
+                                    <p class="text-[10px] font-bold text-blue-200 uppercase tracking-widest mb-1">
+                                        Special Offer</p>
+                                    <h3 class="text-white font-extrabold text-lg leading-tight">30% Off All
+                                        Lattes<br>With Membership!</h3>
                                 </div>
                             </div>
                         </div>
-            
+
                         <div class="w-full h-full shrink-0 relative">
-                            <img src="https://images.unsplash.com/photo-1509042239860-f550ce71551c?w=800" class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-gradient-to-r from-orange-900/90 to-transparent flex items-center p-6">
+                            <img src="https://images.unsplash.com/photo-1509042239860-f550ce71551c?w=800"
+                                class="w-full h-full object-cover">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-r from-orange-900/90 to-transparent flex items-center p-6">
                                 <div>
-                                    <p class="text-[10px] font-bold text-orange-200 uppercase tracking-widest mb-1">Weekend Vibes</p>
-                                    <h3 class="text-white font-extrabold text-lg leading-tight">Free Donut For<br>Every Signature Drink!</h3>
+                                    <p class="text-[10px] font-bold text-orange-200 uppercase tracking-widest mb-1">
+                                        Weekend Vibes</p>
+                                    <h3 class="text-white font-extrabold text-lg leading-tight">Free Donut For<br>Every
+                                        Signature Drink!</h3>
                                 </div>
                             </div>
                         </div>
-            
+
                         <div class="w-full h-full shrink-0 relative">
-                            <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800" class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-gradient-to-r from-emerald-900/90 to-transparent flex items-center p-6">
+                            <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800"
+                                class="w-full h-full object-cover">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-r from-emerald-900/90 to-transparent flex items-center p-6">
                                 <div>
-                                    <p class="text-[10px] font-bold text-emerald-200 uppercase tracking-widest mb-1">Folkpresso Info</p>
-                                    <h3 class="text-white font-extrabold text-lg leading-tight">Now Serving At<br>Parung Area! 📍</h3>
+                                    <p class="text-[10px] font-bold text-emerald-200 uppercase tracking-widest mb-1">
+                                        Folkpresso Info</p>
+                                    <h3 class="text-white font-extrabold text-lg leading-tight">Now Serving At<br>Parung
+                                        Area! 📍</h3>
                                 </div>
                             </div>
                         </div>
-            
+
                     </div>
-                    
+
                     <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                        <div class="banner-dot w-4 h-2 rounded-full bg-white opacity-100 transition-all duration-300"></div>
-                        <div class="banner-dot w-2 h-2 rounded-full bg-white opacity-40 transition-all duration-300"></div>
-                        <div class="banner-dot w-2 h-2 rounded-full bg-white opacity-40 transition-all duration-300"></div>
+                        <div class="banner-dot w-4 h-2 rounded-full bg-white opacity-100 transition-all duration-300">
+                        </div>
+                        <div class="banner-dot w-2 h-2 rounded-full bg-white opacity-40 transition-all duration-300">
+                        </div>
+                        <div class="banner-dot w-2 h-2 rounded-full bg-white opacity-40 transition-all duration-300">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -402,7 +427,8 @@
                         </button>
                         <div id="voucher-panel" class="hidden mt-2 space-y-2"></div>
                     </div>
-                    <button onclick="window.openPayment()" class="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-transform mt-2">
+                    <button onclick="window.openPayment()"
+                        class="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-transform mt-2">
                         Lanjutkan Pembayaran
                     </button>
                 </div>
@@ -418,39 +444,48 @@
                         class="px-3 h-9 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-xl shadow-lg hover:shadow-purple-500/30 transition-all active:scale-95 flex items-center gap-1">
                         🎁 Wrapped
                     </button>
-                    <div class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-sm">⚙️</div>
+                    <div
+                        class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-sm">
+                        ⚙️</div>
                 </div>
             </div>
-        
+
             <div class="flex items-center gap-4 mb-6">
                 <div class="w-16 h-16 rounded-full border-3 border-blue-500 overflow-hidden shadow-lg bg-blue-50">
-                    <img id="profile-photo-display" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-full h-full object-cover">
+                    <img id="profile-photo-display" src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
+                        class="w-full h-full object-cover">
                 </div>
                 <div>
-                    <h4 id="profile-display-name" class="text-lg font-extrabold text-slate-800 dark:text-white">Guest</h4>
+                    <h4 id="profile-display-name" class="text-lg font-extrabold text-slate-800 dark:text-white">Guest
+                    </h4>
                     <p class="text-xs text-slate-400 font-medium">REKAN FOLK</p>
                 </div>
             </div>
-        
-            <div id="gopay-binding-section" class="mt-4 mb-10 p-4 bg-blue-50 dark:bg-slate-800 rounded-2xl border border-blue-100 dark:border-slate-700">
+
+            <div id="gopay-binding-section"
+                class="mt-4 mb-10 p-4 bg-blue-50 dark:bg-slate-800 rounded-2xl border border-blue-100 dark:border-slate-700">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" 
-                             class="h-5 dark:invert dark:grayscale transition-all duration-300"> <span id="gopay-status-text" class="text-xs font-bold text-blue-900 dark:text-white">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg"
+                            class="h-5 dark:invert dark:grayscale transition-all duration-300"> <span
+                            id="gopay-status-text" class="text-xs font-bold text-blue-900 dark:text-white">
                             Akun Belum Terhubung
                         </span>
                     </div>
-                    <button onclick="bindGoPay()" id="btn-bind-gopay" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black shadow-md active:scale-95 transition-all">Hubungkan</button>
+                    <button onclick="bindGoPay()" id="btn-bind-gopay"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black shadow-md active:scale-95 transition-all">Hubungkan</button>
                 </div>
             </div>
-        
-            <div id="member-card" class="member-card-bronze rounded-[2rem] pt-10 px-6 pb-4 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500 mb-6">
+
+            <div id="member-card"
+                class="member-card-bronze rounded-[2rem] pt-10 px-6 pb-4 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500 mb-6">
                 <div>
                     <p class="text-[10px] font-bold uppercase tracking-widest opacity-80">Status Member</p>
                     <h2 id="tier-name" class="text-2xl font-black mt-1">BRONZE MEMBER</h2>
                 </div>
-                
-                <div class="mt-auto"> <div class="flex justify-between items-center mb-2">
+
+                <div class="mt-auto">
+                    <div class="flex justify-between items-center mb-2">
                         <span class="text-xs font-bold opacity-80">Total Poin</span>
                         <span id="display-points" class="text-xl font-black">0</span>
                     </div>
@@ -537,7 +572,7 @@
                     <p class="text-xs text-slate-400 italic text-center py-4">Klik Refresh untuk melihat riwayat</p>
                 </div>
             </div>
-            
+
             <!-- Install App Button (Hidden by default) -->
             <button id="btn-install-app" onclick="installPWA()"
                 class="hidden w-full bg-slate-800 text-white py-4 rounded-2xl font-bold transition-colors border border-slate-700 mb-3 flex items-center justify-center gap-2">
@@ -631,20 +666,28 @@
     </div>
 
     <script src="script.js"></script>
-    <div id="notif-modal" class="fixed inset-0 z-[10000] hidden items-center justify-center p-6 backdrop-blur-md bg-black/60">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl text-center transform transition-all duration-300">
+    <div id="notif-modal"
+        class="fixed inset-0 z-[10000] hidden items-center justify-center p-6 backdrop-blur-md bg-black/60">
+        <div
+            class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl text-center transform transition-all duration-300">
             <div class="text-5xl mb-4">🔔</div>
             <h3 class="text-xl font-black text-blue-900 dark:text-white mb-2">Aktifkan Notifikasi?</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium">Dapatkan info pesanan siap dan promo eksklusif Folkpresso langsung di HP-mu!</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium">Dapatkan info pesanan siap dan promo
+                eksklusif Folkpresso langsung di HP-mu!</p>
             <div class="space-y-2">
-                <button onclick="handleSubscribe()" class="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Ya, Aktifkan</button>
-                <button onclick="closeNotifModal()" class="w-full text-slate-400 text-xs font-bold py-2">Nanti Saja</button>
+                <button onclick="handleSubscribe()"
+                    class="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Ya,
+                    Aktifkan</button>
+                <button onclick="closeNotifModal()" class="w-full text-slate-400 text-xs font-bold py-2">Nanti
+                    Saja</button>
             </div>
         </div>
     </div>
-    <div id="wrapped-modal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div id="wrapped-modal"
+        class="fixed inset-0 z-[200] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
         <div class="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative border border-slate-700">
-            <button onclick="closeWrapped()" class="absolute top-4 right-4 w-8 h-8 bg-slate-800 rounded-full text-slate-400 font-bold hover:bg-slate-700 transition-colors">✕</button>
+            <button onclick="closeWrapped()"
+                class="absolute top-4 right-4 w-8 h-8 bg-slate-800 rounded-full text-slate-400 font-bold hover:bg-slate-700 transition-colors">✕</button>
             <div id="slide-1" class="wrapped-slide text-center">
                 <h3 class="text-2xl font-black text-white mb-2">Folkpresso Wrapped</h3>
                 <p class="text-slate-400 text-sm mb-6">Perjalanan ngopimu sejauh ini...</p>
@@ -658,24 +701,26 @@
                     </div>
                     <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
                         <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Caffeine</p>
-                        <p class="text-3xl font-black text-orange-500"><span id="wrap-caffeine">0</span><span class="text-sm">mg</span></p>
+                        <p class="text-3xl font-black text-orange-500"><span id="wrap-caffeine">0</span><span
+                                class="text-sm">mg</span></p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div id="qris-modal" class="fixed inset-0 hidden z-[10000] flex items-center justify-center p-6 backdrop-blur-md bg-black/60 transition-all duration-300">
+    <div id="qris-modal"
+        class="fixed inset-0 hidden z-[10000] flex items-center justify-center p-6 backdrop-blur-md bg-black/60 transition-all duration-300">
         <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl text-center">
             <h3 class="text-xl font-black text-blue-900 dark:text-white mb-2">Scan QRIS</h3>
             <p class="text-xs text-slate-500 mb-6">SS halaman ini dan upload ke e-wallet kamu</p>
-            
+
             <div class="bg-white p-4 rounded-3xl border-4 border-blue-50 mb-6 flex justify-center shadow-inner">
                 <img id="qris-image" src="" alt="QRIS Code" class="w-64 h-64 object-contain">
             </div>
-    
+
             <p class="text-2xl font-black text-blue-700 dark:text-blue-400 mb-6" id="qris-total">Rp 0</p>
-            
-            <button onclick="document.getElementById('qris-modal').classList.add('hidden')" 
+
+            <button onclick="document.getElementById('qris-modal').classList.add('hidden')"
                 class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95">Selesai</button>
         </div>
     </div>

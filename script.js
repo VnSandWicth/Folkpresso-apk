@@ -44,7 +44,7 @@ let isStoreOpen = true;
 let communityGoal = 0;
 
 // Variabel Modal Product (Cukup 1 kali deklarasi)
-let currentProduct = null; 
+let currentProduct = null;
 let currentSugar = 'Normal';
 window.modalQty = 1;
 
@@ -80,23 +80,23 @@ window.onload = function () {
         isplayMarqueeMessage(payload.new.message)
         const marqueeElement = document.getElementById('marquee-text'); // Pastikan ID ini ada di HTML
         if (!marqueeElement) return;
-    
+
         const { data, error } = await window.supabaseClient
             .from('announcements')
             .select('message')
             .order('created_at', { ascending: false })
             .limit(1)
             .single();
-    
+
         if (data && !error) {
             marqueeElement.innerText = `☕ ${data.message} • Folkpresso Open!`;
         }
     }
-    
+
     // 2. Fungsi Realtime khusus buat Marquee (Aman & Terpisah)
     function setupAnnouncementRealtime() {
         const marqueeElement = document.getElementById('marquee-text');
-        
+
         window.supabaseClient
             .channel('public:announcements')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, payload => {
@@ -117,12 +117,12 @@ window.onload = function () {
             const { data: popularData, error } = await window.supabaseClient
                 .from('popular_products')
                 .select('*');
-    
+
             if (error) throw error;
-    
+
             if (popularData && popularData.length > 0) {
                 console.log("📊 Data Jualan Kopi dari DB:", popularData);
-    
+
                 const topProducts = popularData.map(soldItem => {
                     // 2. Logika Pencocokan Super Teliti (Fix buat Aren)
                     const match = products.find(p => {
@@ -131,17 +131,17 @@ window.onload = function () {
                         // Cocokkan jika nama sama persis atau salah satu mengandung nama lainnya
                         return dbName === localName || dbName.includes(localName) || localName.includes(dbName);
                     });
-                    
+
                     if (!match) {
                         console.warn(`⚠️ Produk "${soldItem.name}" ada di DB tapi nggak ketemu di script.js!`);
                     }
                     return match;
                 }).filter(p => p !== undefined);
-    
+
                 // 3. Render produk yang beneran laku sesuai database
                 renderProducts(topProducts);
                 console.log(`✅ Berhasil menampilkan ${topProducts.length} produk populer.`);
-                
+
             } else {
                 console.log("ℹ️ Belum ada data jualan kopi, menampilkan menu default.");
                 renderProducts(products.slice(0, 5));
@@ -220,7 +220,7 @@ auth.onAuthStateChanged((user) => {
         loginScreen.classList.add('hidden');
         mainApp.classList.remove('hidden');
         startFolkSync(user.uid);
-        
+
         setTimeout(() => {
             if ('Notification' in window && Notification.permission === 'default') {
                 const modal = document.getElementById('notif-modal');
@@ -264,6 +264,21 @@ function startFolkSync(uid) {
                 if (bioPhone) bioPhone.value = data.phone.replace('+62', '');
             }
 
+            // Check GoPay Binding Status
+            if (data.isGopayLinked) {
+                const gopayText = document.getElementById('gopay-status-text');
+                const gopayBtn = document.getElementById('btn-bind-gopay');
+                if (gopayText) {
+                    gopayText.innerText = "Terhubung: +62" + (data.gopayPhone || data.phone.replace(/[^0-9]/g, ''));
+                    gopayText.classList.add('text-green-600');
+                }
+                if (gopayBtn) {
+                    gopayBtn.innerText = "Putuskan";
+                    gopayBtn.className = "bg-red-100 text-red-500 px-4 py-2 rounded-xl text-[10px] font-bold shadow-md active:scale-95 transition-all";
+                    gopayBtn.onclick = unbindGoPay;
+                }
+            }
+
             var bioName = document.getElementById('bio-name');
             var bioEmail = document.getElementById('bio-email');
             if (bioName) bioName.value = data.customName || data.username || '';
@@ -283,6 +298,7 @@ function startFolkSync(uid) {
         }
     });
 }
+
 
 window.switchAuthTab = function (tab) {
     const tabLogin = document.getElementById('tab-login');
@@ -333,9 +349,9 @@ window.registerWithEmail = async function () {
     const password = document.getElementById('reg-password').value;
     const phoneRaw = document.getElementById('reg-phone').value.trim();
     if (!email || !password || !phoneRaw) return alert('Isi semua data!');
-    
+
     let phone = '+62' + phoneRaw.replace(/[\s\-]/g, '').replace(/^0+/, '');
-    
+
     try {
         const result = await auth.createUserWithEmailAndPassword(email, password);
         await db.collection('users').doc(result.user.uid).set({
@@ -368,7 +384,7 @@ function updateMemberUI() {
     if (!card || !tierName || !bar || !dispPoints) return;
 
     // Definisikan oldTier secara aman
-    var oldTier = window.currentTierStatus || ""; 
+    var oldTier = window.currentTierStatus || "";
     var newTier = "";
     var cardBase = 'shimmer-card member-card-bronze rounded-[2rem] pt-10 px-6 pb-4 shadow-2xl relative h-52 flex flex-col justify-between transition-all duration-500 mb-6';
 
@@ -442,7 +458,7 @@ window.claimQuest = function () {
     if (!user) return;
     const userRef = db.collection("users").doc(user.uid);
     const today = new Date().toDateString();
-    
+
     userRef.get().then((doc) => {
         if (doc.exists && doc.data().lastQuestDate === today) {
             showToast("Sudah diklaim hari ini!");
@@ -563,7 +579,7 @@ function checkPointsReset(userData) {
     var diffDays = (now - new Date(lastReset)) / (1000 * 60 * 60 * 24);
     if (diffDays >= 90) {
         db.collection('users').doc(user.uid).update({ points: 0, lastPointsReset: now.toISOString() })
-          .then(() => showToast('🔄 Poin telah direset (periode 3 bulan).'));
+            .then(() => showToast('🔄 Poin telah direset (periode 3 bulan).'));
     }
 }
 
@@ -640,7 +656,7 @@ window.selectSugar = function (level) {
 window.confirmAddToCart = function () {
     if (!currentProduct) return;
     const note = currentProduct.type !== 'non-coffee' ? `Sugar: ${currentSugar}` : '';
-    
+
     const existingItem = cart.find(i => i.name === currentProduct.name && i.note === note);
     if (existingItem) {
         existingItem.quantity += window.modalQty;
@@ -665,7 +681,7 @@ function renderCart() {
     if (!list) return;
     var total = 0;
     list.innerHTML = cart.length ? '' : '<p class="text-center text-slate-400 text-xs py-10 italic">Keranjang kosong...</p>';
-    
+
     cart.forEach((item, index) => {
         total += item.price * item.quantity;
         const noteDisplay = item.note ? `<p class="text-[10px] text-slate-400 italic">${item.note}</p>` : '';
@@ -841,18 +857,18 @@ function renderMarqueeMessages() {
     if (activeMessages.length > 0) {
         container.setAttribute('data-status', 'playing');
         activeMessages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-        var msg = activeMessages.shift(); 
+        var msg = activeMessages.shift();
 
-        container.innerHTML = ''; 
+        container.innerHTML = '';
         var newEl = document.createElement('div');
         newEl.id = 'marquee-text';
-        newEl.className = 'text-xs font-bold text-blue-200 tracking-wide'; 
+        newEl.className = 'text-xs font-bold text-blue-200 tracking-wide';
         newEl.style.whiteSpace = 'nowrap';
         newEl.innerHTML = `<span class="bg-yellow-400 text-blue-900 px-2 rounded-md font-black">INFO:</span> ${msg.message}`;
         container.appendChild(newEl);
 
         var anim = newEl.animate([{ transform: 'translateX(100%)' }, { transform: 'translateX(-100%)' }], { duration: 15000, iterations: 1 });
-        anim.onfinish = function() { container.setAttribute('data-status', 'idle'); renderMarqueeMessages(); };
+        anim.onfinish = function () { container.setAttribute('data-status', 'idle'); renderMarqueeMessages(); };
     } else {
         container.innerHTML = '';
         var defEl = document.createElement('div');
@@ -884,34 +900,34 @@ setTimeout(() => {
 
         // Listen for Broadcasts / Status
         window.supabaseClient.channel('public:broadcast_notifications')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
-            const data = payload.new;
-            if (data.title === 'SYSTEM_STORE_STATUS') {
-                window.isStoreOpen = (data.message === 'OPEN');
-                defaultMarquee = window.isStoreOpen ? `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!` : `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Closed!`;
-                renderMarqueeMessages();
-                const statusBadge = document.getElementById('store-status-badge');
-                if (statusBadge) {
-                    if (!window.isStoreOpen) {
-                        statusBadge.classList.remove('hidden');
-                        statusBadge.innerHTML = '<span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> <span class="text-[9px] font-bold text-red-500 ml-1">TUTUP</span>';
-                    } else { statusBadge.classList.add('hidden'); }
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
+                const data = payload.new;
+                if (data.title === 'SYSTEM_STORE_STATUS') {
+                    window.isStoreOpen = (data.message === 'OPEN');
+                    defaultMarquee = window.isStoreOpen ? `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!` : `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Closed!`;
+                    renderMarqueeMessages();
+                    const statusBadge = document.getElementById('store-status-badge');
+                    if (statusBadge) {
+                        if (!window.isStoreOpen) {
+                            statusBadge.classList.remove('hidden');
+                            statusBadge.innerHTML = '<span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> <span class="text-[9px] font-bold text-red-500 ml-1">TUTUP</span>';
+                        } else { statusBadge.classList.add('hidden'); }
+                    }
+                } else {
+                    // Update daftar notif & badge
+                    if (window.displayMarqueeMessage) {
+                        window.displayMarqueeMessage("📢 " + data.title + " - " + data.message, Date.now(), data.id);
+                    }
+                    showToast("📩 Pesan Baru: " + data.title);
                 }
-            } else {
-                // Update daftar notif & badge
-                if (window.displayMarqueeMessage) {
-                    window.displayMarqueeMessage("📢 " + data.title + " - " + data.message, Date.now(), data.id);
-                }
-                showToast("📩 Pesan Baru: " + data.title);
-            }
-        }).subscribe();
+            }).subscribe();
 
         loadOrderHistory();
     }
 }, 2000);
 
 // Popup Izin Notifikasi Web
-window.handleSubscribe = async function() {
+window.handleSubscribe = async function () {
     const modal = document.getElementById('notif-modal');
     if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
     try {
@@ -925,7 +941,7 @@ window.handleSubscribe = async function() {
     } catch (err) { console.error('Gagal daftar notif:', err); }
 }
 
-window.closeNotifModal = function() {
+window.closeNotifModal = function () {
     const modal = document.getElementById('notif-modal');
     if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
 }
@@ -934,16 +950,16 @@ window.closeNotifModal = function() {
 // 10. WRAPPED & UI UTILS
 // ==========================================
 window.showWrapped = function () {
-    const user = auth.currentUser; 
+    const user = auth.currentUser;
     if (!user) return showToast("Login dulu buat liat Wrapped!");
 
     // Perhitungan Cups (Setiap 100mg kafein = 1 cup)
-    const totalCups = Math.floor(userCaffeine / 100); 
-    
+    const totalCups = Math.floor(userCaffeine / 100);
+
     // Update data ke Modal Wrapped
     document.getElementById('wrap-total-cups').innerText = totalCups;
     document.getElementById('wrap-caffeine').innerText = userCaffeine.toLocaleString();
-    
+
     // Munculkan Modal Wrapped (Cek z-index di HTML harus tinggi)
     const modal = document.getElementById('wrapped-modal');
     if (modal) {
@@ -1025,14 +1041,14 @@ window.getGPSAddress = function () {
     navigator.geolocation.getCurrentPosition(pos => {
         var lat = pos.coords.latitude; var lon = pos.coords.longitude;
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`)
-        .then(r => r.json()).then(data => {
-            if (data && data.address) {
-                var finalAddr = data.display_name;
-                if (addrInput) addrInput.value = finalAddr;
-                window.userAddress = finalAddr;
-                showToast('📍 Alamat Ditemukan!');
-            }
-        });
+            .then(r => r.json()).then(data => {
+                if (data && data.address) {
+                    var finalAddr = data.display_name;
+                    if (addrInput) addrInput.value = finalAddr;
+                    window.userAddress = finalAddr;
+                    showToast('📍 Alamat Ditemukan!');
+                }
+            });
     }, err => showToast('❌ Gagal melacak lokasi.'), { enableHighAccuracy: true });
 };
 
@@ -1092,10 +1108,10 @@ async function syncInitialStoreStatus() {
 
 function updateStoreUI() {
     // 1. Update teks Marquee
-    defaultMarquee = window.isStoreOpen 
-        ? `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!` 
+    defaultMarquee = window.isStoreOpen
+        ? `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!`
         : `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Closed!`;
-    
+
     if (typeof renderMarqueeMessages === 'function') renderMarqueeMessages();
 
     // 2. Update Tulisan "TUTUP" warna merah di pojok kanan atas
@@ -1116,15 +1132,15 @@ setTimeout(syncInitialStoreStatus, 1000);
 // --- MODIFIKASI REALTIME LISTENER BIAR ADA NOTIF POP-UP ---
 if (window.supabaseClient) {
     window.supabaseClient.channel('public:broadcast_notifications')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
-        const data = payload.new;
-        if (data.title === 'SYSTEM_STORE_STATUS') {
-            window.isStoreOpen = (data.message === 'OPEN');
-            updateStoreUI();
-            // MUNCULIN NOTIFIKASI TOKO BUKA/TUTUP DI LAYAR PELANGGAN
-            showToast(window.isStoreOpen ? "🟢 Hore! Folkpresso Sekarang BUKA!" : "🔴 Maaf, Folkpresso Sekarang TUTUP!");
-        }
-    }).subscribe();
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
+            const data = payload.new;
+            if (data.title === 'SYSTEM_STORE_STATUS') {
+                window.isStoreOpen = (data.message === 'OPEN');
+                updateStoreUI();
+                // MUNCULIN NOTIFIKASI TOKO BUKA/TUTUP DI LAYAR PELANGGAN
+                showToast(window.isStoreOpen ? "🟢 Hore! Folkpresso Sekarang BUKA!" : "🔴 Maaf, Folkpresso Sekarang TUTUP!");
+            }
+        }).subscribe();
 }
 
 // === LOGIKA AUTO BANNER 3 SLIDE ===
@@ -1137,7 +1153,7 @@ function startBannerAutoSlide() {
     setInterval(() => {
         currentSlide = (currentSlide + 1) % 3; // Loop 0, 1, 2
         slider.style.transform = `translateX(-${currentSlide * 100}%)`;
-        
+
         // Update dots
         dots.forEach((dot, i) => {
             dot.style.opacity = i === currentSlide ? '1' : '0.4';
@@ -1171,7 +1187,7 @@ window.addEventListener('load', async () => {
 
             // Kalau masih pending, kita eksekusi jadi SUCCESS
             if (txData && txData.length > 0 && txData[0].payment_status === 'pending') {
-                
+
                 // A. Ubah status di Supabase jadi success
                 await window.supabaseClient
                     .from('transactions')
@@ -1181,7 +1197,7 @@ window.addEventListener('load', async () => {
                 // B. Hitung poin untuk user (Total belanja dibagi 1000)
                 let totalBelanja = txData.reduce((sum, item) => sum + (item.total || 0), 0);
                 let pointsEarned = Math.floor(totalBelanja / 1000);
-                
+
                 if (auth.currentUser) {
                     db.collection("users").doc(auth.currentUser.uid).update({
                         points: firebase.firestore.FieldValue.increment(pointsEarned)
@@ -1189,14 +1205,14 @@ window.addEventListener('load', async () => {
                 }
 
                 showToast("✅ Pembayaran Lunas! Kamu dapat +" + pointsEarned + " Poin");
-                
+
                 // C. Bersihkan URL biar sistem nggak nge-update terus kalau halaman di-refresh
                 window.history.replaceState({}, document.title, window.location.pathname);
-                
+
                 // D. Buka riwayat pesanan biar pelanggan bisa langsung lihat
                 showPage('profile');
                 setTimeout(() => {
-                    if(typeof loadOrderHistory === 'function') loadOrderHistory();
+                    if (typeof loadOrderHistory === 'function') loadOrderHistory();
                 }, 1000);
             } else {
                 // Kalau udah success dari awal, cukup bersihin URL aja
@@ -1205,7 +1221,7 @@ window.addEventListener('load', async () => {
         } catch (err) {
             console.error("Gagal konfirmasi pembayaran:", err);
         }
-    } 
+    }
     // Kalau pelanggan batalin pembayaran di tengah jalan
     else if (orderId && (txStatus === 'cancel' || txStatus === 'deny')) {
         showToast("❌ Pembayaran Dibatalkan");
@@ -1223,7 +1239,7 @@ function showPaymentConfirmation(orderId, finalAmount, method) {
 
     popup.classList.remove('hidden');
     popup.classList.add('flex');
-    
+
     setTimeout(() => {
         content.classList.remove('scale-50', 'opacity-0');
         content.classList.add('scale-100', 'opacity-100');
@@ -1232,7 +1248,7 @@ function showPaymentConfirmation(orderId, finalAmount, method) {
     document.getElementById('popup-icon').innerText = '⏳';
     document.getElementById('popup-title').innerText = 'Menunggu Pembayaran';
     document.getElementById('popup-message').innerText = 'Silakan selesaikan pembayaran di tab GoPay yang baru terbuka. Jika sudah sukses, klik tombol di bawah.';
-    
+
     // Kirim data 'method' ke tombol
     document.getElementById('popup-actions').innerHTML = `
         <button onclick="confirmManualPayment('${orderId}', ${finalAmount}, '${method}')" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-2xl shadow-lg mb-3 active:scale-95 transition-all">✅ Saya Sudah Bayar</button>
@@ -1241,7 +1257,7 @@ function showPaymentConfirmation(orderId, finalAmount, method) {
 }
 // === FIX: MENCEGAH CRASH SAAT KLIK KONFIRMASI ===
 // === 1. FUNGSI YANG HILANG (Mencegah Crash Saat Bayar GoPay) ===
-window.closeUniversalPopup = function() {
+window.closeUniversalPopup = function () {
     const popup = document.getElementById('universal-popup');
     const content = document.getElementById('popup-content');
     if (content) {
@@ -1257,13 +1273,13 @@ window.closeUniversalPopup = function() {
 };
 
 // === 2. FUNGSI KONFIRMASI (Ini yang bikin data MASUK ke Dashboard Admin) ===
-window.confirmManualPayment = async function(orderId, finalAmount, method) {
+window.confirmManualPayment = async function (orderId, finalAmount, method) {
     if (typeof closeUniversalPopup === 'function') closeUniversalPopup();
-    
+
     // Pastikan QRIS modal juga tertutup kalau dari jalur QRIS
     const qrisModal = document.getElementById('qris-modal');
     if (qrisModal) qrisModal.classList.add('hidden');
-    
+
     showToast("⏳ Mengirim data ke Admin...");
 
     try {
@@ -1300,120 +1316,275 @@ window.confirmManualPayment = async function(orderId, finalAmount, method) {
         showToast("✅ Pembayaran Berhasil!");
         cart = [];
         renderCart();
+
+        // Redirect ke Home
         showPage('home');
-    } catch(e) {
+
+        // Opsional: Buka history setelah delay sedikit
+        setTimeout(() => {
+            // Bisa tampilkan notif atau apa pun
+        }, 1000);
+    } catch (e) {
         console.error(e);
         alert("❌ Gagal sinkronisasi: " + e.message);
     }
 };
 
 // === 3. FUNGSI PEMBAYARAN MIDTRANS ASLI (GoPay & QRIS Dinamis) ===
+// === 3. FUNGSI PEMBAYARAN MIDTRANS CORE API (GoPay & QRIS) ===
 window.processPayment = async function (method) {
     if (!auth.currentUser) return showToast("Login dulu ya, bb!");
     if (cart.length === 0) return showToast("Keranjang kosong!");
-    
-    const orderId = 'FP-' + Date.now();
-    let subtotal = cart.reduce((a, b) => a + (Math.round(b.price) * Math.round(b.quantity)), 0);
-    let discount = window.activeVoucher ? Math.min(Math.round(window.activeVoucher.discount), subtotal) : 0;
-    let finalAmount = subtotal - discount;
 
-    if (finalAmount < 100) return showToast("❌ Minimal bayar Rp 100");
+    // Generate Order ID Unik
+    const orderId = 'FP-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    // Hitung Total (Bulatkan biar gak ada desimal)
+    let subtotal = cart.reduce((a, b) => a + (Math.round(b.price) * Math.round(b.quantity)), 0);
+    let potentialDiscount = window.activeVoucher ? Math.min(Math.round(window.activeVoucher.discount), subtotal) : 0;
+
+    // Pastikan minimal bayar Rp 1 (Syarat Midtrans)
+    let finalAmount = subtotal - potentialDiscount;
+    if (finalAmount < 1) {
+        finalAmount = 1;
+        potentialDiscount = subtotal - 1; // Kurangi diskon biar total tetap 1
+    }
+
     showToast('⏳ Menghubungkan ke Midtrans...');
 
+    // PENTING: Karena generic 'qris' channel belum aktif, kita paksa pakai 'gopay'
+    // GoPay Core API juga support QR Code (QRIS Dinamis GoPay)
+    const paymentType = 'gopay';
+
+    // Persiapkan Data untuk Backend (Edge Function Core API)
     const payloadData = {
-        payment_type: method === 'other_qris' ? 'qris' : 'gopay',
-        transaction_details: { order_id: orderId, gross_amount: finalAmount },
-        item_details: [{ id: 'ORDER-01', price: finalAmount, quantity: 1, name: 'Pesanan Folkpresso' }],
-        customer_details: { 
-            first_name: (currentUser || "Customer").substring(0, 20), 
+        payment_type: paymentType,
+        transaction_details: {
+            order_id: orderId,
+            gross_amount: finalAmount
+        },
+        item_details: cart.map(item => ({
+            id: item.name.substring(0, 50),
+            price: Math.round(item.price),
+            quantity: item.quantity,
+            name: item.name.substring(0, 50)
+        })),
+        customer_details: {
+            first_name: (currentUser || "Customer").substring(0, 20),
             email: auth.currentUser.email,
-            phone: (window.userPhone || "08111111111").replace(/[^0-9]/g, '') 
+            phone: (window.userPhone || "08111111111").replace(/[^0-9]/g, '')
         }
     };
 
+    // Tambahkan item diskon jika ada
+    if (potentialDiscount > 0) {
+        payloadData.item_details.push({
+            id: 'DISCOUNT',
+            price: -potentialDiscount,
+            quantity: 1,
+            name: 'Voucher Diskon'
+        });
+    }
+
     try {
-        const response = await fetch(SB_URL + '/functions/v1/midtrans-snap', {
+        const functionUrl = (typeof SB_URL !== 'undefined' ? SB_URL : '') + '/functions/v1/midtrans-snap';
+
+        // Panggil Backend User (yang pakai /v2/charge)
+        const response = await fetch(functionUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (typeof SB_KEY !== 'undefined' ? SB_KEY : '') },
             body: JSON.stringify({ type: 'charge', payload: payloadData })
         });
 
         const data = await response.json();
-        
-        // Cek kalau ditolak Midtrans
-        if (!response.ok) throw new Error(data.error || data.status_message || "Midtrans Nolak");
 
-        await savePendingTransaction(orderId, method, finalAmount);
+        // Cek status code Midtrans (200 ok, 201 pending)
+        if (!response.ok || (data.status_code != '200' && data.status_code != '201')) {
+            let errorMsg = data.status_message || "Gagal memproses transaksi";
+            if (data.validation_messages) {
+                errorMsg += "\n" + data.validation_messages.join("\n");
+            }
+            throw new Error(errorMsg);
+        }
 
-        // JALUR QRIS DINAMIS
+        // Simpan transaksi status PENDING dulu
+        await savePendingTransaction(orderId, method === 'other_qris' ? 'QRIS' : 'GO_PAY', finalAmount);
+
+        // === HANDLING CORE API RESPONSE ===
+
+        // 1. JALUR QRIS
         if (method === 'other_qris') {
-            closePaymentModal();
-            let qrSource = data.qr_string ? 
-                `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}` : 
-                (data.actions?.find(a => a.name === 'generate-qr-code')?.url);
+            // Prioritas: URL Gambar dari Midtrans > QR String (Render sendiri)
+            let qrSource = null;
+
+            // Cek Actions (generate-qr-code)
+            if (data.actions) {
+                const qrisAction = data.actions.find(a => a.name === 'generate-qr-code');
+                if (qrisAction) qrSource = qrisAction.url;
+            }
+
+            // Fallback ke QR String (Google Charts)
+            if (!qrSource && data.qr_string) {
+                qrSource = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}`;
+            }
 
             if (qrSource) {
+                closePaymentModal();
                 document.getElementById('qris-image').src = qrSource;
                 document.getElementById('qris-total').innerText = 'Rp ' + finalAmount.toLocaleString();
-                
+
                 const qrisModal = document.getElementById('qris-modal');
                 const btnSelesai = qrisModal.querySelector('button');
-                
-                // Ubah fungsi tombol 'Selesai' biar dia lapor ke Admin kalau diklik!
-                btnSelesai.onclick = function() {
+
+                btnSelesai.onclick = function () {
                     confirmManualPayment(orderId, finalAmount, 'QRIS');
                 };
-                
+
                 qrisModal.classList.remove('hidden');
+            } else {
+                throw new Error("QR Code tidak ditemukan dalam respon Midtrans.");
             }
-        // JALUR GOPAY
-        } else if (method === 'gopay' && data.actions) {
-            const deeplink = data.actions.find(a => a.name === 'deeplink-redirect' || a.name === 'simulator');
-            if (deeplink) {
+
+            // 2. JALUR GOPAY
+        } else if (method === 'gopay') {
+            // Deteksi Mobile Device
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            let gopayAction = null;
+            let qrUrlToDisplay = null;
+
+            if (isMobile && data.actions) {
+                // Di HP -> Cari Deeplink
+                gopayAction = data.actions.find(a => a.name === 'deeplink-redirect');
+            }
+
+            // Logika Desktop / Fallback
+            if (!gopayAction && data.actions) {
+                // Coba cari native QR dulu
+                const nativeQr = data.actions.find(a => a.name === 'generate-qr-code');
+
+                if (nativeQr) {
+                    qrUrlToDisplay = nativeQr.url;
+                    gopayAction = nativeQr; // Set flag biar masuk blok render
+                } else {
+                    // FALLBACK: Generate QR dari Deeplink
+                    const deepLink = data.actions.find(a => a.name === 'deeplink-redirect');
+                    if (deepLink) {
+                        qrUrlToDisplay = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(deepLink.url)}`;
+                        gopayAction = { name: 'generated-qr', url: qrUrlToDisplay }; // Mock action object
+                    }
+                }
+            }
+
+            if (gopayAction) {
                 closePaymentModal();
-                window.open(deeplink.url, '_blank');
-                showPaymentConfirmation(orderId, finalAmount, 'GoPay');
+
+                // Jika itu QR (Native atau Generated) -> Tampilkan Modal
+                if (gopayAction.name === 'generate-qr-code' || gopayAction.name === 'generated-qr') {
+                    document.getElementById('qris-image').src = qrUrlToDisplay;
+                    document.getElementById('qris-total').innerText = 'Rp ' + finalAmount.toLocaleString();
+
+                    const qrisModal = document.getElementById('qris-modal');
+                    const btnSelesai = qrisModal.querySelector('button');
+
+                    btnSelesai.onclick = function () {
+                        confirmManualPayment(orderId, finalAmount, 'GoPay');
+                    };
+
+                    qrisModal.classList.remove('hidden');
+                    // Ganti teks instruksi sedikit biar jelas
+                    const instructionObj = document.getElementById('qris-instruction-text');
+                    // (Asumsi ada element ID di HTML, kalau nggak ada showToast aja)
+                    showToast("📲 Scan QR Code ini pakai aplikasi Gojek!");
+
+                } else {
+                    // Murni Deeplink (Mobile)
+                    window.open(gopayAction.url, '_blank');
+                    showPaymentConfirmation(orderId, finalAmount, 'GoPay');
+                }
+            } else {
+                throw new Error("Link pembayaran tidak ditemukan. Silakan coba metode lain.");
             }
         }
+
     } catch (err) {
-        alert("🚨 Error Midtrans: " + err.message);
+        console.error("Payment Error:", err);
+        // Tampilkan pesan error detail dari Midtrans jika ada
+        if (err.message && err.message.includes('Midtrans')) {
+            alert("🚨 Gagal Bayar: " + err.message);
+        } else {
+            alert("🚨 Error: " + err.message);
+        }
+        showToast("❌ Pembayaran Gagal");
     }
 };
 
-// === 4. FUNGSI HUBUNGKAN GOPAY (Anti Error) ===
-window.bindGoPay = async function() {
+// === 4. FUNGSI HUBUNGKAN GOPAY (Real Core API Linking) ===
+window.bindGoPay = async function () {
+    const user = auth.currentUser;
+    if (!user) return showToast("Login dulu!");
+
     if (!window.userPhone) return alert("Lengkapi nomor HP dulu di profil (Wajib untuk GoPay)!");
-    
-    // Bersihin nomor HP dari karakter aneh
+
+    // Format nomor HP
     let cleanPhone = window.userPhone.replace(/[^0-9]/g, '');
     if (cleanPhone.startsWith('62')) cleanPhone = cleanPhone.substring(2);
     else if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-    
-    showToast('⏳ Menghubungkan GoPay...');
+
+    showToast('⏳ Menghubungkan akun GoPay...');
+
     try {
-        const response = await fetch(SB_URL + '/functions/v1/midtrans-snap', {
+        const functionUrl = (typeof SB_URL !== 'undefined' ? SB_URL : '') + '/functions/v1/midtrans-snap';
+
+        // Panggil Backend User (type: linking)
+        const response = await fetch(functionUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
-            body: JSON.stringify({ 
-                type: 'linking', 
-                payload: { 
-                    payment_type: "gopay", 
-                    gopay_partner: { 
-                        phone_number: cleanPhone, 
-                        country_code: "62", 
-                        redirect_url: window.location.origin 
-                    } 
-                } 
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (typeof SB_KEY !== 'undefined' ? SB_KEY : '') },
+            body: JSON.stringify({
+                type: 'linking',
+                payload: {
+                    payment_type: "gopay",
+                    gopay_partner: {
+                        phone_number: cleanPhone,
+                        country_code: "62",
+                        redirect_url: window.location.origin
+                    }
+                }
             })
         });
-        
+
         const data = await response.json();
-        if (data && data.actions && data.actions.length > 0) {
-            window.location.href = data.actions[0].url; // Buka aplikasi Gojek
+
+        if (data.status_code == '200' || data.status_code == '201') {
+            // Cari redirect url
+            if (data.actions && data.actions.length > 0) {
+                const linkAction = data.actions.find(a => a.name === 'redirect-url' || a.name === 'deeplink-redirect'); // Cek nama action yang bener
+                if (linkAction) {
+                    window.location.href = linkAction.url;
+                    return;
+                }
+                // Fallback ambil action pertama
+                window.location.href = data.actions[0].url;
+            } else {
+                throw new Error("Link aktivasi tidak ditemukan");
+            }
         } else {
-            alert("🚨 Gagal Menghubungkan: " + (data.error || data.status_message || "Midtrans Nolak"));
+            throw new Error(data.status_message || "Gagal linking GoPay");
         }
-    } catch(err) {
-        alert("🚨 Sistem Error: " + err.message);
+    } catch (err) {
+        console.error("Linking Error:", err);
+        showToast("❌ Gagal menghubungkan: " + err.message);
     }
 };
+
+window.unbindGoPay = function () {
+    if (!confirm("Putuskan akun GoPay?")) return;
+    const user = auth.currentUser;
+    if (user) {
+        db.collection('users').doc(user.uid).update({
+            isGopayLinked: firebase.firestore.FieldValue.delete(),
+            gopayPhone: firebase.firestore.FieldValue.delete()
+        }).then(() => {
+            showToast("GoPay Terputus");
+            location.reload();
+        });
+    }
+}
