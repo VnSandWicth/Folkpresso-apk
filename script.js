@@ -76,10 +76,81 @@ var manualProducts = [
 var products = manualProducts;
 
 window.onload = function () {
-    renderProducts(products);
+    async function fetchLatestAnnouncement() {
+        isplayMarqueeMessage(payload.new.message)
+        const marqueeElement = document.getElementById('marquee-text'); // Pastikan ID ini ada di HTML
+        if (!marqueeElement) return;
+    
+        const { data, error } = await window.supabaseClient
+            .from('announcements')
+            .select('message')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+    
+        if (data && !error) {
+            marqueeElement.innerText = `☕ ${data.message} • Folkpresso Open!`;
+        }
+    }
+    
+    // 2. Fungsi Realtime khusus buat Marquee (Aman & Terpisah)
+    function setupAnnouncementRealtime() {
+        const marqueeElement = document.getElementById('marquee-text');
+        
+        window.supabaseClient
+            .channel('public:announcements')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, payload => {
+                console.log("📢 Ada Pengumuman Baru:", payload.new.message);
+                if (marqueeElement) {
+                    marqueeElement.innerText = `☕ ${payload.new.message} • Folkpresso Open!`;
+                }
+            })
+            .subscribe();
+    }
+    loadPopularProducts();
     renderMenuGrid(products);
     communityGoal = parseInt(localStorage.getItem('folkpresso_community_goal')) || 0;
     updateGoalUI();
+    async function loadPopularProducts() {
+        try {
+            // 1. Ambil data 5 besar dari SQL View
+            const { data: popularData, error } = await window.supabaseClient
+                .from('popular_products')
+                .select('*');
+    
+            if (error) throw error;
+    
+            if (popularData && popularData.length > 0) {
+                console.log("📊 Data Jualan Kopi dari DB:", popularData);
+    
+                const topProducts = popularData.map(soldItem => {
+                    // 2. Logika Pencocokan Super Teliti (Fix buat Aren)
+                    const match = products.find(p => {
+                        const dbName = soldItem.name.trim().toLowerCase();
+                        const localName = p.name.trim().toLowerCase();
+                        // Cocokkan jika nama sama persis atau salah satu mengandung nama lainnya
+                        return dbName === localName || dbName.includes(localName) || localName.includes(dbName);
+                    });
+                    
+                    if (!match) {
+                        console.warn(`⚠️ Produk "${soldItem.name}" ada di DB tapi nggak ketemu di script.js!`);
+                    }
+                    return match;
+                }).filter(p => p !== undefined);
+    
+                // 3. Render produk yang beneran laku sesuai database
+                renderProducts(topProducts);
+                console.log(`✅ Berhasil menampilkan ${topProducts.length} produk populer.`);
+                
+            } else {
+                console.log("ℹ️ Belum ada data jualan kopi, menampilkan menu default.");
+                renderProducts(products.slice(0, 5));
+            }
+        } catch (err) {
+            console.error("❌ Error Sinkronisasi Produk Populer:", err);
+            renderProducts(products.slice(0, 5)); // Fallback jika terjadi error
+        }
+    }
 };
 
 function renderProducts(list) {
@@ -293,15 +364,12 @@ function updateMemberUI() {
     var tierName = document.getElementById('tier-name');
     var bar = document.getElementById('level-bar');
     var dispPoints = document.getElementById('display-points');
-    var cafMg = document.getElementById('caffeine-mg');
-    var cafBar = document.getElementById('caffeine-bar');
 
     if (!card || !tierName || !bar || !dispPoints) return;
 
+    // Bersihkan teks di dalam card agar kode CSS tidak muncul sebagai teks
     dispPoints.innerText = userPoints.toLocaleString();
 
-    var oldTier = currentTierStatus;
-    var newTier = "";
     var cardBase = 'rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500 mb-6';
 
     if (userPoints >= 801) {
@@ -680,69 +748,102 @@ window.closePaymentModal = function () {
 
 window.processPayment = async function (method) {
     closePaymentModal(); 
+    const orderId = 'FP-' + Date.now(); // ID Unik
     var totalOrder = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
     if (window.activeVoucher) totalOrder = Math.max(0, totalOrder - window.activeVoucher.discount);
     
     const finalAmount = Math.round(totalOrder);
-    const orderId = 'FP-' + Date.now();
-
-    var payload = {
-        payment_type: method === 'other_qris' ? 'qris' : 'gopay',
-        transaction_details: { order_id: orderId, gross_amount: finalAmount },
-        item_details: cart.map(item => ({ id: item.name.replace(/\s+/g, '-').toLowerCase(), price: item.price, quantity: item.quantity, name: item.name })),
-        customer_details: { first_name: currentUser, email: (auth.currentUser && auth.currentUser.email) || 'customer@folkpresso.com' }
-    };
 
     showToast('⏳ Memproses...');
 
+    // 1. MULAI MENGINTAI DATABASE (REALTIME)
+    const paymentTracker = window.supabaseClient
+        .channel('public:transactions')
+        .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'transactions', 
+            filter: `order_id=eq.${orderId}` 
+        }, payload => {
+            if (payload.new.payment_status === 'success') {
+                // INI CALLBACK-NYA: OTOMATIS KE HOME
+                document.getElementById('qris-modal').classList.add('hidden');
+                showPage('home');
+                showToast("✅ Pembayaran Berhasil! Pesanan diproses.");
+                paymentTracker.unsubscribe(); 
+                cart = []; // Kosongin keranjang
+                renderCart();
+            }
+        })
+        .subscribe();
+
     try {
+        // 2. REQUEST PEMBAYARAN KE SUPABASE
         const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
-            body: { type: 'charge', payload: payload }
+            body: { 
+                type: 'charge', 
+                payload: {
+                    payment_type: method === 'other_qris' ? 'qris' : 'gopay',
+                    transaction_details: { order_id: orderId, gross_amount: finalAmount },
+                    item_details: cart.map(item => ({ id: item.name.replace(/\s+/g, '-').toLowerCase(), price: item.price, quantity: item.quantity, name: item.name })),
+                    customer_details: { first_name: currentUser, email: auth.currentUser.email }
+                }
+            }
         });
 
         if (error) throw error;
 
-        // --- MULAI PENGINTAIAN REALTIME (CALLBACK) ---
-        const paymentTracker = window.supabaseClient
-            .channel('any')
-            .on('postgres_changes', { 
-                event: 'UPDATE', 
-                schema: 'public', 
-                table: 'transactions', 
-                filter: `order_id=eq.${orderId}` 
-            }, payload => {
-                if (payload.new.payment_status === 'success') {
-                    // CALLBACK KEMBALI KE HOME
-                    document.getElementById('qris-modal').classList.add('hidden');
-                    showPage('home');
-                    showToast("✅ Pembayaran Berhasil! Pesanan diproses.");
-                    paymentTracker.unsubscribe(); // Stop pengintaian
-                }
-            })
-            .subscribe();
+        // SIMPAN TRANSAKSI PENDING KE DATABASE DULU
+        await savePendingTransaction(orderId, method, finalAmount);
 
-        // Handle QRIS
+        // 3. TAMPILKAN UI (QRIS / GOPAY)
         if (method === 'other_qris' && data.qr_string) {
             const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}`;
             document.getElementById('qris-image').src = qrUrl;
             document.getElementById('qris-total').innerText = 'Rp ' + finalAmount.toLocaleString();
             document.getElementById('qris-modal').classList.remove('hidden');
             document.getElementById('qris-modal').classList.add('flex');
-            
-            // Simpan data awal ke DB dengan status 'pending'
-            savePendingTransaction(orderId, method, finalAmount);
-        } 
-        // Handle GoPay
-        else if (method === 'gopay' && data.actions) {
+        } else if (method === 'gopay' && data.actions) {
             const deeplink = data.actions.find(a => a.name === 'deeplink-redirect');
-            if (deeplink) {
-                window.location.href = deeplink.url;
-                savePendingTransaction(orderId, method, finalAmount);
-            }
+            if (deeplink) window.location.href = deeplink.url;
         }
     } catch (err) {
-        console.error("Payment Error:", err);
         showToast("❌ Gagal membuat transaksi");
+    }
+};
+
+window.bindGoPay = async function() {
+    const user = auth.currentUser;
+    if (!user) return showToast("Login dulu ya, bb!");
+    if (!window.userPhone) return showToast("Lengkapi nomor HP di biodata dulu!");
+
+    showToast("⏳ Menghubungkan ke GoPay...");
+
+    try {
+        const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
+            body: { 
+                type: 'linking', 
+                payload: {
+                    payment_type: "gopay",
+                    gopay_partner: {
+                        phone_number: window.userPhone, // Format +62
+                        country_code: "62",
+                        redirect_url: window.location.origin
+                    }
+                }
+            }
+        });
+
+        if (error) throw error;
+
+        // Buka link aktivasi Gojek (User masukin PIN di sini)
+        if (data.actions) {
+            const bindUrl = data.actions.find(a => a.name === 'activation-link');
+            if (bindUrl) window.location.href = bindUrl.url;
+        }
+    } catch (err) {
+        console.error("Binding Error:", err);
+        showToast("❌ Gagal menghubungkan GoPay");
     }
 };
 
@@ -795,6 +896,22 @@ async function submitTransaction(method) {
     window.activeVoucher = null;
     renderCart();
     showPage('home');
+}
+
+async function savePendingTransaction(orderId, method, total) {
+    const user = auth.currentUser;
+    const payload = cart.map(item => ({
+        order_id: orderId,
+        date: new Date().toISOString().split('T')[0],
+        name: item.name,
+        qty: item.quantity,
+        total: item.price * item.quantity,
+        method: method,
+        payment_status: 'pending',
+        user_id: user.uid
+    }));
+
+    await window.supabaseClient.from('transactions').insert(payload);
 }
 
 // ==========================================
@@ -922,26 +1039,24 @@ window.closeNotifModal = function() {
 // 10. WRAPPED & UI UTILS
 // ==========================================
 window.showWrapped = function () {
-    const user = auth.currentUser;
-    if (!user) return showToast("Login dulu untuk lihat Wrapped!");
-    const totalCups = Math.floor(userCaffeine / 100); 
-    let persona = { icon: '👶', title: 'Newbie Brewer', desc: 'Baru mulai petualangan kopi nih!' };
-    if (totalCups > 10) persona = { icon: '☕', title: 'Daily Sipper', desc: 'Kopi adalah bensin harianmu.' };
-    if (totalCups > 50) persona = { icon: '🦁', title: 'The Caffeine Lion', desc: 'Tak bisa aum tanpa kopi.' };
-    if (totalCups > 100) persona = { icon: '👑', title: 'Coffee Wizard', desc: 'Darahmu sudah 90% Arabica.' };
+    const user = auth.currentUser; 
+    if (!user) return showToast("Login dulu buat liat Wrapped!");
 
+    // Perhitungan Cups (Setiap 100mg kafein = 1 cup)
+    const totalCups = Math.floor(userCaffeine / 100); 
+    
+    // Update data ke Modal Wrapped
     document.getElementById('wrap-total-cups').innerText = totalCups;
     document.getElementById('wrap-caffeine').innerText = userCaffeine.toLocaleString();
-    document.getElementById('wrap-persona-icon').innerText = persona.icon;
-    document.getElementById('wrap-persona-title').innerText = persona.title;
-    document.getElementById('wrap-persona-desc').innerText = persona.desc;
-
-    document.querySelectorAll('.wrapped-slide').forEach(el => el.classList.add('hidden'));
-    document.getElementById('slide-1').classList.remove('hidden');
-    document.getElementById('wrapped-modal').classList.remove('hidden');
-    document.getElementById('wrapped-modal').classList.add('flex');
+    
+    // Munculkan Modal Wrapped (Cek z-index di HTML harus tinggi)
+    const modal = document.getElementById('wrapped-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        console.log("🎁 Wrapped Opened!");
+    }
 };
-
 window.nextSlide = function (slideNum) {
     document.querySelectorAll('.wrapped-slide').forEach(el => el.classList.add('hidden'));
     document.getElementById('slide-' + slideNum).classList.remove('hidden');
@@ -1116,3 +1231,27 @@ if (window.supabaseClient) {
         }
     }).subscribe();
 }
+
+// === LOGIKA AUTO BANNER 3 SLIDE ===
+let currentSlide = 0;
+function startBannerAutoSlide() {
+    const slider = document.getElementById('banner-slider');
+    const dots = document.querySelectorAll('.banner-dot');
+    if (!slider || dots.length === 0) return;
+
+    setInterval(() => {
+        currentSlide = (currentSlide + 1) % 3; // Loop 0, 1, 2
+        slider.style.transform = `translateX(-${currentSlide * 100}%)`;
+        
+        // Update dots
+        dots.forEach((dot, i) => {
+            dot.style.opacity = i === currentSlide ? '1' : '0.4';
+            dot.style.width = i === currentSlide ? '16px' : '8px'; // Efek aktif memanjang
+        });
+    }, 5000); // Ganti tiap 5 detik
+}
+
+// Pastikan fungsi ini dipanggil saat web dibuka
+window.addEventListener('load', () => {
+    startBannerAutoSlide();
+});
