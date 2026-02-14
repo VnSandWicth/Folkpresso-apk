@@ -307,6 +307,7 @@ function startFolkSync(uid) {
             updateMemberUI();
             checkPointsReset(data);
             loadUserVouchers();
+            updatePassportStatus(); // Tambahin update status paspor
         }
     });
 }
@@ -1209,23 +1210,79 @@ window.closeNotifModal = function () {
 // ==========================================
 // 10. WRAPPED & UI UTILS
 // ==========================================
-window.showWrapped = function () {
+window.showWrapped = async function () {
     const user = auth.currentUser;
     if (!user) return showToast("Login dulu buat liat Wrapped!");
 
-    // Perhitungan Cups (Setiap 100mg kafein = 1 cup)
-    const totalCups = Math.floor(userCaffeine / 100);
+    showToast("✨ Merangkum kenangan kopimu...");
 
-    // Update data ke Modal Wrapped
-    document.getElementById('wrap-total-cups').innerText = totalCups;
-    document.getElementById('wrap-caffeine').innerText = userCaffeine.toLocaleString();
+    try {
+        // Ambil riwayat dari Supabase
+        const { data: txs, error } = await window.supabaseClient
+            .from('transactions')
+            .select('name')
+            .eq('user_id', user.uid)
+            .eq('payment_status', 'success');
 
-    // Munculkan Modal Wrapped (Cek z-index di HTML harus tinggi)
-    const modal = document.getElementById('wrapped-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        console.log("🎁 Wrapped Opened!");
+        if (error) throw error;
+
+        // Hitung Menu Favorit
+        const counts = {};
+        (txs || []).forEach(t => {
+            counts[t.name] = (counts[t.name] || 0) + 1;
+        });
+
+        let topMenu = "";
+        let topCount = 0;
+        for (const name in counts) {
+            if (counts[name] > topCount) {
+                topCount = counts[name];
+                topMenu = name;
+            }
+        }
+
+        // Handle No Orders Gracefully
+        let favProduct;
+        if (topCount > 0) {
+            favProduct = products.find(p => p.name === topMenu) || { image: 'img/gula aren.png' };
+            document.getElementById('wrap-fav-name').innerText = topMenu;
+            document.getElementById('wrap-fav-stats').innerText = `Dipesan ${topCount} kali`;
+        } else {
+            favProduct = { image: 'img/gula aren.png' }; // Use coffee as default instead of logo
+            document.getElementById('wrap-fav-name').innerText = "Belum Ada Riwayat";
+            document.getElementById('wrap-fav-stats').innerText = "Yuk, cari kopi favoritmu!";
+        }
+
+        // Perhitungan Cups (Setiap 100mg kafein = 1 cup)
+        const totalCups = Math.floor(userCaffeine / 100);
+
+        // Update data ke Modal Wrapped
+        document.getElementById('wrap-total-cups').innerText = totalCups || txs.length;
+        document.getElementById('wrap-caffeine').innerText = userCaffeine.toLocaleString();
+        document.getElementById('wrap-fav-img').src = favProduct.image;
+
+        // Munculkan Modal Wrapped
+        const modal = document.getElementById('wrapped-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            console.log("🎁 Wrapped Opened!");
+        }
+    } catch (e) {
+        console.error("Wrapped Error:", e);
+        showToast("Gagal memuat Wrapped :(");
+    }
+};
+
+window.shareWrapped = function () {
+    showToast("📸 Screenshot untuk dibagikan ke Story!");
+    // Simulasi native share jika didukung
+    if (navigator.share) {
+        navigator.share({
+            title: 'Folkpresso Wrapped 2026',
+            text: `Aku sudah minum ${document.getElementById('wrap-total-cups').innerText} cup kopi di Folkpresso tahun ini!`,
+            url: window.location.href
+        }).catch(e => console.log('Share failed', e));
     }
 };
 window.nextSlide = function (slideNum) {
@@ -1903,9 +1960,9 @@ window.processPayment = async function (method) {
 
     showToast('⏳ Menghubungkan ke Midtrans...');
 
-    // DETEKSI METODE PEMBAYARAN DARI INPUT USER
-    // Jika user klik tombol 'GoPay', method='gopay'. Jika 'QRIS', method='qris'.
-    // Default: Tampilkan semua jika tidak spesifik.
+    // KITA PAKAI SNAP POPUP (Gak butuh aktivasi Core API ribet)
+    // Jadi requestedPaymentType kita set null biar backend manggil SNAP API
+    let requestedPaymentType = null;
     let enabledPayments = ['gopay', 'shopeepay', 'qris', 'other_qris'];
 
     if (method && typeof method === 'string') {
@@ -1916,7 +1973,7 @@ window.processPayment = async function (method) {
 
     // Persiapkan Data untuk Backend (Edge Function Core API)
     const payloadData = {
-        payment_type: "gopay", // Default Core API param (Snap ignores this mostly if enabled_payments is set)
+        payment_type: null, // Paksa ke mode Snap biar dapet token
         enabled_payments: enabledPayments,
         transaction_details: {
             order_id: orderId,
@@ -1968,28 +2025,42 @@ window.processPayment = async function (method) {
         }
 
         // Simpan transaksi status PENDING dulu
-        await savePendingTransaction(orderId, method === 'other_qris' ? 'QRIS' : 'GO_PAY', finalAmount);
+        const paymentMethodLabel = method && method.toLowerCase().includes('qris') ? 'QRIS' : 'GO_PAY';
+        await savePendingTransaction(orderId, paymentMethodLabel, finalAmount);
 
-        // === HANDLING SNAP API RESPONSE (SAFE PRODUCTION) ===
-        // Midtrans Snap mengembalikan 'redirect_url'
+        // === HANDLING SNAP POPUP (NO REDIRECT) ===
+        if (data.token) {
+            closePaymentModal();
+            window.snap.pay(data.token, {
+                onSuccess: function (result) {
+                    console.log('success', result);
+                    // Polling bakal otomatis deteksi success via backend
+                    showPaymentConfirmation(orderId, finalAmount, paymentMethodLabel);
+                },
+                onPending: function (result) {
+                    console.log('pending', result);
+                    showPaymentConfirmation(orderId, finalAmount, paymentMethodLabel);
+                },
+                onError: function (result) {
+                    console.log('error', result);
+                    alert("❌ Pembayaran gagal atau terjadi kesalahan.");
+                },
+                onClose: function () {
+                    console.log('customer closed the popup without finishing the payment');
+                    // Tampilkan lagi modal polling kalau dia gak sengaja tutup
+                    showPaymentConfirmation(orderId, finalAmount, paymentMethodLabel);
+                }
+            });
+            return;
+        }
+
+        // FALLBACK: Kalo token gak ada tapi ada redirect_url
         if (data.redirect_url) {
             closePaymentModal();
-
-            // Buka Halaman Pembayaran Midtrans (Aman & Pasti Support)
-            // User akan melihat QRIS atau GoPay di halaman resmi Midtrans
-
-            // DETEKSI MOBILE: Redirect Langsung biar buka aplikasi Gojek/Shopee
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-                window.location.href = data.redirect_url;
-            } else {
-                // DI LAPTOP: Buka Tab Baru biar web gak ketutup
-                window.open(data.redirect_url, '_blank');
-            }
-
-            showPaymentConfirmation(orderId, finalAmount, method === 'other_qris' ? 'QRIS' : 'GoPay');
-            showToast("✅ Membuka halaman pembayaran...");
+            window.location.href = data.redirect_url;
+            showPaymentConfirmation(orderId, finalAmount, paymentMethodLabel);
         } else {
-            throw new Error("Link pembayaran tidak ditemukan (Snap Error).");
+            throw new Error("Gagal mendapatkan akses pembayaran dari Midtrans.");
         }
 
     } catch (err) {
@@ -2077,3 +2148,199 @@ window.unbindGoPay = function () {
         });
     }
 }
+
+// ==========================================
+// 12. FOLK'S PASSPORT LOGIC (DYNAMIC MENUS & REWARDS)
+// ==========================================
+
+window.checkPassportRewards = async function (collectedCount, totalMenus) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userRef = db.collection('users').doc(user.uid);
+    const doc = await userRef.get();
+    if (!doc.exists) return;
+
+    const data = doc.data();
+    const claimedRewards = data.claimedPassportRewards || [];
+
+    const milestones = [
+        { id: 'explorer', target: 5, rewardType: 'points', value: 100, label: 'EXPLORER (5 Stamps)' },
+        { id: 'junkie', target: 10, rewardType: 'points', value: 250, label: 'COFFEE JUNKIE (10 Stamps)' },
+        { id: 'master', target: totalMenus, rewardType: 'voucher', value: 15000, label: 'MASTER OF FOLK' }
+    ];
+
+    for (const ms of milestones) {
+        if (collectedCount >= ms.target && !claimedRewards.includes(ms.id)) {
+            // GRANT REWARD
+            try {
+                if (ms.rewardType === 'points') {
+                    await userRef.update({
+                        points: firebase.firestore.FieldValue.increment(ms.value),
+                        claimedPassportRewards: firebase.firestore.FieldValue.arrayUnion(ms.id)
+                    });
+                    showToast(`🎉 Milestone ${ms.label} Tercapai! +${ms.value} Poin!`);
+                } else if (ms.rewardType === 'voucher') {
+                    const voucher = {
+                        label: '🏆 Master of Folk Reward',
+                        discount: ms.value,
+                        source: 'passport',
+                        used: false,
+                        createdAt: new Date().toISOString()
+                    };
+                    await userRef.collection('vouchers').add(voucher);
+                    await userRef.update({
+                        claimedPassportRewards: firebase.firestore.FieldValue.arrayUnion(ms.id)
+                    });
+                    showToast(`👑 WOW! Kamu Master of Folk! Voucher Rp 15rb ditambahkan!`);
+                }
+
+                // Global Announcement
+                if (window.insertAnnouncement) {
+                    window.insertAnnouncement(`🏆 ${currentUser} mencapai milestone Passport: ${ms.label}!`);
+                }
+
+                // Jika sudah dapet Master Reward, hilangkan section reward milestones UI biar kelihatan fresh?
+                // Gak perlu, biar user bisa liat badge-nya nyala.
+            } catch (err) { console.error("Reward Grant Error:", err); }
+        }
+    }
+};
+
+window.prestigeResetPassport = async function () {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    if (!confirm("⚠️ REBIRTH & RESET ⚠️\n\nPaspor kamu akan dikosongkan lagi, tapi level Prestige kamu akan naik!\nKamu bisa klaim ulang semua Milestone Reward.\n\nLanjutkan?")) return;
+
+    try {
+        const userRef = db.collection('users').doc(user.uid);
+
+        await userRef.update({
+            passportPrestigeLevel: firebase.firestore.FieldValue.increment(1),
+            lastPassportReset: new Date().toISOString(),
+            claimedPassportRewards: [] // RESET klaim biar bisa dapet poin lagi!
+        });
+
+        showToast("✨ REBIRTH SUCCESS! Paspor telah direset! ✨");
+
+        if (window.insertAnnouncement) {
+            window.insertAnnouncement(`👑 EPIC! ${currentUser} baru saja melakukan REBIRTH ke Prestige Level baru! 🔥`);
+        }
+
+        // Tutup modal dulu biar kerasa efek refreshnya
+        document.getElementById('passport-modal').classList.add('hidden');
+        setTimeout(() => {
+            window.openPassport();
+        }, 500);
+
+    } catch (err) {
+        console.error("Prestige Error:", err);
+        alert("Gagal melakukan Rebirth: " + err.message);
+    }
+};
+
+window.updatePassportStatus = async function () {
+    if (!window.supabaseClient || !auth.currentUser) return;
+    try {
+        // Ambil Data User (untuk cek tanggal Reset Prestige)
+        const userDoc = await db.collection('users').doc(auth.currentUser.uid).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const lastResetStr = userData.lastPassportReset || "2000-01-01"; // Default jauh ke masa lalu
+        const prestigeLevel = userData.passportPrestigeLevel || 0;
+
+        // Tampilkan Badge Prestige di UI
+        const badgeEl = document.getElementById('prestige-badge');
+        const levelEl = document.getElementById('prestige-level-text');
+        if (badgeEl && levelEl) {
+            if (prestigeLevel > 0) {
+                badgeEl.classList.remove('hidden');
+                levelEl.innerText = prestigeLevel;
+            } else {
+                badgeEl.classList.add('hidden');
+            }
+        }
+
+        // Ambil Transaksi yang terjadi SESUDAH reset terakhir
+        const { data } = await window.supabaseClient
+            .from('transactions')
+            .select('name, created_at')
+            .eq('user_id', auth.currentUser.uid)
+            .eq('payment_status', 'success')
+            .gt('created_at', lastResetStr); // Filter Tanggal Reset!
+
+        const purchasedNames = new Set((data || []).map(t => t.name.trim().toLowerCase()));
+        const totalMenus = products.length;
+        const collectedCount = products.filter(p => purchasedNames.has(p.name.trim().toLowerCase())).length;
+
+        const statusEl = document.getElementById('passport-status');
+        if (statusEl) statusEl.innerText = `${collectedCount} / ${totalMenus} Stamps`;
+
+        return { purchasedNames, collectedCount, totalMenus, prestigeLevel };
+    } catch (e) { console.error("Passport Sync Error:", e); return null; }
+};
+
+window.openPassport = async function () {
+    const user = auth.currentUser;
+    if (!user) return showToast("Login dulu buat liat Paspor!");
+
+    const modal = document.getElementById('passport-modal');
+    const list = document.getElementById('passport-list');
+    const resetSection = document.getElementById('prestige-reset-section');
+    if (!modal || !list) return;
+
+    modal.classList.remove('hidden');
+    list.innerHTML = '<div class="col-span-3 py-10 text-center text-xs text-slate-400 animate-pulse italic">Scanning orders...</div>';
+
+    const data = await window.updatePassportStatus();
+    if (!data) return;
+
+    const { purchasedNames, collectedCount, totalMenus, prestigeLevel } = data;
+    const progressPct = (collectedCount / totalMenus) * 100;
+
+    // Cek Milestone Rewards
+    await window.checkPassportRewards(collectedCount, totalMenus);
+
+    // Update UI Header
+    document.getElementById('passport-progress-bar').style.width = progressPct + '%';
+    document.getElementById('passport-progress-text').innerText = `${collectedCount} / ${totalMenus} Menus Collected`;
+
+    // Tampilkan tombol RESET jika sudah penuh
+    if (collectedCount >= totalMenus && totalMenus > 0) {
+        if (resetSection) resetSection.classList.remove('hidden');
+    } else {
+        if (resetSection) resetSection.classList.add('hidden');
+    }
+
+    // Milestones UI
+    const msExplorer = document.getElementById('ms-explorer');
+    const msJunkie = document.getElementById('ms-junkie');
+    const msMaster = document.getElementById('ms-master');
+
+    if (collectedCount >= 5) msExplorer.classList.remove('opacity-40');
+    if (collectedCount >= 10) msJunkie.classList.remove('opacity-40');
+    if (collectedCount >= totalMenus) msMaster.classList.remove('opacity-40');
+
+    // Render Stamps (Premium Dark Theme - Blue Edition)
+    list.innerHTML = '';
+    products.forEach(p => {
+        const isCollected = purchasedNames.has(p.name.trim().toLowerCase());
+        const opacity = isCollected ? 'opacity-100' : 'opacity-10 grayscale';
+        const stampOverlay = isCollected ? `
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div class="w-12 h-12 border-2 border-blue-500/50 rounded-full flex items-center justify-center rotate-[-15deg] backdrop-blur-[1px]">
+                    <div class="text-[6px] font-black text-blue-500 uppercase tracking-widest bg-slate-900 border border-blue-500/50 px-1">Verified</div>
+                </div>
+            </div>` : '';
+
+        list.innerHTML += `
+            <div class="relative flex flex-col items-center p-2 aspect-square justify-center transition-all duration-500 ${isCollected ? 'scale-110' : 'opacity-40 hover:opacity-100'}">
+                <div class="w-20 h-20 flex items-center justify-center relative bg-transparent">
+                    <img src="${p.image}" class="w-full h-full object-contain ${opacity} drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]" onerror="this.src='img/gula aren.png'">
+                    ${stampOverlay}
+                </div>
+                <p class="text-[8px] font-black text-blue-100/30 mt-1 text-center leading-tight truncate w-full uppercase tracking-tighter">${p.name}</p>
+            </div>
+        `;
+    });
+};
