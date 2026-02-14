@@ -17,6 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Midtrans Snap JS (Production) -->
     <script src="https://app.midtrans.com/snap/snap.js" data-client-key="Mid-client-eqKF-nDs2VYSLE84"></script>
@@ -256,7 +257,7 @@
                 </div>
                 <div onclick="window.showPage('profile')"
                     class="points-card px-4 py-2.5 flex items-center gap-2 cursor-pointer shadow-lg">
-                    <span class="text-lg">☕</span>
+                    <span class="text-xl">☕</span>
                     <div>
                         <p class="text-[9px] font-medium opacity-80">Your Points</p>
                         <p id="home-points" class="text-lg font-extrabold leading-tight">0</p>
@@ -383,10 +384,10 @@
             </div>
 
             <div class="px-5 mb-4 flex gap-2 overflow-x-auto no-scrollbar" id="menu-category-tabs">
-                <span class="category-pill active" onclick="filterMenu('all')">☕ All</span>
-                <span class="category-pill" onclick="filterMenu('signature')">✨ Signature</span>
-                <span class="category-pill" onclick="filterMenu('classic')">☕ Classic</span>
-                <span class="category-pill" onclick="filterMenu('non-coffee')">🍵 Non-Coffee</span>
+                <span class="category-pill active" onclick="filterMenu('all')">All</span>
+                <span class="category-pill" onclick="filterMenu('signature')">Signature</span>
+                <span class="category-pill" onclick="filterMenu('classic')">Classic</span>
+                <span class="category-pill" onclick="filterMenu('non-coffee')">Non-Coffee</span>
             </div>
 
             <div class="px-5 mb-5">
@@ -468,9 +469,6 @@
                         class="px-4 h-9 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 uppercase tracking-tighter">
                         <span>🎁</span> Wrapped
                     </button>
-                    <div
-                        class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-sm">
-                        ⚙️</div>
                 </div>
             </div>
 
@@ -766,8 +764,10 @@
                             <img id="wrap-fav-img" src="img/gula aren.png" class="w-full h-full object-cover scale-125">
                         </div>
                         <div class="pr-4">
-                            <p class="text-[8px] text-blue-400 font-bold uppercase tracking-widest mb-0.5">Your Top
-                                Choice ☕</p>
+                            <p
+                                class="text-[8px] text-blue-400 font-bold uppercase tracking-widest mb-0.5 flex items-center gap-1">
+                                Your Top Choice ☕
+                            </p>
                             <h5 class="text-white font-black text-xl leading-tight" id="wrap-fav-name">Aren Latte</h5>
                             <p class="text-white/30 text-[9px]" id="wrap-fav-stats">Dipesan 14 kali</p>
                         </div>
@@ -775,8 +775,9 @@
                 </div>
 
                 <button onclick="shareWrapped()"
-                    class="w-full bg-white text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-slate-200 transition-all">
+                    class="w-full py-4 bg-white text-slate-900 rounded-[2rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2">
                     <span>📤 Bagikan Momenmu</span>
+                </button>
             </div>
         </div>
     </div>
@@ -850,38 +851,66 @@
                     & Rebirth Challenge</button>
             </div>
 
-            <div class="p-6 bg-slate-900/80 backdrop-blur-md border-t border-white/5 mt-auto">
+            <div class="p-6 bg-slate-900 border-t border-white/5 mt-auto relative">
                 <div class="flex items-center gap-2 mb-4">
                     <div class="h-px bg-white/5 flex-1"></div>
                     <h4 class="text-[8px] font-black text-blue-500/30 uppercase tracking-[0.4em]">Royal Milestones</h4>
                     <div class="h-px bg-white/5 flex-1"></div>
                 </div>
-                <div class="flex gap-4 overflow-x-auto no-scrollbar pb-8 snap-x px-6">
+                <!-- RUANG NAFAS: Ditambah pb-10 biar Master gak kepotong bayangan atau border -->
+                <!-- FIXED CONTAINER: Ditambah pb-12 biar Milestone Master aman gak kepotong -->
+                <div class="flex gap-4 overflow-x-auto no-scrollbar pb-12 snap-x px-6">
                     <div id="ms-explorer"
-                        class="shrink-0 bg-white/5 p-4 rounded-[2rem] border border-white/5 opacity-30 transition-all duration-500 text-center min-w-[110px] h-28 flex flex-col items-center justify-center snap-center">
-                        <div class="text-2xl mb-1">🥉</div>
+                        class="shrink-0 bg-white/5 p-4 rounded-[2.5rem] border border-white/5 opacity-30 transition-all duration-500 text-center min-w-[130px] h-32 flex flex-col items-center justify-center snap-center">
+                        <div class="text-3xl mb-1">🥉</div>
                         <p class="text-[10px] font-black text-white uppercase tracking-tighter">Explorer</p>
                         <p class="text-[8px] text-blue-500/60 font-bold mt-1">5 Stamps</p>
                     </div>
                     <div id="ms-junkie"
-                        class="shrink-0 bg-white/5 p-4 rounded-[2rem] border border-white/5 opacity-30 transition-all duration-500 text-center min-w-[110px] h-28 flex flex-col items-center justify-center snap-center">
-                        <div class="text-2xl mb-1">🥈</div>
+                        class="shrink-0 bg-white/5 p-4 rounded-[2.5rem] border border-white/5 opacity-30 transition-all duration-500 text-center min-w-[130px] h-32 flex flex-col items-center justify-center snap-center">
+                        <div class="text-3xl mb-1">🥈</div>
                         <p class="text-[10px] font-black text-white uppercase tracking-tighter">Junkie</p>
                         <p class="text-[8px] text-blue-500/60 font-bold mt-1">10 Stamps</p>
                     </div>
                     <div id="ms-master"
-                        class="shrink-0 bg-white/10 p-4 rounded-[2rem] border border-blue-500/30 opacity-30 transition-all duration-500 text-center min-w-[110px] h-28 flex flex-col items-center justify-center snap-center">
-                        <div class="text-3xl mb-1">🏆</div>
-                        <p class="text-[10px] font-black text-white uppercase tracking-tighter">Master</p>
-                        <p class="text-[8px] text-blue-400 font-bold mt-1">Full Pack</p>
+                        class="shrink-0 bg-blue-500/10 p-4 rounded-[2.5rem] border border-blue-500/30 opacity-30 transition-all duration-500 text-center min-w-[130px] h-32 flex flex-col items-center justify-center snap-center relative shadow-[0_10px_30px_rgba(59,130,246,0.1)]">
+                        <div class="text-4xl mb-1">🏆</div>
+                        <p class="text-[11px] font-black text-white uppercase tracking-tighter">Master</p>
+                        <p class="text-[8px] text-blue-400 font-bold mt-1 uppercase">Full Collection</p>
                     </div>
-                    <!-- Extra space for scrolling to ensure last item is fully visible -->
-                    <div class="shrink-0 w-12"></div>
+                    <!-- SPACER FINAL: Kunci biar si Master bisa scroll sampe mentok tanpa kepotong -->
+                    <div class="shrink-0 w-32 h-1"></div>
                 </div>
             </div>
         </div>
     </div>
 
+    <script>
+        // Registrasi Service Worker & Update Logic
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('SW Registered!', reg);
+
+                    // Deteksi jika ada update
+                    reg.onupdatefound = () => {
+                        const installingWorker = reg.installing;
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed') {
+                                if (navigator.serviceWorker.controller) {
+                                    // Ada update baru! Beritahu user
+                                    if (window.showToast) window.showToast("🚀 Versi baru tersedia! Mengupdate...");
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 2000);
+                                }
+                            }
+                        };
+                    };
+                }).catch(err => console.error('SW Failed!', err));
+            });
+        }
+    </script>
 </body>
 
 </html>

@@ -19,6 +19,7 @@ if (!firebase.apps.length) {
 const app = firebase.app();
 const auth = firebase.auth();
 const db = firebase.firestore();
+const messaging = firebase.messaging();
 
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .then(() => console.log("✅ Auth Persistence set to LOCAL"))
@@ -41,7 +42,7 @@ let userCaffeine = 0;
 let currentTierStatus = "";
 let cart = [];
 window.isStoreOpen = true;
-let defaultMarquee = `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!`;
+let defaultMarquee = `Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; Folkpresso Open!`;
 let communityGoal = 0;
 
 // Variabel Modal Product (Cukup 1 kali deklarasi)
@@ -98,18 +99,44 @@ window.addEventListener('load', async () => {
     communityGoal = parseInt(localStorage.getItem('folkpresso_community_goal')) || 0;
     updateGoalUI();
 
+    // E. Notification Init
+    initMessaging();
+
     // E. Handle Midtrans Return (The "JARING")
     handleMidtransReturn();
 
-    // F. Register Service Worker (Fix SyntaxError & Hang issues)
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js', { type: 'module' })
-            .then(reg => console.log('✅ SW Registered:', reg.scope))
-            .catch(err => console.error('❌ SW Registration Failed:', err));
-    }
 });
 
-// Merged with unified version around line 1400
+// ==========================================
+// 4. MESSAGING & NOTIFICATIONS
+// ==========================================
+async function initMessaging() {
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log("✅ Notification permission granted.");
+            if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.ready;
+                const token = await firebase.messaging().getToken({
+                    serviceWorkerRegistration: reg,
+                    vapidKey: 'BNtdaF__a0FXy_zFkc3YZe75wqr2HCpGQ19IF56rit-IEsjZR7d6gFoLV5e5uJq5dy8bOHyTpVJvI8OUU6D9wz4'
+                });
+
+                if (token) {
+                    console.log("✅ FCM Token:", token);
+                    auth.onAuthStateChanged(user => {
+                        if (user) {
+                            db.collection('users').doc(user.uid).set({
+                                fcmToken: token,
+                                lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                            }, { merge: true });
+                        }
+                    });
+                }
+            }
+        }
+    } catch (e) { console.warn("⚠️ Messaging Init Failed:", e); }
+}
 
 
 function setupAnnouncementRealtime() {
@@ -411,21 +438,21 @@ function updateMemberUI() {
 
     if (userPoints >= 801) {
         card.className = 'member-card-platinum ' + commonClass;
-        newTier = 'FOLK PLATINUM 💎';
+        newTier = 'FOLK PLATINUM';
         pct = 100;
     } else if (userPoints >= 501) {
         card.className = 'member-card-gold ' + commonClass;
-        newTier = 'FOLK GOLD 👑';
+        newTier = 'FOLK GOLD';
         // 501 - 800 (Range 300)
         pct = ((userPoints - 500) / 300) * 100;
     } else if (userPoints >= 301) {
         card.className = 'member-card-silver ' + commonClass;
-        newTier = 'FOLK SILVER ⚔️';
+        newTier = 'FOLK SILVER';
         // 301 - 500 (Range 200)
         pct = ((userPoints - 300) / 200) * 100;
     } else {
         card.className = 'member-card-bronze ' + commonClass;
-        newTier = 'FOLK BRONZE 🥉';
+        newTier = 'FOLK BRONZE';
         // 0 - 300 (Range 300)
         pct = (userPoints / 300) * 100;
     }
@@ -441,24 +468,6 @@ function updateMemberUI() {
     window.currentTierStatus = newTier;
 }
 
-var caffeineMilestones = [
-    { mg: 100, icon: '☕', title: 'Starter Pack!', msg: 'Ini baru pemanasan, lanjutin ngopinya!' },
-    { mg: 300, icon: '🔥', title: 'Kopi Warrior!', msg: 'Wah, kamu emang pengkopi handal!' },
-    { mg: 500, icon: '⚡', title: 'Caffeine Addict!', msg: 'Hati-hati, jantungmu sudah deg-degan nih! 💓' },
-    { mg: 800, icon: '🚀', title: 'Overdrive Mode!', msg: 'Kamu resmi jadi mesin kopi berjalan!' },
-    { mg: 1000, icon: '👑', title: 'KOPI LEGEND!', msg: 'Kamu raja kopi sejati! 🏆' }
-];
-
-function checkCaffeineMilestone(mg) {
-    for (var i = caffeineMilestones.length - 1; i >= 0; i--) {
-        if (mg >= caffeineMilestones[i].mg && !caffeineShownMilestones[caffeineMilestones[i].mg]) {
-            caffeineShownMilestones[caffeineMilestones[i].mg] = true;
-            if (auth.currentUser) db.collection('users').doc(auth.currentUser.uid).update({ caffeineShownMilestones: caffeineShownMilestones });
-            (function (milestone) { setTimeout(function () { showCaffeineMilestonePopup(milestone); }, 800); })(caffeineMilestones[i]);
-            break;
-        }
-    }
-}
 
 function showCaffeineMilestonePopup(milestone) {
     var existing = document.getElementById('caffeine-milestone-popup');
