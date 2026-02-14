@@ -367,47 +367,34 @@ function updateMemberUI() {
 
     if (!card || !tierName || !bar || !dispPoints) return;
 
-    // Bersihkan teks di dalam card agar kode CSS tidak muncul sebagai teks
+    // Definisikan oldTier di dalam fungsi agar tidak error
+    var oldTier = currentTierStatus || ""; // TAMBAHKAN INI
+    var newTier = "";
+    
     dispPoints.innerText = userPoints.toLocaleString();
 
-    var cardBase = 'rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500 mb-6';
-
+    // Logika Penentuan Tier
     if (userPoints >= 801) {
         card.className = 'member-card-platinum ' + cardBase;
-        tierName.innerText = 'FOLK PLATINUM 💎';
-        bar.style.width = Math.min((userPoints / 1000) * 100, 100) + '%';
         newTier = 'FOLK PLATINUM 💎';
     } else if (userPoints >= 501) {
         card.className = 'member-card-gold ' + cardBase;
-        tierName.innerText = 'FOLK GOLD 👑';
-        bar.style.width = (userPoints / 800) * 100 + '%';
         newTier = 'FOLK GOLD 👑';
     } else if (userPoints >= 301) {
         card.className = 'member-card-silver ' + cardBase;
-        tierName.innerText = 'FOLK SILVER ⚔️';
-        bar.style.width = (userPoints / 500) * 100 + '%';
         newTier = 'FOLK SILVER ⚔️';
     } else {
         card.className = 'member-card-bronze ' + cardBase;
-        tierName.innerText = 'FOLK BRONZE 🥉';
-        bar.style.width = (userPoints / 300) * 100 + '%';
-        newTier = 'BRONZE MEMBER 🥉';
+        newTier = 'FOLK BRONZE 🥉';
     }
 
-    if (oldTier !== '' && oldTier !== newTier) grantTierVoucher(newTier);
-    currentTierStatus = newTier;
+    tierName.innerText = newTier;
 
-    if (cafMg && cafBar) {
-        cafMg.innerHTML = userCaffeine + '<span class="text-xs text-slate-400">mg</span>';
-        cafBar.style.height = Math.min((userCaffeine / 1000) * 100, 100) + "%";
-
-        if (userCaffeine >= 800) { cafBar.className = 'absolute bottom-0 w-full bg-red-500 transition-all duration-1000'; cafMg.className = 'text-2xl font-black text-red-500'; }
-        else if (userCaffeine >= 500) { cafBar.className = 'absolute bottom-0 w-full bg-orange-500 transition-all duration-1000'; cafMg.className = 'text-2xl font-black text-orange-500'; }
-        else if (userCaffeine >= 300) { cafBar.className = 'absolute bottom-0 w-full bg-yellow-400 transition-all duration-1000'; cafMg.className = 'text-2xl font-black text-yellow-500'; }
-        else { cafBar.className = 'absolute bottom-0 w-full bg-green-400 transition-all duration-1000'; cafMg.className = 'text-2xl font-black text-green-500'; }
-        
-        checkCaffeineMilestone(userCaffeine);
+    // Cek kenaikan tier buat kasih voucher
+    if (oldTier !== "" && oldTier !== newTier) {
+        grantTierVoucher(newTier);
     }
+    currentTierStatus = newTier; // Update status global
 }
 
 var caffeineMilestones = [
@@ -747,16 +734,16 @@ window.closePaymentModal = function () {
 };
 
 window.processPayment = async function (method) {
-    closePaymentModal(); 
-    const orderId = 'FP-' + Date.now(); // ID Unik
-    var totalOrder = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
-    if (window.activeVoucher) totalOrder = Math.max(0, totalOrder - window.activeVoucher.discount);
+    if (!auth.currentUser) return showToast("Login dulu!");
     
-    const finalAmount = Math.round(totalOrder);
+    const orderId = 'FP-' + Date.now();
+    let totalOrder = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
+    if (window.activeVoucher) totalOrder = Math.max(0, totalOrder - window.activeVoucher.discount);
 
+    const finalAmount = Math.round(totalOrder);
     showToast('⏳ Memproses...');
 
-    // 1. MULAI MENGINTAI DATABASE (REALTIME)
+    // 1. Jalankan Realtime Tracker agar otomatis pindah halaman jika sukses
     const paymentTracker = window.supabaseClient
         .channel('public:transactions')
         .on('postgres_changes', { 
@@ -766,37 +753,45 @@ window.processPayment = async function (method) {
             filter: `order_id=eq.${orderId}` 
         }, payload => {
             if (payload.new.payment_status === 'success') {
-                // INI CALLBACK-NYA: OTOMATIS KE HOME
                 document.getElementById('qris-modal').classList.add('hidden');
                 showPage('home');
-                showToast("✅ Pembayaran Berhasil! Pesanan diproses.");
+                showToast("✅ Pembayaran Berhasil!");
                 paymentTracker.unsubscribe(); 
-                cart = []; // Kosongin keranjang
+                cart = []; 
                 renderCart();
             }
         })
         .subscribe();
 
     try {
-        // 2. REQUEST PEMBAYARAN KE SUPABASE
+        // 2. Request ke Supabase Function
         const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
             body: { 
                 type: 'charge', 
                 payload: {
                     payment_type: method === 'other_qris' ? 'qris' : 'gopay',
                     transaction_details: { order_id: orderId, gross_amount: finalAmount },
-                    item_details: cart.map(item => ({ id: item.name.replace(/\s+/g, '-').toLowerCase(), price: item.price, quantity: item.quantity, name: item.name })),
-                    customer_details: { first_name: currentUser, email: auth.currentUser.email }
+                    // Fix: Nama produk tidak boleh terlalu panjang
+                    item_details: cart.map(item => ({ 
+                        id: item.name.substring(0, 20).replace(/\s+/g, '-'), 
+                        price: item.price, 
+                        quantity: item.quantity, 
+                        name: item.name 
+                    })),
+                    customer_details: { 
+                        first_name: currentUser || "Customer", 
+                        email: auth.currentUser.email 
+                    }
                 }
             }
         });
 
         if (error) throw error;
 
-        // SIMPAN TRANSAKSI PENDING KE DATABASE DULU
+        // 3. Simpan data transaksi dengan status pending
         await savePendingTransaction(orderId, method, finalAmount);
 
-        // 3. TAMPILKAN UI (QRIS / GOPAY)
+        // 4. Tampilkan Modal QRIS atau Redirect GoPay
         if (method === 'other_qris' && data.qr_string) {
             const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}`;
             document.getElementById('qris-image').src = qrUrl;
@@ -808,16 +803,18 @@ window.processPayment = async function (method) {
             if (deeplink) window.location.href = deeplink.url;
         }
     } catch (err) {
-        showToast("❌ Gagal membuat transaksi");
+        showToast("❌ Gagal: " + err.message);
     }
 };
+
 
 window.bindGoPay = async function() {
     const user = auth.currentUser;
     if (!user) return showToast("Login dulu ya, bb!");
     if (!window.userPhone) return showToast("Lengkapi nomor HP di biodata dulu!");
 
-    showToast("⏳ Menghubungkan ke GoPay...");
+    // Bersihkan nomor HP (Hilangkan tanda +) agar tidak Error 400
+    const cleanPhone = window.userPhone.replace('+', ''); 
 
     try {
         const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
@@ -826,24 +823,20 @@ window.bindGoPay = async function() {
                 payload: {
                     payment_type: "gopay",
                     gopay_partner: {
-                        phone_number: window.userPhone, // Format +62
+                        phone_number: cleanPhone, 
                         country_code: "62",
                         redirect_url: window.location.origin
                     }
                 }
             }
         });
-
         if (error) throw error;
-
-        // Buka link aktivasi Gojek (User masukin PIN di sini)
         if (data.actions) {
             const bindUrl = data.actions.find(a => a.name === 'activation-link');
             if (bindUrl) window.location.href = bindUrl.url;
         }
     } catch (err) {
-        console.error("Binding Error:", err);
-        showToast("❌ Gagal menghubungkan GoPay");
+        showToast("❌ Error 400: Cek format nomor HP lu!");
     }
 };
 
