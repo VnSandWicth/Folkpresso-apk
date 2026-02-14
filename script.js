@@ -367,13 +367,14 @@ function updateMemberUI() {
 
     if (!card || !tierName || !bar || !dispPoints) return;
 
-    // Definisikan oldTier di dalam fungsi agar tidak error
-    var oldTier = currentTierStatus || ""; // TAMBAHKAN INI
+    // Definisikan oldTier secara aman
+    var oldTier = window.currentTierStatus || ""; 
     var newTier = "";
-    
+    var cardBase = 'shimmer-card member-card-bronze rounded-[2rem] pt-10 px-6 pb-4 shadow-2xl relative h-52 flex flex-col justify-between transition-all duration-500 mb-6';
+
     dispPoints.innerText = userPoints.toLocaleString();
 
-    // Logika Penentuan Tier
+    // Logika Ganti Tier
     if (userPoints >= 801) {
         card.className = 'member-card-platinum ' + cardBase;
         newTier = 'FOLK PLATINUM 💎';
@@ -390,11 +391,11 @@ function updateMemberUI() {
 
     tierName.innerText = newTier;
 
-    // Cek kenaikan tier buat kasih voucher
+    // Gunakan oldTier yang sudah didefinisikan
     if (oldTier !== "" && oldTier !== newTier) {
         grantTierVoucher(newTier);
     }
-    currentTierStatus = newTier; // Update status global
+    window.currentTierStatus = newTier;
 }
 
 var caffeineMilestones = [
@@ -734,53 +735,49 @@ window.closePaymentModal = function () {
 };
 
 window.processPayment = async function (method) {
-    if (!auth.currentUser) return showToast("Login dulu!");
+    if (!auth.currentUser) return showToast("Login dulu ya!");
+    if (cart.length === 0) return showToast("Keranjang kosong!");
     
     const orderId = 'FP-' + Date.now();
-    let totalOrder = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
-    if (window.activeVoucher) totalOrder = Math.max(0, totalOrder - window.activeVoucher.discount);
+    let subtotal = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
+    let discount = window.activeVoucher ? Math.min(window.activeVoucher.discount, subtotal) : 0;
+    let finalAmount = Math.round(subtotal - discount); // Pastikan angka bulat
 
-    const finalAmount = Math.round(totalOrder);
-    showToast('⏳ Memproses...');
+    showToast('⏳ Menghubungkan ke Kasir...');
 
-    // 1. Jalankan Realtime Tracker agar otomatis pindah halaman jika sukses
-    const paymentTracker = window.supabaseClient
-        .channel('public:transactions')
-        .on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'transactions', 
-            filter: `order_id=eq.${orderId}` 
-        }, payload => {
-            if (payload.new.payment_status === 'success') {
-                document.getElementById('qris-modal').classList.add('hidden');
-                showPage('home');
-                showToast("✅ Pembayaran Berhasil!");
-                paymentTracker.unsubscribe(); 
-                cart = []; 
-                renderCart();
-            }
-        })
-        .subscribe();
+    // Susun daftar item dengan ID yang super aman
+    const items = cart.map(item => ({
+        id: item.name.substring(0, 10).replace(/[^a-zA-Z0-9]/g, ''), // Hanya alfanumerik
+        price: Math.round(item.price),
+        quantity: item.quantity,
+        name: item.name.substring(0, 50)
+    }));
+
+    // Voucher harus masuk sebagai item minus biar hitungan Midtrans cocok
+    if (discount > 0) {
+        items.push({
+            id: 'VOUCHER',
+            price: -Math.round(discount),
+            quantity: 1,
+            name: ('Voucher: ' + window.activeVoucher.label).substring(0, 50)
+        });
+    }
+
+    // BERSIHKAN NOMOR HP DARI SPASI & KARAKTER LAIN
+    const cleanPhone = (window.userPhone || "").replace(/[^0-9]/g, '');
 
     try {
-        // 2. Request ke Supabase Function
         const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
             body: { 
                 type: 'charge', 
                 payload: {
                     payment_type: method === 'other_qris' ? 'qris' : 'gopay',
                     transaction_details: { order_id: orderId, gross_amount: finalAmount },
-                    // Fix: Nama produk tidak boleh terlalu panjang
-                    item_details: cart.map(item => ({ 
-                        id: item.name.substring(0, 20).replace(/\s+/g, '-'), 
-                        price: item.price, 
-                        quantity: item.quantity, 
-                        name: item.name 
-                    })),
+                    item_details: items,
                     customer_details: { 
-                        first_name: currentUser || "Customer", 
-                        email: auth.currentUser.email 
+                        first_name: (currentUser || "Customer").substring(0, 20), 
+                        email: auth.currentUser.email,
+                        phone: cleanPhone // Nomor HP sekarang murni angka saja
                     }
                 }
             }
@@ -788,13 +785,11 @@ window.processPayment = async function (method) {
 
         if (error) throw error;
 
-        // 3. Simpan data transaksi dengan status pending
+        // Simpan transaksi sebagai pending di database
         await savePendingTransaction(orderId, method, finalAmount);
 
-        // 4. Tampilkan Modal QRIS atau Redirect GoPay
         if (method === 'other_qris' && data.qr_string) {
-            const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}`;
-            document.getElementById('qris-image').src = qrUrl;
+            document.getElementById('qris-image').src = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}`;
             document.getElementById('qris-total').innerText = 'Rp ' + finalAmount.toLocaleString();
             document.getElementById('qris-modal').classList.remove('hidden');
             document.getElementById('qris-modal').classList.add('flex');
@@ -803,18 +798,19 @@ window.processPayment = async function (method) {
             if (deeplink) window.location.href = deeplink.url;
         }
     } catch (err) {
-        showToast("❌ Gagal: " + err.message);
+        console.error("Payment Error:", err);
+        // Pesan error lebih detail biar kita tau salahnya di mana
+        showToast("❌ Gagal: Data ditolak server. Cek kembali nomor HP/Voucher.");
     }
 };
-
 
 window.bindGoPay = async function() {
     const user = auth.currentUser;
     if (!user) return showToast("Login dulu ya, bb!");
     if (!window.userPhone) return showToast("Lengkapi nomor HP di biodata dulu!");
 
-    // Bersihkan nomor HP (Hilangkan tanda +) agar tidak Error 400
-    const cleanPhone = window.userPhone.replace('+', ''); 
+    // Hilangkan tanda + biar gak Error 400
+    const cleanPhone = window.userPhone.replace('+', '');
 
     try {
         const { data, error } = await window.supabaseClient.functions.invoke('midtrans-snap', {
@@ -836,7 +832,7 @@ window.bindGoPay = async function() {
             if (bindUrl) window.location.href = bindUrl.url;
         }
     } catch (err) {
-        showToast("❌ Error 400: Cek format nomor HP lu!");
+        showToast("❌ Gagal Hubungkan: " + err.message);
     }
 };
 
