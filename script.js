@@ -1314,16 +1314,15 @@ function showPaymentConfirmation(orderId, finalAmount, method) {
         <button onclick="closeUniversalPopup()" class="w-full bg-slate-100 text-slate-500 font-bold py-3.5 rounded-2xl active:scale-95 transition-all">Nanti Saja</button>
     `;
 }
-
-wwindow.confirmManualPayment = async function(orderId, finalAmount, method) {
+window.confirmManualPayment = async function(orderId, finalAmount, method) {
     closeUniversalPopup();
-    showToast("⏳ Sinkronisasi data ke Admin...");
+    showToast("⏳ Mengirim data ke Admin...");
 
     try {
-        // 1. HAPUS data pending agar tidak dobel
+        // 1. HAPUS data pending yang tadinya ditolak dashboard admin
         await window.supabaseClient.from('transactions').delete().eq('order_id', orderId);
 
-        // 2. INSERT data baru sebagai SUKSES (Ini yang bikin admin bunyi)
+        // 2. INSERT SEBAGAI DATA BARU (Langkah ini wajib supaya admin bunyi loncengnya)
         const payload = cart.map(item => ({
             order_id: orderId,
             date: new Date().toISOString().split('T')[0],
@@ -1339,22 +1338,82 @@ wwindow.confirmManualPayment = async function(orderId, finalAmount, method) {
             user_id: auth.currentUser.uid
         }));
 
-        await window.supabaseClient.from('transactions').insert(payload);
+        const { error } = await window.supabaseClient.from('transactions').insert(payload);
+        if (error) throw error;
 
-        // 3. Bunyikan Alarm Pengumuman
-        const msg = `🛒 ${currentUser} memesan ${cart.map(i => i.name).join(', ')} via ${method}!`;
-        await window.insertAnnouncement(msg);
-
-        // 4. Update Poin & Goal
+        // 3. Tambah Poin & Kabarin lewat Marquee
+        await window.insertAnnouncement(`🛒 ${currentUser} memesan via ${method}!`);
         db.collection("users").doc(auth.currentUser.uid).update({
             points: firebase.firestore.FieldValue.increment(Math.floor(finalAmount / 1000))
         });
 
-        showToast("✅ Pembayaran Berhasil!");
+        showToast("✅ Pesanan Diterima Admin!");
         cart = [];
         renderCart();
         showPage('home');
     } catch(e) {
-        showToast("❌ Gagal update.");
+        console.error(e);
+        showToast("❌ Gagal sinkronisasi data.");
+    }
+};
+
+window.processPayment = async function (method) {
+    if (!auth.currentUser) return showToast("Login dulu ya, bb!");
+    if (cart.length === 0) return showToast("Keranjang kosong!");
+    
+    const orderId = 'FP-' + Date.now();
+    let subtotal = cart.reduce((a, b) => a + (Math.round(b.price) * Math.round(b.quantity)), 0);
+    let discount = window.activeVoucher ? Math.min(Math.round(window.activeVoucher.discount), subtotal) : 0;
+    let finalAmount = subtotal - discount;
+
+    if (finalAmount < 100) return showToast("❌ Minimal bayar Rp 100");
+    showToast('⏳ Menghubungkan ke Kasir...');
+
+    try {
+        const response = await fetch(SB_URL + '/functions/v1/midtrans-snap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
+            body: JSON.stringify({ 
+                type: 'charge', 
+                payload: {
+                    payment_type: method === 'other_qris' ? 'qris' : 'gopay',
+                    transaction_details: { order_id: orderId, gross_amount: finalAmount },
+                    item_details: [{ id: 'ORDER-01', price: finalAmount, quantity: 1, name: 'Pesanan Folkpresso' }],
+                    customer_details: { first_name: (currentUser || "Customer").substring(0, 20), email: auth.currentUser.email }
+                } 
+            })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Gagal konek Midtrans");
+
+        // Simpan pending agar ada rekam jejak di database
+        await savePendingTransaction(orderId, method, finalAmount);
+
+        if (method === 'other_qris') {
+            let qrSource = "";
+            if (data.qr_string) {
+                qrSource = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(data.qr_string)}`;
+            } else if (data.actions) {
+                const qrAction = data.actions.find(a => a.name === 'generate-qr-code');
+                if (qrAction) qrSource = qrAction.url;
+            }
+
+            if (qrSource) {
+                // FIX ID: Menggunakan ID 'qris-image' sesuai index.html lu
+                document.getElementById('qris-image').src = qrSource;
+                document.getElementById('qris-total').innerText = 'Rp ' + finalAmount.toLocaleString();
+                document.getElementById('qris-modal').classList.remove('hidden');
+            }
+        } else if (method === 'gopay' && data.actions) {
+            const deeplink = data.actions.find(a => a.name === 'deeplink-redirect' || a.name === 'simulator');
+            if (deeplink) {
+                closePaymentModal();
+                window.open(deeplink.url, '_blank'); // Buka tab bayar
+                showPaymentConfirmation(orderId, finalAmount, method); // Munculin pop-up konfirmasi
+            }
+        }
+    } catch (err) {
+        alert("🚨 Error: " + err.message);
     }
 };
