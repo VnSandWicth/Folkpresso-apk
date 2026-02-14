@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLKPRESSO - Share Stories Share Laughter </title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="img/FPLOGO.png">
+    <link rel="icon" href="logo (1).png">
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Midtrans Snap.js Sandbox -->
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-yIcpNrBNbMzCnZzQ"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body
+    class="bg-[#EDF2FA] text-slate-900 pb-24 dark:bg-slate-950 dark:text-white transition-colors duration-300 font-sans select-none">
+
+    <div id="toast-container"></div>
+
+    <div id="universal-popup" class="fixed inset-0 hidden items-center justify-center p-6 backdrop-blur-md bg-black/40">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl transform scale-50 opacity-0 transition-all duration-300"
+            id="popup-content">
+            <div id="popup-icon" class="text-5xl text-center mb-4">✨</div>
+            <h3 id="popup-title" class="text-xl font-black text-center text-blue-900 dark:text-white mb-2">Pemberitahuan
+            </h3>
+            <p id="popup-message" class="text-sm text-center text-slate-500 dark:text-slate-400 mb-6 font-medium">Pesan
+                di sini...</p>
+            <div id="popup-actions" class="w-full"></div>
+        </div>
+    </div>
+
+    <div id="payment-modal"
+        class="fixed inset-0 hidden flex items-center justify-center p-6 backdrop-blur-md bg-black/40">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
+            <h3 class="text-2xl font-black text-center text-blue-900 dark:text-white mb-6">Pilih Metode Pembayaran</h3>
+            <div class="space-y-3">
+                <button onclick="processPayment('Cash')"
+                    class="w-full bg-green-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">💵
+                    Cash</button>
+                <button onclick="processPayment('QRIS')"
+                    class="w-full bg-blue-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">📱
+                    QRIS</button>
+                <button onclick="processPayment('Transfer')"
+                    class="w-full bg-purple-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform">🏦
+                    Transfer</button>
+                <button onclick="closePaymentModal()"
+                    class="w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white py-4 rounded-2xl font-bold">Batal</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ===== LOGIN SCREEN ===== -->
+    <div id="login-screen"
+        class="fixed inset-0 z-[5000] hidden flex flex-col items-center justify-center p-6 transition-all duration-500"
+        style="background: linear-gradient(160deg, #6aacf0 0%, #2563eb 40%, #1e3a8a 100%);">
+        <div class="w-full max-w-sm">
+            <div class="text-center mb-8">
+                <div
+                    class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-[2rem] shadow-2xl mb-5 overflow-hidden">
+                    <img src="img/FPLOGO.png" alt="Folkpresso Logo" class="w-full h-full object-cover">
+                </div>
+                <h1 class="text-4xl font-extrabold text-white tracking-tight">FOLKPRESSO</h1>
+            </div>
+
+            <div class="bg-white rounded-[2.5rem] p-8 shadow-2xl">
+                <!-- Tab Switcher -->
+                <div class="flex bg-slate-100 rounded-2xl p-1 mb-6">
+                    <button id="tab-btn-login" onclick="switchAuthTab('login')"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 bg-white text-blue-700 shadow-sm">
+                        Masuk
+                    </button>
+                    <button id="tab-btn-register" onclick="switchAuthTab('register')"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 text-slate-400">
+                        Daftar
+                    </button>
+                </div>
+
+                <!-- ===== TAB: MASUK (LOGIN) ===== -->
+                <div id="tab-login">
+                    <h2 class="text-xl font-extrabold text-slate-800 text-center mb-2">Selamat Datang!</h2>
+                    <p class="text-sm text-slate-400 text-center mb-6">Masuk untuk meraih poin dan menikmati kopi</p>
+
+                    <div class="space-y-4 mb-5">
+                        <div
+                            class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                            <span class="text-slate-400">📧</span>
+                            <input id="login-email" type="email" placeholder="Email"
+                                class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300">
+                        </div>
+                        <div
+                            class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                            <span class="text-slate-400">🔒</span>
+                            <input id="login-password" type="password" placeholder="Kata Sandi"
+                                class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300">
+                        </div>
+                    </div>
+
+                    <p id="login-error" class="text-red-500 text-xs font-semibold text-center mb-3 hidden"></p>
+
+                    <button onclick="loginWithEmail()"
+                        class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mb-4">
+                        <span id="login-text">Masuk</span>
+                    </button>
+
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex-1 h-px bg-slate-200"></div>
+                        <span class="text-xs text-slate-400 font-semibold">atau</span>
+                        <div class="flex-1 h-px bg-slate-200"></div>
+                    </div>
+
+                    <button onclick="loginWithGoogle()"
+                        class="w-full flex items-center justify-center gap-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 py-3.5 rounded-2xl transition-all active:scale-95 mb-4">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Google_Favicon_2025.svg"
+                            class="w-5 h-5">
+                        <span class="text-sm font-bold text-slate-600">Masuk dengan Google</span>
+                    </button>
+
+                    <p class="text-center text-xs text-slate-400">Belum punya akun? <span
+                            class="text-blue-600 font-bold cursor-pointer" onclick="switchAuthTab('register')">Daftar
+                            Sekarang</span></p>
+                </div>
+
+                <!-- ===== TAB: DAFTAR (REGISTER) ===== -->
+                <div id="tab-register" class="hidden">
+                    <h2 class="text-xl font-extrabold text-slate-800 text-center mb-2">Buat Akun Baru</h2>
+                    <p class="text-sm text-slate-400 text-center mb-6">Daftar dan mulai kumpulkan poin!</p>
+
+                    <div class="space-y-4 mb-5">
+                        <div
+                            class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                            <span class="text-slate-400">📧</span>
+                            <input id="reg-email" type="email" placeholder="Email"
+                                class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300">
+                        </div>
+                        <div
+                            class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                            <span class="text-slate-400">🔒</span>
+                            <input id="reg-password" type="password" placeholder="Kata Sandi (min. 6 karakter)"
+                                class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300">
+                        </div>
+                        <div
+                            class="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3.5 border border-slate-100">
+                            <span class="text-slate-400">📱</span>
+                            <span class="text-sm font-bold text-slate-500">+62</span>
+                            <input id="reg-phone" type="tel" placeholder="8xxxxxxxxxx"
+                                class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300">
+                        </div>
+                    </div>
+
+                    <p id="reg-error" class="text-red-500 text-xs font-semibold text-center mb-3 hidden"></p>
+
+                    <button onclick="registerWithEmail()"
+                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all mb-4">
+                        <span id="reg-text">Daftar Sekarang</span>
+                    </button>
+
+                    <p class="text-center text-xs text-slate-400">Sudah punya akun? <span
+                            class="text-blue-600 font-bold cursor-pointer" onclick="switchAuthTab('login')">Masuk</span>
+                    </p>
+                </div>
+
+            </div>
+        </div>
+        <p class="mt-8 text-xs text-blue-200/50 font-semibold tracking-widest uppercase">© FOLKPRESSO - 2026</p>
+    </div>
+
+    <!-- ===== MAIN APP ===== -->
+    <div id="main-app" class="hidden">
+
+        <!-- HEADER -->
+        <header class="kopiku-header">
+            <div class="px-5 py-4 flex justify-between items-center">
+                <h1 class="text-xl font-extrabold text-blue-900 dark:text-blue-400 tracking-tight">FOLKPRESSO</h1>
+                <div class="flex items-center gap-3">
+                    <div id="store-status-badge" class="hidden"><span
+                            class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span></div>
+                 
+                    <button onclick="toggleDark()"
+                        class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-sm">🌙</button>
+                    <div onclick="showPage('profile'); setTimeout(() => document.getElementById('notification-section')?.scrollIntoView({behavior: 'smooth'}), 100);"
+                        class="w-9 h-9 flex items-center justify-center bg-blue-50 dark:bg-slate-800 rounded-xl text-sm cursor-pointer relative">
+                        🔔
+                        <span id="notif-badge"
+                            class="hidden absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Marquee Global (terlihat di semua halaman: order, quest, tier up, multi-user) -->
+        <div class="bg-blue-900 dark:bg-blue-950 py-2 overflow-hidden border-b border-blue-800/50">
+            <div id="marquee-text" class="animate-marquee text-xs font-bold text-blue-200 tracking-wide">
+                🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; • &nbsp;&nbsp; FOLKPRESSO Open!
+            </div>
+        </div>
+
+        <!-- ===== HOME PAGE ===== -->
+        <main id="home-page" class="app-page active">
+            <!-- User Greeting -->
+            <div class="px-5 mt-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img id="profile-photo-nav" src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
+                        class="w-11 h-11 rounded-full border-2 border-blue-500 object-cover shadow-sm">
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Halo, FOLK-ers!</p>
+                        <h2 id="home-username"
+                            class="text-sm font-extrabold text-blue-900 dark:text-white truncate max-w-[140px]">Guest
+                        </h2>
+                    </div>
+                </div>
+                <div onclick="window.showPage('profile')"
+                    class="points-card px-4 py-2.5 flex items-center gap-2 cursor-pointer shadow-lg">
+                    <span class="text-lg">☕</span>
+                    <div>
+                        <p class="text-[9px] font-medium opacity-80">Your Points</p>
+                        <p id="home-points" class="text-lg font-extrabold leading-tight">0</p>
+                    </div>
+                    <span class="text-white/60 ml-1">›</span>
+                </div>
+            </div>
+
+            <!-- Special Offer Banner -->
+            <div class="px-5 mt-5">
+                <div class="relative rounded-[1.5rem] overflow-hidden h-40 shadow-lg">
+                    <img src="img/1st rend.png" class="w-full h-full object-cover">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-900/30 flex items-center p-6">
+                        <div>
+                            <p class="text-[10px] font-bold text-blue-200 uppercase tracking-widest mb-1">Special Offer
+                            </p>
+                            <h3 class="text-white font-extrabold text-lg leading-snug">30% Off All Lattes<br>With
+                                Membership!</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Feature Cards -->
+            <div class="px-5 mt-5 grid grid-cols-2 gap-3">
+                <div onclick="mysteryBrew()"
+                    class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[1.5rem] p-5 text-white shadow-lg active:scale-95 transition-transform cursor-pointer">
+                    <h4 class="font-extrabold text-sm">Mystery Brew 🎲</h4>
+                    <p class="text-[10px] opacity-80 mt-1">Biarkan kami pilih!</p>
+                </div>
+                <div onclick="claimQuest()" id="quest-card"
+                    class="bg-gradient-to-br from-pink-500 to-orange-500 rounded-[1.5rem] p-5 text-white shadow-lg active:scale-95 transition-transform cursor-pointer">
+                    <h4 class="font-extrabold text-sm">Daily Quest ⚔️</h4>
+                    <p id="quest-status" class="text-[10px] opacity-80 mt-1">Klaim +50 Poin</p>
+                </div>
+            </div>
+
+            <!-- Popular Now -->
+            <div class="px-5 mt-7">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-extrabold text-slate-800 dark:text-white">Popular Now 🔥</h3>
+                    <span onclick="showPage('menu')" class="text-xs font-bold text-blue-600 cursor-pointer">See All
+                        →</span>
+                </div>
+            </div>
+
+            <div class="px-5 pb-10 space-y-3" id="product-list"></div>
+        </main>
+
+        <!-- ===== MENU PAGE ===== -->
+        <main id="menu-page" class="app-page">
+            <div class="px-5 pt-6 pb-3 flex items-center gap-3">
+                <button onclick="showPage('home')"
+                    class="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm text-lg">←</button>
+                <h2 class="text-xl font-extrabold text-slate-800 dark:text-white flex-1">Daftar Menu</h2>
+                <button
+                    class="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm text-sm">⚙️</button>
+            </div>
+
+            <div class="px-5 mb-4 flex gap-2 overflow-x-auto no-scrollbar" id="menu-category-tabs">
+                <span class="category-pill active" onclick="filterMenu('all')">☕ All</span>
+                <span class="category-pill" onclick="filterMenu('signature')">✨ Signature</span>
+                <span class="category-pill" onclick="filterMenu('classic')">☕ Classic</span>
+                <span class="category-pill" onclick="filterMenu('non-coffee')">🍵 Non-Coffee</span>
+            </div>
+
+            <div class="px-5 mb-5">
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm border border-slate-100 dark:border-slate-700">
+                    <span class="text-slate-400">🔍</span>
+                    <input type="text" placeholder="Search menu..." id="menu-search" oninput="searchMenu(this.value)"
+                        class="bg-transparent flex-1 text-sm font-medium outline-none placeholder-slate-300 dark:text-white">
+                </div>
+            </div>
+
+            <div class="px-5 pb-10 grid grid-cols-2 gap-3" id="menu-product-grid"></div>
+        </main>
+
+        <!-- ===== CART PAGE ===== -->
+        <main id="cart-page" class="app-page">
+            <div class="px-5 pt-6 pb-3 flex items-center gap-3">
+                <button onclick="showPage('home')"
+                    class="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm text-lg">←</button>
+                <h2 class="text-xl font-extrabold text-blue-900 dark:text-white flex-1">Keranjang Anda</h2>
+            </div>
+
+            <div class="px-5">
+                <!-- Alamat Pengiriman -->
+                <div
+                    class="bg-white dark:bg-slate-900 p-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 mb-4">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span>📍</span>
+                        <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Alamat Pengiriman</span>
+                    </div>
+                    <p id="cart-address-display" class="text-sm font-bold text-slate-800 dark:text-white">Belum diatur
+                    </p>
+                    <p class="text-[10px] text-blue-600 font-bold mt-1 cursor-pointer" onclick="showPage('profile')">
+                        Ubah di Profile →</p>
+                </div>
+
+                <div id="cart-items" class="space-y-3 min-h-[100px]"></div>
+
+                <div
+                    class="mt-6 bg-white dark:bg-slate-900 rounded-[1.5rem] p-5 shadow-lg border border-slate-100 dark:border-slate-800">
+                    <div class="space-y-3 mb-4">
+                        <div class="flex justify-between text-sm"><span
+                                class="text-slate-400 font-medium">Subtotal</span><span id="cart-total"
+                                class="font-extrabold text-slate-800 dark:text-white">Rp 0</span></div>
+                        <div id="voucher-row" class="hidden flex justify-between text-sm"><span
+                                class="text-green-500 font-medium">🎫 Voucher</span><span id="voucher-discount-display"
+                                class="font-extrabold text-green-500">- Rp 0</span></div>
+                        <div class="flex justify-between text-sm"><span class="text-slate-400 font-medium">Biaya
+                                Pengiriman</span><span class="font-extrabold text-green-500">Gratis</span></div>
+                        <div
+                            class="border-t border-slate-100 dark:border-slate-700 pt-3 flex justify-between text-base">
+                            <span class="font-bold text-slate-600 dark:text-slate-300">Total Pembayaran</span><span
+                                class="font-extrabold text-blue-900 dark:text-blue-400 text-lg" id="cart-total-final">Rp
+                                0</span>
+                        </div>
+                    </div>
+                    <!-- Voucher Button -->
+                    <div id="voucher-section" class="mb-3">
+                        <button onclick="toggleVoucherPanel()" id="btn-voucher"
+                            class="w-full bg-amber-50 dark:bg-slate-800 border-2 border-dashed border-amber-300 dark:border-amber-600 py-3 rounded-2xl font-bold text-xs text-amber-600 dark:text-amber-400 active:scale-95 transition-all flex items-center justify-center gap-2">
+                            🎫 <span id="voucher-btn-text">Pakai Voucher</span>
+                        </button>
+                        <div id="voucher-panel" class="hidden mt-2 space-y-2"></div>
+                    </div>
+                    <button onclick="window.openPayment()"
+                        class="w-full bg-blue-700 hover:bg-blue-800 text-white py-4 rounded-2xl font-extrabold shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <span>🛒</span> Lanjutkan Pembayaran
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- ===== PROFILE PAGE ===== -->
+        <main id="profile-page" class="app-page p-5">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">Profil Pengguna</h3>
+                <div class="flex gap-2">
+                    <button onclick="showWrapped()"
+                        class="px-3 h-9 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-xl shadow-lg hover:shadow-purple-500/30 transition-all active:scale-95 flex items-center gap-1">
+                        🎁 Wrapped
+                    </button>
+                    <div
+                        class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-sm">
+                        ⚙️</div>
+                </div>
+            </div>
+
+            <!-- Profile Info -->
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-16 h-16 rounded-full border-3 border-blue-500 overflow-hidden shadow-lg bg-blue-50">
+                    <img id="profile-photo-display" src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
+                        class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h4 id="profile-display-name" class="text-lg font-extrabold text-slate-800 dark:text-white">Guest
+                    </h4>
+                    <p class="text-xs text-slate-400 font-medium">REKAN FOLK</p>
+                </div>
+            </div>
+
+            <!-- Member Card -->
+            <div id="member-card"
+                class="member-card-bronze rounded-[2rem] p-6 shadow-2xl relative overflow-hidden h-52 flex flex-col justify-between transition-all duration-500 mb-6">
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-80">Status Member</p>
+                    <h2 id="tier-name" class="text-2xl font-black mt-1">BRONZE MEMBER</h2>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold opacity-80">Total Poin</span>
+                        <span id="display-points" class="text-xl font-black">0</span>
+                    </div>
+                    <div class="w-full bg-white/20 h-2 rounded-full overflow-hidden">
+                        <div id="level-bar" class="h-full bg-white transition-all duration-1000" style="width: 0%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Biodata -->
+            <div
+                class="bg-white dark:bg-slate-900 rounded-[1.5rem] p-5 border border-slate-100 dark:border-slate-800 mb-5">
+                <h4 class="font-extrabold text-sm mb-4 text-slate-700 dark:text-white">📝 Biodata</h4>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Nama
+                            Lengkap</label>
+                        <input type="text" id="bio-name"
+                            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                            placeholder="Masukkan nama lengkap...">
+                    </div>
+                    <div>
+                        <label
+                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Email</label>
+                        <input type="email" id="bio-email" readonly
+                            class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 text-sm font-medium outline-none text-slate-400 dark:text-slate-500 cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">📱
+                            Nomor HP (WhatsApp)</label>
+                        <div
+                            class="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl px-3 py-3">
+                            <span class="text-sm font-bold text-slate-500">+62</span>
+                            <input type="tel" id="bio-phone"
+                                class="bg-transparent flex-1 text-sm font-bold outline-none dark:text-white"
+                                placeholder="8xxxxxxxxxx">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">📍
+                            Alamat Pengiriman</label>
+                        <div class="flex gap-2">
+                            <textarea id="input-address" rows="2"
+                                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500 resize-none dark:text-white"
+                                placeholder="Alamat (Otomatis dari GPS)"></textarea>
+                        </div>
+                        <input type="text" id="input-address-detail"
+                            class="mt-2 w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                            placeholder="Detail Lokasi (No. Rumah, RT/RW, Patokan...)">
+
+                        <button onclick="getGPSAddress()" id="btn-gps"
+                            class="mt-1 text-[10px] text-green-600 font-bold flex items-center gap-1">
+                            📡 Gunakan GPS
+                        </button>
+                        <p id="gps-status" class="text-[10px] text-slate-400 mt-1 hidden"></p>
+                    </div>
+                </div>
+                <button onclick="saveBiodata()"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-xs active:scale-95 transition-all mt-4">
+                    💾 Simpan Biodata
+                </button>
+                <p id="bio-save-info" class="text-[10px] text-slate-400 mt-2 text-center">*Isi Biodata Untuk Memenuhi
+                    Persyaratan Folkpresso</p>
+            </div>
+
+            <!-- Notifikasi -->
+            <div
+                class="bg-white dark:bg-slate-900 rounded-[1.5rem] p-5 border border-slate-100 dark:border-slate-800 mb-5">
+                <h4 class="font-extrabold text-sm mb-3 text-slate-700 dark:text-white">🔔 Notifikasi</h4>
+                <div id="notif-list" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+                    <p class="text-xs text-slate-400 italic text-center py-4">Belum ada notifikasi</p>
+                </div>
+            </div>
+
+            <!-- Riwayat Pesanan -->
+            <div
+                class="bg-white dark:bg-slate-900 rounded-[1.5rem] p-5 border border-slate-100 dark:border-slate-800 mb-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-extrabold text-sm text-slate-700 dark:text-white">📋 Riwayat Pesanan</h4>
+                    <button onclick="loadOrderHistory()" class="text-[10px] font-bold text-blue-600">Refresh</button>
+                </div>
+                <div id="order-history-list" class="space-y-2 max-h-72 overflow-y-auto no-scrollbar">
+                    <p class="text-xs text-slate-400 italic text-center py-4">Klik Refresh untuk melihat riwayat</p>
+                </div>
+            </div>
+
+            <!-- Caffeine Meter -->
+            <div
+                class="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 mb-5">
+                <h4 class="font-bold text-sm mb-4">⚡ Caffeine Meter</h4>
+                <div class="flex items-end gap-3 h-20">
+                    <div class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-t-xl relative overflow-hidden h-full">
+                        <div id="caffeine-bar"
+                            class="absolute bottom-0 w-full bg-orange-400 transition-all duration-1000"
+                            style="height: 0%"></div>
+                    </div>
+                    <div class="text-right">
+                        <h5 id="caffeine-mg" class="text-2xl font-black text-orange-500">0<span
+                                class="text-xs text-slate-400">mg</span></h5>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Install App Button (Hidden by default) -->
+            <button id="btn-install-app" onclick="installPWA()"
+                class="hidden w-full bg-slate-800 text-white py-4 rounded-2xl font-bold transition-colors border border-slate-700 mb-3 flex items-center justify-center gap-2">
+                📲 Install Aplikasi
+            </button>
+
+            <!-- Logout -->
+            <button onclick="logout()"
+                class="w-full bg-red-50 hover:bg-red-100 text-red-500 py-4 rounded-2xl font-bold transition-colors border border-red-100">
+                Keluar Akun
+            </button>
+        </main>
+
+        <!-- ===== BOTTOM NAV ===== -->
+        <nav class="fixed bottom-0 left-0 right-0 z-[80] glass-nav py-2 px-4">
+            <div class="flex justify-around">
+                <button onclick="showPage('home')" id="btn-home" class="bottom-nav-item active">
+                    <div class="nav-icon">🏠</div>
+                    <span class="text-[10px] font-bold mt-1">Home</span>
+                </button>
+                <button onclick="showPage('menu')" id="btn-menu" class="bottom-nav-item">
+                    <div class="nav-icon">📋</div>
+                    <span class="text-[10px] font-bold mt-1">Menu</span>
+                </button>
+                <button onclick="showPage('cart')" id="btn-cart" class="bottom-nav-item relative">
+                    <div class="nav-icon">🛒</div>
+                    <span class="text-[10px] font-bold mt-1">Cart</span>
+                </button>
+                <button onclick="showPage('profile')" id="btn-profile" class="bottom-nav-item relative">
+                    <div class="nav-icon">👤</div>
+                    <div id="notif-badge"
+                        class="absolute top-1 right-4 w-2.5 h-2.5 bg-red-500 rounded-full hidden border border-white dark:border-slate-900">
+                    </div>
+                    <span class="text-[10px] font-bold mt-1">Profile</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- ===== SIMULATION PAYMENT MODAL ===== -->
+    <div id="simulation-payment-modal"
+        class="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl slide-up">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-lg font-extrabold text-slate-800 dark:text-white">Pilih Pembayaran</h3>
+                    <p class="text-xs text-slate-500">Mode Simulasi (CORS Fallback)</p>
+                </div>
+                <button onclick="closeSimulationModal()"
+                    class="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400 font-bold hover:bg-slate-200">✕</button>
+            </div>
+
+            <div class="space-y-3">
+                <button onclick="handlePaymentSuccess('GoPay')"
+                    class="w-full flex items-center justify-between p-4 bg-sky-50 hover:bg-sky-100 border border-sky-100 rounded-xl transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🟢</span>
+                        <span class="font-bold text-slate-700">GoPay</span>
+                    </div>
+                    <span class="text-xs font-bold text-sky-600 bg-sky-100 px-2 py-1 rounded-lg">Pilih</span>
+                </button>
+
+                <button onclick="handlePaymentSuccess('ShopeePay')"
+                    class="w-full flex items-center justify-between p-4 bg-orange-50 hover:bg-orange-100 border border-orange-100 rounded-xl transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🟧</span>
+                        <span class="font-bold text-slate-700">ShopeePay</span>
+                    </div>
+                    <span class="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-lg">Pilih</span>
+                </button>
+
+                <button onclick="handlePaymentSuccess('Dana')"
+                    class="w-full flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🔵</span>
+                        <span class="font-bold text-slate-700">Dana</span>
+                    </div>
+                    <span class="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-lg">Pilih</span>
+                </button>
+
+                <button onclick="handlePaymentSuccess('QRIS')"
+                    class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🔳</span>
+                        <span class="font-bold text-slate-700">QRIS</span>
+                    </div>
+                    <span class="text-xs font-bold text-slate-600 bg-slate-200 px-2 py-1 rounded-lg">Pilih</span>
+                </button>
+            </div>
+
+            <p class="text-[10px] text-slate-400 text-center mt-6">
+                *Simulasi ini muncul karena koneksi ke Midtrans API diblokir browser.
+            </p>
+        </div>
+    </div>
+    </div>
+
+    <!-- ===== PRODUCT CUSTOMIZATION MODAL ===== -->
+    <div id="product-modal"
+        class="fixed inset-0 z-[100] hidden items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl slide-up relative">
+            <button onclick="closeProductModal()"
+                class="absolute top-4 right-4 w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 font-bold hover:bg-slate-200">✕</button>
+
+            <div class="flex items-start gap-4 mb-6">
+                <img id="pm-image" src="" class="w-20 h-20 rounded-2xl object-cover shadow-sm bg-slate-50">
+                <div>
+                    <h3 id="pm-name" class="text-lg font-extrabold text-slate-900 dark:text-white leading-tight">Product
+                        Name</h3>
+                    <p id="pm-price" class="text-blue-600 dark:text-blue-400 font-black text-base mt-1">Rp 0</p>
+                    <p id="pm-desc" class="text-xs text-slate-400 mt-1 line-clamp-2">Deskripsi produk singkat...</p>
+                </div>
+            </div>
+
+            <div class="space-y-5 mb-8 overflow-y-auto max-h-[50vh] pr-1">
+                <!-- Sweetness Level -->
+                <div id="opt-sweetness">
+                    <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-3">Gula (Sweetness) 🍬</h4>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="selectSugar('0%')" id="sugar-0"
+                            class="sugar-btn py-3 rounded-xl border-2 border-slate-100 dark:border-slate-700 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">0%</button>
+                        <button onclick="selectSugar('50%')" id="sugar-50"
+                            class="sugar-btn py-3 rounded-xl border-2 border-slate-100 dark:border-slate-700 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">50%</button>
+                        <button onclick="selectSugar('75%')" id="sugar-75"
+                            class="sugar-btn py-3 rounded-xl border-2 border-slate-100 dark:border-slate-700 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">75%</button>
+                        <button onclick="selectSugar('Normal')" id="sugar-normal"
+                            class="sugar-btn active py-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100 transition-colors">Normal</button>
+                    </div>
+                </div>
+
+                <!-- Quantity -->
+                <div>
+                    <h4 class="text-sm font-bold text-slate-700 dark:text-white mb-3">Jumlah</h4>
+                    <div class="flex items-center gap-4">
+                        <button onclick="updateModalQty(-1)"
+                            class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-lg">-</button>
+                        <span id="pm-qty" class="text-xl font-black text-slate-900 dark:text-white">1</span>
+                        <button onclick="updateModalQty(1)"
+                            class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold text-lg">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="confirmAddToCart()"
+                class="w-full bg-blue-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-transform">
+                Tambah ke Keranjang - <span id="pm-total">Rp 0</span>
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
