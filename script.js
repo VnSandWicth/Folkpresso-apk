@@ -12,9 +12,45 @@ const firebaseConfig = {
     measurementId: "G-4VRF8TV2E1"
 };
 
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+// EMERGENCY FAILSAFE: Hide splash after 6 seconds even if scripts crash
+setTimeout(() => {
+    const splash = document.getElementById('splash-screen');
+    const app = document.getElementById('main-app');
+    if (splash && !splash.classList.contains('hidden')) {
+        console.warn("⚠️ Global Failsafe Triggered: Hiding splash screen manually.");
+        splash.classList.add('hidden');
+        if (app) {
+            app.classList.remove('hidden', 'opacity-0');
+            app.classList.add('opacity-100');
+        }
+    }
+}, 6000);
+
+try {
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+} catch (e) {
+    console.error("❌ Firebase Init Error:", e);
+    alert("Koneksi Firebase gagal! Cek internet kamu.");
 }
+
+// Add a "Repair" button if stuck too long
+setTimeout(() => {
+    const splash = document.getElementById('splash-screen');
+    if (splash && !splash.classList.contains('hidden')) {
+        const repairBtn = document.createElement('button');
+        repairBtn.innerText = "Tombol Perbaikan (Klik jika Stuck)";
+        repairBtn.style = "position:fixed; bottom:120px; z-index:10001; background:rgba(255,255,255,0.1); color:white; border:1px solid white; padding:10px; border-radius:10px; font-size:10px;";
+        repairBtn.onclick = () => {
+            if (confirm("Bersihkan cache & reload?")) {
+                localStorage.clear();
+                window.location.reload(true);
+            }
+        };
+        document.body.appendChild(repairBtn);
+    }
+}, 10000);
 
 const app = firebase.app();
 const auth = firebase.auth();
@@ -432,83 +468,7 @@ window.searchMenu = function (query) {
 // ==========================================
 // 4. AUTH & USER DATA SYNC
 // ==========================================
-auth.onAuthStateChanged((user) => {
-    const loginScreen = document.getElementById('login-screen');
-    const mainApp = document.getElementById('main-app');
-    const splashScreen = document.getElementById('splash-screen');
-
-    if (user) {
-        // --- LOGGED IN FLOW ---
-        // 1. Matikan Login Screen SEPENUHNYA
-        loginScreen.classList.add('hidden');
-        loginScreen.classList.add('opacity-0');
-
-        // 2. Tampilkan Main App di background (nanti akan tertutup Splash & Welcome)
-        mainApp.classList.remove('hidden');
-        mainApp.classList.add('opacity-0'); // Sembunyikan dulu opasitasnya biar gak flash
-
-        // 3. Pastikan Splash Screen Paling Atas & Muncul
-        if (splashScreen) {
-            splashScreen.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
-            splashScreen.classList.add('opacity-100');
-        }
-
-        // 4. Start Sync Data
-        startFolkSync(user.uid);
-
-        // DELAY TO SIMULATE LOADING & WAIT FOR SYNC
-        setTimeout(() => {
-            // 4.5 Pastikan Main App Muncul di Belakang
-            mainApp.classList.remove('opacity-0');
-            mainApp.classList.add('opacity-100');
-
-            try {
-                // 5. Munculkan Welcome Screen (Card)
-                showWelcomeScreen(user);
-            } catch (err) {
-                console.error("Welcome Screen Error:", err);
-            }
-
-            // 7. Hilangkan Splash Screen Pelan-pelan
-            if (splashScreen) {
-                splashScreen.classList.remove('opacity-100');
-                splashScreen.classList.add('opacity-0', 'pointer-events-none');
-                setTimeout(() => splashScreen.classList.add('hidden'), 700);
-            }
-        }, 2000);
-
-        // SAFETY NET: Force remove splash after 5 seconds if stuck
-        setTimeout(() => {
-            if (splashScreen && !splashScreen.classList.contains('hidden')) {
-                splashScreen.classList.add('hidden');
-                mainApp.classList.remove('hidden');
-            }
-        }, 5000);
-
-    } else {
-        // --- LOGGED OUT FLOW ---
-        // 1. Main App Hidden
-        mainApp.classList.add('hidden');
-
-        // 2. Splash Screen Muncul Sebentar
-        setTimeout(() => {
-            // Hide Splash
-            if (splashScreen) {
-                splashScreen.classList.remove('opacity-100');
-                splashScreen.classList.add('opacity-0', 'pointer-events-none');
-                setTimeout(() => splashScreen.classList.add('hidden'), 700);
-            }
-
-            // 3. Show Login Screen Pelan-pelan
-            loginScreen.classList.remove('hidden');
-            setTimeout(() => {
-                loginScreen.classList.remove('opacity-0');
-                loginScreen.classList.add('opacity-100');
-            }, 100);
-
-        }, 1500);
-    }
-});
+// (Auth listener moved to bottom of file for reliability)
 
 function startFolkSync(uid) {
     if (!uid) return;
@@ -3323,3 +3283,82 @@ window.confirmMapLocation = function () {
     if (window.showToast) window.showToast("✅ Alamat terpilih!");
     closeMapPicker();
 };
+
+// ==========================================
+// 10. AUTH INITIALIZATION (BOTTOM OF FILE)
+// ==========================================
+auth.onAuthStateChanged((user) => {
+    const loginScreen = document.getElementById('login-screen');
+    const mainApp = document.getElementById('main-app');
+    const splashScreen = document.getElementById('splash-screen');
+
+    if (user) {
+        // --- LOGGED IN FLOW ---
+        if (loginScreen) {
+            loginScreen.classList.add('hidden');
+            loginScreen.classList.add('opacity-0');
+        }
+
+        if (mainApp) {
+            mainApp.classList.remove('hidden');
+            mainApp.classList.add('opacity-0');
+        }
+
+        if (splashScreen) {
+            splashScreen.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            splashScreen.classList.add('opacity-100');
+        }
+
+        startFolkSync(user.uid);
+
+        setTimeout(() => {
+            if (mainApp) {
+                mainApp.classList.remove('opacity-0');
+                mainApp.classList.add('opacity-100');
+            }
+
+            try {
+                if (typeof showWelcomeScreen === 'function') {
+                    showWelcomeScreen(user);
+                }
+            } catch (err) { console.error("Welcome Error:", err); }
+
+            if (splashScreen) {
+                splashScreen.classList.remove('opacity-100');
+                splashScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => splashScreen.classList.add('hidden'), 700);
+            }
+        }, 2000);
+
+        // SECONDARY SAFETY NET (Per-Login)
+        setTimeout(() => {
+            if (splashScreen && !splashScreen.classList.contains('hidden')) {
+                splashScreen.classList.add('hidden');
+                if (mainApp) {
+                    mainApp.classList.remove('hidden', 'opacity-0');
+                    mainApp.classList.add('opacity-100');
+                }
+            }
+        }, 5000);
+
+    } else {
+        // --- LOGGED OUT FLOW ---
+        if (mainApp) mainApp.classList.add('hidden');
+
+        setTimeout(() => {
+            if (splashScreen) {
+                splashScreen.classList.remove('opacity-100');
+                splashScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => splashScreen.classList.add('hidden'), 700);
+            }
+
+            if (loginScreen) {
+                loginScreen.classList.remove('hidden');
+                setTimeout(() => {
+                    loginScreen.classList.remove('opacity-0');
+                    loginScreen.classList.add('opacity-100');
+                }, 100);
+            }
+        }, 1500);
+    }
+});
