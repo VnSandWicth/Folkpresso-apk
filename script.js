@@ -231,20 +231,63 @@ function setupAnnouncementRealtime() {
             icon: 'img/FPLOGO.png',
             badge: 'img/FPLOGO.png',
             tag: tag,
-            vibrate: [200, 100, 200],
-            requireInteraction: true
+            vibrate: [300, 100, 300, 100, 400],
+            renovate: true,
+            requireInteraction: true,
+            silent: false,
+            data: { url: window.location.href }
         };
 
+        // 1. Tampilkan In-App Banner (Kayak WA tapi di dalam App)
+        showInAppBanner(title, body);
+
+        // 2. Tampilkan Native Notification (Banner HP)
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.ready.then(reg => {
                 reg.showNotification(title, options);
             }).catch(e => {
-                console.warn("SW Notification failed, falling back:", e);
                 new Notification(title, options);
             });
         } else {
             new Notification(title, options);
         }
+    };
+
+    // Fungsi Banner di dalam App (Mirip WA)
+    const showInAppBanner = (title, body) => {
+        const existing = document.getElementById('wa-banner');
+        if (existing) existing.remove();
+
+        const banner = document.createElement('div');
+        banner.id = 'wa-banner';
+        banner.className = 'fixed top-4 left-4 right-4 z-[99999] bg-white/95 dark:bg-slate-800/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white/20 transform -translate-y-32 transition-transform duration-500 flex items-center gap-4';
+        banner.innerHTML = `
+            <div class="w-10 h-10 shrink-0 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <img src="img/FPLOGO.png" class="w-7 h-7 object-contain">
+            </div>
+            <div class="flex-1 min-w-0">
+                <h4 class="font-black text-xs text-blue-900 dark:text-blue-400 uppercase tracking-tighter truncate">${title}</h4>
+                <p class="text-[11px] text-slate-600 dark:text-slate-300 font-bold leading-tight line-clamp-2">${body}</p>
+            </div>
+            <div class="w-1 h-8 bg-blue-100 dark:bg-slate-700 rounded-full"></div>
+        `;
+
+        document.body.appendChild(banner);
+
+        // Slide Down
+        setTimeout(() => banner.classList.remove('-translate-y-32'), 100);
+
+        // Slide Up & Remove after 5s
+        setTimeout(() => {
+            banner.classList.add('-translate-y-32');
+            setTimeout(() => banner.remove(), 500);
+        }, 5000);
+
+        // Interaction
+        banner.onclick = () => {
+            banner.classList.add('-translate-y-32');
+            setTimeout(() => banner.remove(), 500);
+        };
     };
 
     // 1. Listen to Marquee Announcements
