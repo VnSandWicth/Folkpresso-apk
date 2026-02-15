@@ -21,20 +21,68 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const messaging = firebase.messaging();
 
+// 1. GLOBAL HELPERS FOR NOTIFICATIONS
+window.showInAppBanner = (title, body) => {
+    const existing = document.getElementById('wa-banner');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'wa-banner';
+    banner.className = 'fixed top-4 left-4 right-4 z-[99999] bg-white/95 dark:bg-slate-800/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white/20 transform -translate-y-32 transition-transform duration-500 flex items-center gap-4';
+    banner.innerHTML = `
+        <div class="w-10 h-10 shrink-0 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+            <img src="img/FPLOGO.png" class="w-7 h-7 object-contain">
+        </div>
+        <div class="flex-1 min-w-0">
+            <h4 class="font-black text-xs text-blue-900 dark:text-blue-400 uppercase tracking-tighter truncate">${title}</h4>
+            <p class="text-[11px] text-slate-600 dark:text-slate-300 font-bold leading-tight line-clamp-2">${body}</p>
+        </div>
+        <div class="w-1 h-8 bg-blue-100 dark:bg-slate-700 rounded-full"></div>
+    `;
+
+    document.body.appendChild(banner);
+    setTimeout(() => banner.classList.remove('-translate-y-32'), 100);
+    setTimeout(() => {
+        banner.classList.add('-translate-y-32');
+        setTimeout(() => banner.remove(), 500);
+    }, 5000);
+};
+
+window.triggerNotify = (title, body, tag) => {
+    if (Notification.permission !== 'granted') return;
+
+    const options = {
+        body: body,
+        icon: 'img/FPLOGO.png',
+        badge: 'img/FPLOGO.png',
+        tag: tag,
+        vibrate: [300, 100, 300, 100, 400],
+        renovate: true,
+        requireInteraction: true,
+        silent: false,
+        data: { url: window.location.href }
+    };
+
+    window.showInAppBanner(title, body);
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(title, options);
+        }).catch(e => {
+            console.warn("SW Notification failed, falling back:", e);
+            new Notification(title, options);
+        });
+    } else {
+        new Notification(title, options);
+    }
+};
+
 // Foreground Message Handler
 messaging.onMessage((payload) => {
     console.log("Foreground FCM Message:", payload);
     const title = payload.notification.title || "Folkpresso";
     const body = payload.notification.body || "";
-
-    // Trigger notification & banner
-    if (typeof window.triggerNotify === 'function') {
-        window.triggerNotify(title, body, 'fcm-' + Date.now());
-    }
-
-    if (window.showInAppBanner) {
-        window.showInAppBanner(title, body);
-    }
+    window.triggerNotify(title, body, 'fcm-' + Date.now());
 });
 
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
@@ -189,35 +237,36 @@ async function initMessaging() {
             console.log("✅ Notification permission granted.");
             if ('serviceWorker' in navigator) {
                 const reg = await navigator.serviceWorker.ready;
+                // Pakai VAPID Key dari Admin Dashboard biar singkron
                 const token = await firebase.messaging().getToken({
                     serviceWorkerRegistration: reg,
-                    vapidKey: 'BNtdaF__a0FXy_zFkc3YZe75wqr2HCpGQ19IF56rit-IEsjZR7d6gFoLV5e5uJq5dy8bOHyTpVJvI8OUU6D9wz4'
+                    vapidKey: 'BIFxetjxyNIQSdbF9hNsJonNK1lXhEperjC7g7WqzsKtIZOAWA_UlW8P8t36WgBm2SJdZaUEafz-OctAXULKMEE'
                 });
 
                 if (token) {
-                    console.log("✅ FCM Token:", token);
-                    // Simpan ke Firestore
+                    console.log("✅ FCM Token Generated:", token);
+                    // Langsung simpan begitu user login atau token berubah
                     auth.onAuthStateChanged(user => {
                         if (user) {
+                            console.log("Saving token for user:", user.uid);
                             db.collection('users').doc(user.uid).set({
                                 fcmToken: token,
-                                lastActive: firebase.firestore.FieldValue.serverTimestamp()
-                            }, { merge: true });
+                                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                            }, { merge: true }).then(() => {
+                                console.log("✅ Token saved to Firestore successfully!");
+                            }).catch(err => {
+                                console.error("❌ Error saving token to Firestore:", err);
+                                if (err.message.includes("permission")) {
+                                    console.warn("Please check Firestore Rules for 'users' collection!");
+                                }
+                            });
+                        } else {
+                            console.log("No user logged in, token not saved to Firestore yet.");
                         }
                     });
                 }
             }
         }
-
-        // --- HANDLER NOTIF SAAT APLIKASI DIBUKA (FOREGROUND) ---
-        messaging.onMessage((payload) => {
-            console.log("📢 Pesan masuk pas app kebuka:", payload);
-            if (window.showToast) {
-                // Munculin Toast kalo app lagi standby
-                window.showToast(`${payload.notification.title}: ${payload.notification.body}`);
-            }
-        });
-
     } catch (e) { console.warn("⚠️ Messaging Init Failed:", e); }
 }
 
@@ -238,73 +287,6 @@ window.getFCMToken = async function () {
 function setupAnnouncementRealtime() {
     if (!window.supabaseClient) return;
 
-    // Helper function for reliable notifications
-    const triggerNotify = (title, body, tag) => {
-        if (Notification.permission !== 'granted') return;
-
-        const options = {
-            body: body,
-            icon: 'img/FPLOGO.png',
-            badge: 'img/FPLOGO.png',
-            tag: tag,
-            vibrate: [300, 100, 300, 100, 400],
-            renovate: true,
-            requireInteraction: true,
-            silent: false,
-            data: { url: window.location.href }
-        };
-
-        // 1. Tampilkan In-App Banner (Kayak WA tapi di dalam App)
-        showInAppBanner(title, body);
-
-        // 2. Tampilkan Native Notification (Banner HP)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(reg => {
-                reg.showNotification(title, options);
-            }).catch(e => {
-                new Notification(title, options);
-            });
-        } else {
-            new Notification(title, options);
-        }
-    };
-
-    // Fungsi Banner di dalam App (Mirip WA)
-    const showInAppBanner = (title, body) => {
-        const existing = document.getElementById('wa-banner');
-        if (existing) existing.remove();
-
-        const banner = document.createElement('div');
-        banner.id = 'wa-banner';
-        banner.className = 'fixed top-4 left-4 right-4 z-[99999] bg-white/95 dark:bg-slate-800/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white/20 transform -translate-y-32 transition-transform duration-500 flex items-center gap-4';
-        banner.innerHTML = `
-            <div class="w-10 h-10 shrink-0 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <img src="img/FPLOGO.png" class="w-7 h-7 object-contain">
-            </div>
-            <div class="flex-1 min-w-0">
-                <h4 class="font-black text-xs text-blue-900 dark:text-blue-400 uppercase tracking-tighter truncate">${title}</h4>
-                <p class="text-[11px] text-slate-600 dark:text-slate-300 font-bold leading-tight line-clamp-2">${body}</p>
-            </div>
-            <div class="w-1 h-8 bg-blue-100 dark:bg-slate-700 rounded-full"></div>
-        `;
-
-        document.body.appendChild(banner);
-
-        // Slide Down
-        setTimeout(() => banner.classList.remove('-translate-y-32'), 100);
-
-        // Slide Up & Remove after 5s
-        setTimeout(() => {
-            banner.classList.add('-translate-y-32');
-            setTimeout(() => banner.remove(), 500);
-        }, 5000);
-
-        // Interaction
-        banner.onclick = () => {
-            banner.classList.add('-translate-y-32');
-            setTimeout(() => banner.remove(), 500);
-        };
-    };
 
     // 1. Listen to Marquee Announcements
     window.supabaseClient
