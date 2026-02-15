@@ -222,6 +222,31 @@ window.getFCMToken = async function () {
 function setupAnnouncementRealtime() {
     if (!window.supabaseClient) return;
 
+    // Helper function for reliable notifications
+    const triggerNotify = (title, body, tag) => {
+        if (Notification.permission !== 'granted') return;
+
+        const options = {
+            body: body,
+            icon: 'img/FPLOGO.png',
+            badge: 'img/FPLOGO.png',
+            tag: tag,
+            vibrate: [200, 100, 200],
+            requireInteraction: true
+        };
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification(title, options);
+            }).catch(e => {
+                console.warn("SW Notification failed, falling back:", e);
+                new Notification(title, options);
+            });
+        } else {
+            new Notification(title, options);
+        }
+    };
+
     // 1. Listen to Marquee Announcements
     window.supabaseClient
         .channel('public:announcements')
@@ -236,14 +261,8 @@ function setupAnnouncementRealtime() {
                 window.displayMarqueeMessage(msg, Date.now(), nid);
             }
 
-            // TRIGGER NATIVE NOTIFICATION (Banner like WhatsApp)
-            if (Notification.permission === 'granted') {
-                new Notification("Folkpresso Info ☕", {
-                    body: msg,
-                    icon: 'img/FPLOGO.png',
-                    tag: 'broadcast-' + payload.new.id
-                });
-            }
+            // Trigger Banner
+            triggerNotify("Folkpresso Info ☕", msg, 'broadcast-' + payload.new.id);
         })
         .subscribe();
 
@@ -253,15 +272,8 @@ function setupAnnouncementRealtime() {
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
             console.log("🔔 Formal Broadcast received:", payload.new);
 
-            // Show Native Notification
-            if (Notification.permission === 'granted') {
-                new Notification(payload.new.title || "Folkpresso", {
-                    body: payload.new.message,
-                    icon: 'img/FPLOGO.png',
-                    badge: 'img/FPLOGO.png',
-                    tag: 'formal-' + payload.new.id
-                });
-            }
+            // Trigger Banner
+            triggerNotify(payload.new.title || "Folkpresso", payload.new.message, 'formal-' + payload.new.id);
 
             // Show In-App Popup
             if (window.openUniversalPopup) {
