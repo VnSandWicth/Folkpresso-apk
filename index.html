@@ -968,13 +968,14 @@
                 <button onclick="document.getElementById('passport-modal').classList.add('hidden')"
                     class="absolute top-6 right-6 text-white/40 hover:text-white bg-white/5 w-8 h-8 rounded-full flex items-center justify-center font-bold border border-white/10 transition-all">✕</button>
 
-                <div class="text-5xl mb-4 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">📖</div>
-                <h3 class="text-2xl font-black text-white uppercase tracking-tighter italic">Folk's BOOKLET</h3>
+                <div class="text-4xl mb-2 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">📖</div>
+                <h3 class="text-xl font-black text-white uppercase tracking-tighter italic leading-none">Folk's BOOKLET
+                </h3>
 
                 <div id="prestige-badge"
-                    class="hidden mt-2 inline-flex items-center gap-1.5 bg-blue-500/20 px-3 py-1 rounded-full border border-blue-500/40">
-                    <span class="text-[8px] font-black text-blue-200 uppercase tracking-widest">Prestige Level</span>
-                    <span id="prestige-level-text" class="text-sm font-black text-blue-400">0</span>
+                    class="hidden mt-1.5 inline-flex items-center gap-1.5 bg-blue-500/20 px-2 py-0.5 rounded-full border border-blue-500/40">
+                    <span class="text-[7px] font-black text-blue-200 uppercase tracking-widest">Prestige</span>
+                    <span id="prestige-level-text" class="text-xs font-black text-blue-400">0</span>
                 </div>
 
                 <p class="text-[10px] text-blue-200/40 font-bold uppercase tracking-[0.2em] mt-3">Explorer's Registry
@@ -993,7 +994,7 @@
             </div>
 
             <div id="passport-list"
-                class="min-h-[300px] flex-grow p-6 overflow-y-auto grid grid-cols-3 gap-4 content-start no-scrollbar bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
+                class="min-h-[250px] flex-grow p-5 overflow-y-auto grid grid-cols-3 gap-4 content-start no-scrollbar bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
                 <!-- Stamps will be injected here -->
             </div>
 
@@ -1017,28 +1018,23 @@
                     <div class="h-px bg-white/5 flex-1"></div>
                 </div>
                 <!-- FIXED CONTAINER: Responsive scroll for Android/iPhone -->
-                <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2 snap-x px-1">
+                <!-- Achievements Grid -->
+                <div class="grid grid-cols-3 gap-2 px-1">
                     <div id="ms-explorer"
-                        class="shrink-0 bg-white/5 p-4 rounded-[2rem] border border-white/10 opacity-30 transition-all duration-500 text-center min-w-[110px] h-24 flex flex-col items-center justify-center snap-center">
-                        <div class="text-xl mb-0.5">🥉</div>
-                        <p class="text-[8px] font-black text-white uppercase tracking-tighter">Adventurer</p>
-                        <p class="text-[7px] text-blue-500/60 font-bold mt-0.5">5 Stamps</p>
+                        class="bg-white/5 p-3 rounded-[1.5rem] border border-white/10 opacity-30 transition-all duration-500 text-center h-24 flex flex-col items-center justify-center">
+                        <div class="text-xl mb-1">🥉</div>
+                        <p class="text-[8px] font-black text-white uppercase tracking-tighter">Explorer</p>
                     </div>
                     <div id="ms-junkie"
-                        class="shrink-0 bg-white/5 p-4 rounded-[2rem] border border-white/10 opacity-30 transition-all duration-500 text-center min-w-[110px] h-24 flex flex-col items-center justify-center snap-center">
-                        <div class="text-xl mb-0.5">🥈</div>
+                        class="bg-white/5 p-3 rounded-[1.5rem] border border-white/10 opacity-30 transition-all duration-500 text-center h-24 flex flex-col items-center justify-center">
+                        <div class="text-xl mb-1">🥈</div>
                         <p class="text-[8px] font-black text-white uppercase tracking-tighter">Addict</p>
-                        <p class="text-[7px] text-blue-500/60 font-bold mt-0.5">10 Stamps</p>
                     </div>
                     <div id="ms-master"
-                        class="shrink-0 bg-blue-500/10 p-4 rounded-[2rem] border border-blue-500/30 opacity-30 transition-all duration-500 text-center min-w-[110px] h-24 flex flex-col items-center justify-center snap-center relative shadow-[0_10px_30px_rgba(59,130,246,0.1)]">
-                        <div class="text-2xl mb-0.5">🏆</div>
-                        <p class="text-[9px] font-black text-white uppercase tracking-tighter leading-tight">Collector
-                        </p>
-                        <p class="text-[6px] text-blue-400 font-bold mt-0.5 uppercase">Complete</p>
+                        class="bg-blue-500/10 p-3 rounded-[1.5rem] border border-blue-500/30 opacity-30 transition-all duration-500 text-center h-24 flex flex-col items-center justify-center relative shadow-[0_5px_15px_rgba(59,130,246,0.1)]">
+                        <div class="text-2xl mb-1">🏆</div>
+                        <p class="text-[8px] font-black text-white uppercase leading-tight">Master</p>
                     </div>
-                    <!-- SPACER FINAL -->
-                    <div class="shrink-0 w-8 h-1"></div>
                 </div>
             </div>
         </div>

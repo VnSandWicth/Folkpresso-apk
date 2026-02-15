@@ -222,6 +222,7 @@ window.getFCMToken = async function () {
 function setupAnnouncementRealtime() {
     if (!window.supabaseClient) return;
 
+    // 1. Listen to Marquee Announcements
     window.supabaseClient
         .channel('public:announcements')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, payload => {
@@ -230,13 +231,42 @@ function setupAnnouncementRealtime() {
 
             console.log("📢 Realtime Announcement received:", msg);
 
-            // Masukkan ke antrian untuk tayang SEKALI LEWAT
+            // Tampilkan di Marquee
             if (typeof window.displayMarqueeMessage === 'function') {
                 window.displayMarqueeMessage(msg, Date.now(), nid);
             }
 
-            // JANGAN overwrite defaultMarquee di sini, biarkan marquee balik ke status toko/info default
-            // Kecuali admin mau bikin ini jadi loop selamanya (biasanya tidak u/ order/quest)
+            // TRIGGER NATIVE NOTIFICATION (Banner like WhatsApp)
+            if (Notification.permission === 'granted') {
+                new Notification("Folkpresso Info ☕", {
+                    body: msg,
+                    icon: 'img/FPLOGO.png',
+                    tag: 'broadcast-' + payload.new.id
+                });
+            }
+        })
+        .subscribe();
+
+    // 2. Listen to Formal Broadcasts (More Detailed)
+    window.supabaseClient
+        .channel('public:broadcast_notifications')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcast_notifications' }, payload => {
+            console.log("🔔 Formal Broadcast received:", payload.new);
+
+            // Show Native Notification
+            if (Notification.permission === 'granted') {
+                new Notification(payload.new.title || "Folkpresso", {
+                    body: payload.new.message,
+                    icon: 'img/FPLOGO.png',
+                    badge: 'img/FPLOGO.png',
+                    tag: 'formal-' + payload.new.id
+                });
+            }
+
+            // Show In-App Popup
+            if (window.openUniversalPopup) {
+                window.openUniversalPopup(payload.new.title || "Info Baru", payload.new.message, "🔔");
+            }
         })
         .subscribe();
 }
@@ -564,7 +594,12 @@ window.registerWithEmail = async function () {
         const checkPhone = await db.collection('users').where('phone', '==', phone).get();
         if (!checkPhone.empty) {
             btn.innerText = "Daftar Sekarang";
-            return alert('❌ Nomor HP ini sudah terdaftar dengan akun lain! Silakan gunakan nomor lain.');
+            return openUniversalPopup(
+                "Nomor Terdaftar",
+                "Waduh! Nomor HP ini sudah terhubung dengan akun lain. Coba pakai nomor WhatsApp yang lain ya Bang!",
+                "🚫",
+                "error"
+            );
         }
 
         // 2. LANJUT DAFTAR KE FIREBASE AUTH
@@ -2516,19 +2551,19 @@ window.openPassport = async function () {
         const isCollected = purchasedNames.has(p.name.trim().toLowerCase());
         const opacity = isCollected ? 'opacity-100' : 'opacity-10 grayscale';
         const stampOverlay = isCollected ? `
-            <div class="absolute inset-0 flex items-center justify-center">
-                <div class="w-12 h-12 border-2 border-blue-500/50 rounded-full flex items-center justify-center rotate-[-15deg] backdrop-blur-[1px]">
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="w-10 h-10 border-2 border-blue-500/50 rounded-full flex items-center justify-center rotate-[-15deg] backdrop-blur-[1px]">
                     <div class="text-[6px] font-black text-blue-500 uppercase tracking-widest bg-slate-900 border border-blue-500/50 px-1">Verified</div>
                 </div>
             </div>` : '';
 
         list.innerHTML += `
-            <div class="relative flex flex-col items-center p-2 aspect-square justify-center transition-all duration-500 ${isCollected ? 'scale-110' : 'opacity-40 hover:opacity-100'}">
+            <div class="relative flex flex-col items-center p-2 justify-center transition-all duration-500 ${isCollected ? 'scale-110' : 'opacity-40'}">
                 <div class="w-20 h-20 flex items-center justify-center relative bg-transparent">
                     <img src="${imgSrc}" class="w-full h-full object-contain ${opacity} drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]" onerror="this.src='img/gula aren.png'">
                     ${stampOverlay}
                 </div>
-                <p class="text-[8px] font-black text-blue-100/30 mt-1 text-center leading-tight truncate w-full uppercase tracking-tighter">${p.name}</p>
+                <p class="text-[8px] font-black text-blue-100/40 mt-1 text-center leading-tight truncate w-full uppercase tracking-tighter">${p.name}</p>
             </div>
         `;
     });
@@ -2588,7 +2623,12 @@ window.saveMissingData = async function () {
                 // Pastikan bukan milik user sendiri (walaupun harusnya ini missing)
                 const exists = checkPhone.docs.some(doc => doc.id !== user.uid);
                 if (exists) {
-                    return alert('❌ Nomor HP ini sudah terdaftar dengan akun lain! Silakan gunakan nomor lain.');
+                    return openUniversalPopup(
+                        "Duplikat Nomor",
+                        "Nomor HP ini sudah dipakai akun lain, Bang! Mohon gunakan nomor WhatsApp milik Abang sendiri.",
+                        "📱",
+                        "error"
+                    );
                 }
             }
         } catch (err) {
@@ -2934,3 +2974,63 @@ document.addEventListener('backbutton', function (e) {
     e.preventDefault();
     window.openExitModal('exit');
 }, false);
+
+// ==========================================
+// UNIVERSAL POPUP LOGIC
+// ==========================================
+window.openUniversalPopup = function (title, message, icon = '✨', type = 'info', actionLabel = "Oke", actionCallback = null) {
+    const popup = document.getElementById('universal-popup');
+    const content = document.getElementById('popup-content');
+    const iconEl = document.getElementById('popup-icon');
+    const titleEl = document.getElementById('popup-title');
+    const msgEl = document.getElementById('popup-message');
+    const actions = document.getElementById('popup-actions');
+
+    if (!popup || !content) return;
+
+    iconEl.innerText = icon;
+    titleEl.innerText = title;
+    msgEl.innerText = message;
+
+    // Type styling
+    if (type === 'error' || type === 'warning') {
+        titleEl.className = "text-xl font-black text-center text-red-600 dark:text-red-400 mb-2";
+    } else {
+        titleEl.className = "text-xl font-black text-center text-blue-900 dark:text-white mb-2";
+    }
+
+    actions.innerHTML = `
+        <button id="popup-confirm-btn" class="w-full ${type === 'error' ? 'bg-red-600' : 'bg-blue-600'} text-white py-3.5 rounded-2xl font-bold shadow-lg active:scale-95 transition-all uppercase tracking-widest text-xs">
+            ${actionLabel}
+        </button>
+    `;
+
+    const btn = document.getElementById('popup-confirm-btn');
+    btn.onclick = () => {
+        if (actionCallback) actionCallback();
+        window.closeUniversalPopup();
+    };
+
+    popup.classList.remove('hidden');
+    popup.classList.add('flex');
+
+    setTimeout(() => {
+        content.classList.remove('scale-50', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 50);
+};
+
+window.closeUniversalPopup = function () {
+    const popup = document.getElementById('universal-popup');
+    const content = document.getElementById('popup-content');
+
+    if (!popup || !content) return;
+
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-50', 'opacity-0');
+
+    setTimeout(() => {
+        popup.classList.add('hidden');
+        popup.classList.remove('flex');
+    }, 300);
+};
