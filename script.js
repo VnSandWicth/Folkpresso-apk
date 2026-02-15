@@ -12,19 +12,26 @@ const firebaseConfig = {
     measurementId: "G-4VRF8TV2E1"
 };
 
-// EMERGENCY FAILSAFE: Hide splash after 6 seconds even if scripts crash
-setTimeout(() => {
+// 🚀 IMMEDIATE SPLASH REMOVAL (Non-negotiable)
+function forceHideSplash() {
     const splash = document.getElementById('splash-screen');
     const app = document.getElementById('main-app');
+    const login = document.getElementById('login-screen');
+
     if (splash && !splash.classList.contains('hidden')) {
-        console.warn("⚠️ Global Failsafe Triggered: Hiding splash screen manually.");
+        console.warn("🛡️ Force Hiding Splash Screen");
         splash.classList.add('hidden');
-        if (app) {
-            app.classList.remove('hidden', 'opacity-0');
+        splash.style.display = 'none';
+
+        // Show App or Login if they are hiding
+        if (app && app.classList.contains('hidden')) {
+            app.classList.remove('hidden');
             app.classList.add('opacity-100');
         }
+        // If no user, onAuthStateChanged will soon show login-screen anyway
     }
-}, 6000);
+}
+setTimeout(forceHideSplash, 6000);
 
 // 🚀 SAFER INITIALIZATION (Prevents whole script crash)
 let app, auth, db, messaging;
@@ -275,7 +282,10 @@ window.addEventListener('load', async () => {
     updateGoalUI();
 
     // E. Notification Init
-    initMessaging();
+    // Delay further to ensure Auth is definitely stable on mobile
+    setTimeout(() => {
+        if (typeof initMessaging === 'function') initMessaging();
+    }, 3000);
 
     // E. Handle Midtrans Return (The "JARING")
     handleMidtransReturn();
@@ -287,49 +297,49 @@ window.addEventListener('load', async () => {
 // ==========================================
 async function initMessaging() {
     try {
+        if (!auth || !auth.currentUser) {
+            console.log("⏭️ Skipping Messaging Init: User not authenticated.");
+            return;
+        }
+
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
             console.log("✅ Notification permission granted.");
             if ('serviceWorker' in navigator) {
-                // Failsafe 5 detik buat SW ready biar gak gantung selamanya di HP
+                // Failsafe 3 detik buat SW ready (Mobile optimization)
                 const reg = await Promise.race([
                     navigator.serviceWorker.ready,
-                    new Promise(resolve => setTimeout(() => resolve(null), 5000))
+                    new Promise(resolve => setTimeout(() => resolve(null), 3000))
                 ]);
 
-                if (!reg) throw new Error("Service Worker took too long to be ready.");
+                if (!reg) return; // Silent exit if SW not ready
 
                 // FIX VAPID KEY (Must match exactly with Admin Case Sensitive)
                 const token = await firebase.messaging().getToken({
                     serviceWorkerRegistration: reg,
                     vapidKey: 'BIFxetjXyNIQSdbF9hNSjOnNK1lxhEperjC7g7WqzsKtIZOawA_UlW8P8t36WgBm2SJdZaUEafz-OctAXULkMEE'
+                }).catch(err => {
+                    // SILENT ERROR for 401/Auth failures - don't block mobile UI
+                    if (err.code === 'messaging/token-subscribe-failed' || err.message.includes('401')) {
+                        console.warn("FCM Subscription Silently Failed (likely 401). Continuing app use.");
+                        return null;
+                    }
+                    throw err;
                 });
 
-                if (token && auth) {
+                if (token && auth && auth.currentUser) {
                     console.log("✅ FCM Token Generated:", token);
-                    // Langsung simpan begitu user login atau token berubah
-                    auth.onAuthStateChanged(user => {
-                        if (user) {
-                            console.log("Saving token for user:", user.uid);
-                            db.collection('users').doc(user.uid).set({
-                                fcmToken: token,
-                                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
-                            }, { merge: true }).then(() => {
-                                console.log("✅ Token saved to Firestore successfully!");
-                            }).catch(err => {
-                                console.error("❌ Error saving token to Firestore:", err);
-                                if (err.message.includes("permission")) {
-                                    console.warn("Please check Firestore Rules for 'users' collection!");
-                                }
-                            });
-                        } else {
-                            console.log("No user logged in, token not saved to Firestore yet.");
-                        }
-                    });
+                    db.collection('users').doc(auth.currentUser.uid).set({
+                        fcmToken: token,
+                        lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true }).catch(err => console.warn("Firestore token save failed (silent):", err));
                 }
             }
         }
-    } catch (e) { console.warn("⚠️ Messaging Init Failed:", e); }
+    } catch (e) {
+        // Zero-impact error handling for mobile
+        console.warn("⚠️ Messaging Init skipped gracefully.");
+    }
 }
 
 // Fungsi bantu buat Abang liat token di console (pencet F12)
@@ -849,7 +859,7 @@ async function grantTierVoucher(tierName) {
 
             // BROADCAST GLOBAL TIER UP
             if (window.insertAnnouncement) {
-                window.insertAnnouncement("👑 " + (currentUser || "User") + " naik level ke " + tierName + "!");
+                window.insertAnnouncement(`👑 ${currentUser} naik level ke ${tierName}!`);
             }
             var v = tierVoucherMap[tierName];
             var voucher = { tier: tierName, discount: v.discount, label: v.label, used: false, createdAt: new Date().toISOString() };
@@ -2109,8 +2119,8 @@ window.closeUniversalPopup = function () {
     const popup = document.getElementById('universal-popup');
     const content = document.getElementById('popup-content');
     if (content) {
-        content.classList.remove('scale-100', 'opacity-100');
-        content.classList.add('scale-50', 'opacity-0');
+        content.classList.remove('scale-50', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
     }
     setTimeout(() => {
         if (popup) {
@@ -3318,19 +3328,15 @@ if (auth) {
         const mainApp = document.getElementById('main-app');
         const splashScreen = document.getElementById('splash-screen');
 
+        // FORCE HIDE SPLASH IMMEDIATELY ON AUTH EVENT
+        if (splashScreen) {
+            splashScreen.classList.add('hidden', 'opacity-0');
+            splashScreen.style.display = 'none';
+        }
+
         if (user) {
             // --- LOGGED IN FLOW ---
-            // HAPUS LOADING SCREEN DULUAN (Biar user gak nunggu)
-            if (splashScreen) {
-                splashScreen.classList.remove('opacity-100');
-                splashScreen.classList.add('opacity-0', 'pointer-events-none');
-                setTimeout(() => splashScreen.classList.add('hidden'), 700);
-            }
-
-            if (loginScreen) {
-                loginScreen.classList.add('hidden', 'opacity-0');
-            }
-
+            if (loginScreen) loginScreen.classList.add('hidden', 'opacity-0');
             if (mainApp) {
                 mainApp.classList.remove('hidden');
                 mainApp.classList.add('opacity-100');
@@ -3344,19 +3350,11 @@ if (auth) {
                         showWelcomeScreen(user);
                     }
                 } catch (err) { console.error("Welcome Error:", err); }
-            }, 1000);
+            }, 500);
 
         } else {
             // --- LOGGED OUT FLOW ---
-            // Tetap hapus splash screen buat nunjukin login
-            if (splashScreen) {
-                splashScreen.classList.remove('opacity-100');
-                splashScreen.classList.add('opacity-0', 'pointer-events-none');
-                setTimeout(() => splashScreen.classList.add('hidden'), 700);
-            }
-
             if (mainApp) mainApp.classList.add('hidden');
-
             if (loginScreen) {
                 loginScreen.classList.remove('hidden');
                 setTimeout(() => {
@@ -3366,11 +3364,15 @@ if (auth) {
             }
         }
     });
-} else {
+}
+else {
     // If Auth completely fails to load, still hide splash
     setTimeout(() => {
         const splash = document.getElementById('splash-screen');
-        if (splash) splash.classList.add('hidden');
+        if (splash) {
+            splash.classList.add('hidden', 'opacity-0');
+            splash.style.display = 'none';
+        }
         const login = document.getElementById('login-screen');
         if (login) login.classList.remove('hidden', 'opacity-0');
     }, 2000);
