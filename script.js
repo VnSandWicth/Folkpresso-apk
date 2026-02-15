@@ -511,88 +511,94 @@ auth.onAuthStateChanged((user) => {
 });
 
 function startFolkSync(uid) {
+    if (!uid) return;
+    console.log("🔄 Starting FolkSync for:", uid);
     db.collection("users").doc(uid).onSnapshot((doc) => {
-        if (doc.exists) {
-            const data = doc.data();
-            currentUser = data.customName || data.username || "Friend";
-            userPoints = data.points || 0;
-            userCaffeine = data.caffeine || 0;
+        try {
+            if (doc.exists) {
+                const data = doc.data();
+                currentUser = data.customName || data.username || "Friend";
+                userPoints = data.points || 0;
+                userCaffeine = data.caffeine || 0;
 
-            const nameDisplay = document.getElementById('home-username');
-            const pointsDisplay = document.getElementById('home-points');
-            const profilePhoto = document.getElementById('profile-photo-nav');
+                const nameDisplay = document.getElementById('home-username');
+                const pointsDisplay = document.getElementById('home-points');
+                const profilePhoto = document.getElementById('profile-photo-nav');
 
-            if (nameDisplay) nameDisplay.innerText = currentUser;
-            if (pointsDisplay) pointsDisplay.innerText = userPoints.toLocaleString();
-            if (profilePhoto && data.photo) profilePhoto.src = data.photo;
+                if (nameDisplay) nameDisplay.innerText = currentUser;
+                if (pointsDisplay) pointsDisplay.innerText = userPoints.toLocaleString();
+                if (profilePhoto && data.photo) profilePhoto.src = data.photo;
 
-            if (data.address) {
-                window.userAddress = data.address;
-                const addrInput = document.getElementById('input-address');
-                const addrDetailInput = document.getElementById('input-address-detail');
-                const cartAddr = document.getElementById('cart-address-display');
+                if (data.address) {
+                    window.userAddress = data.address;
+                    const addrInput = document.getElementById('input-address');
+                    const addrDetailInput = document.getElementById('input-address-detail');
+                    const cartAddr = document.getElementById('cart-address-display');
 
-                if (addrInput) addrInput.value = data.address;
-                if (addrDetailInput) addrDetailInput.value = data.addressDetail || '';
+                    if (addrInput) addrInput.value = data.address;
+                    if (addrDetailInput) addrDetailInput.value = data.addressDetail || '';
 
-                window.userLat = data.lat || null;
-                window.userLng = data.lng || null;
+                    window.userLat = data.lat || null;
+                    window.userLng = data.lng || null;
 
-                if (cartAddr) {
-                    const fullAddr = data.address + (data.addressDetail ? `, ${data.addressDetail}` : '');
-                    cartAddr.innerText = fullAddr;
+                    if (cartAddr) {
+                        const fullAddr = data.address + (data.addressDetail ? `, ${data.addressDetail}` : '');
+                        cartAddr.innerText = fullAddr;
+                    }
                 }
+
+                if (data.phone) {
+                    window.userPhone = data.phone;
+                    var bioPhone = document.getElementById('bio-phone');
+                    if (bioPhone) {
+                        bioPhone.value = data.phone.replace('+62', '');
+                        // === LOCK PHONE LOGIC ===
+                        bioPhone.setAttribute('readonly', true);
+                        bioPhone.classList.add('cursor-not-allowed', 'opacity-60', 'bg-slate-200', 'dark:bg-slate-800');
+                        bioPhone.classList.remove('bg-slate-50', 'dark:bg-slate-900');
+                        // Add lock icon or indicator if needed, but styling is enough
+                    }
+                }
+
+                // Check GoPay Binding Status
+                if (data.isGopayLinked) {
+                    const gopayText = document.getElementById('gopay-status-text');
+                    const gopayBtn = document.getElementById('btn-bind-gopay');
+                    if (gopayText) {
+                        gopayText.innerText = "Terhubung: +62" + (data.gopayPhone || data.phone.replace(/[^0-9]/g, ''));
+                        gopayText.classList.add('text-green-600');
+                    }
+                    if (gopayBtn) {
+                        gopayBtn.innerText = "Putuskan";
+                        gopayBtn.className = "bg-red-100 text-red-500 px-4 py-2 rounded-xl text-[10px] font-bold shadow-md active:scale-95 transition-all";
+                        gopayBtn.onclick = unbindGoPay;
+                    }
+                }
+
+                var bioName = document.getElementById('bio-name');
+                var bioEmail = document.getElementById('bio-email');
+                if (bioName) bioName.value = data.customName || data.username || '';
+                if (bioEmail) bioEmail.value = data.email || '';
+
+                var profilePhotoDisplay = document.getElementById('profile-photo-display');
+                var profileDisplayName = document.getElementById('profile-display-name');
+                if (profilePhotoDisplay && data.photo) profilePhotoDisplay.src = data.photo;
+                if (profileDisplayName) profileDisplayName.innerText = currentUser;
+
+                if (data.caffeineShownMilestones) caffeineShownMilestones = data.caffeineShownMilestones;
+
+                checkQuestStatus(data.lastQuestDate);
+                updateMemberUI();
+                checkPointsReset(data);
+                loadUserVouchers();
+                updatePassportStatus(); // Tambahin update status paspor
+
+                // PENTING: Jangan langsung cek Profile Completion di sini
+                // Biar Welcome Screen muncul duluan.
+                // checkProfileCompletion(data); --> Dipindah ke dismissWelcome()
             }
-
-            if (data.phone) {
-                window.userPhone = data.phone;
-                var bioPhone = document.getElementById('bio-phone');
-                if (bioPhone) {
-                    bioPhone.value = data.phone.replace('+62', '');
-                    // === LOCK PHONE LOGIC ===
-                    bioPhone.setAttribute('readonly', true);
-                    bioPhone.classList.add('cursor-not-allowed', 'opacity-60', 'bg-slate-200', 'dark:bg-slate-800');
-                    bioPhone.classList.remove('bg-slate-50', 'dark:bg-slate-900');
-                    // Add lock icon or indicator if needed, but styling is enough
-                }
-            }
-
-            // Check GoPay Binding Status
-            if (data.isGopayLinked) {
-                const gopayText = document.getElementById('gopay-status-text');
-                const gopayBtn = document.getElementById('btn-bind-gopay');
-                if (gopayText) {
-                    gopayText.innerText = "Terhubung: +62" + (data.gopayPhone || data.phone.replace(/[^0-9]/g, ''));
-                    gopayText.classList.add('text-green-600');
-                }
-                if (gopayBtn) {
-                    gopayBtn.innerText = "Putuskan";
-                    gopayBtn.className = "bg-red-100 text-red-500 px-4 py-2 rounded-xl text-[10px] font-bold shadow-md active:scale-95 transition-all";
-                    gopayBtn.onclick = unbindGoPay;
-                }
-            }
-
-            var bioName = document.getElementById('bio-name');
-            var bioEmail = document.getElementById('bio-email');
-            if (bioName) bioName.value = data.customName || data.username || '';
-            if (bioEmail) bioEmail.value = data.email || '';
-
-            var profilePhotoDisplay = document.getElementById('profile-photo-display');
-            var profileDisplayName = document.getElementById('profile-display-name');
-            if (profilePhotoDisplay && data.photo) profilePhotoDisplay.src = data.photo;
-            if (profileDisplayName) profileDisplayName.innerText = currentUser;
-
-            if (data.caffeineShownMilestones) caffeineShownMilestones = data.caffeineShownMilestones;
-
-            checkQuestStatus(data.lastQuestDate);
-            updateMemberUI();
-            checkPointsReset(data);
-            loadUserVouchers();
-            updatePassportStatus(); // Tambahin update status paspor
-
-            // PENTING: Jangan langsung cek Profile Completion di sini
-            // Biar Welcome Screen muncul duluan.
-            // checkProfileCompletion(data); --> Dipindah ke dismissWelcome()
+        } catch (err) {
+            console.error("❌ FolkSync Error:", err);
         }
     });
 }
