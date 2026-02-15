@@ -32,11 +32,31 @@ try {
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
-    app = firebase.app();
-    auth = firebase.auth();
-    db = firebase.firestore();
-    if (typeof firebase.messaging !== 'undefined' && firebase.messaging.isSupported()) {
-        messaging = firebase.messaging();
+    app = (firebase.apps.length) ? firebase.app() : null;
+    auth = (app) ? firebase.auth() : null;
+    db = (app) ? firebase.firestore() : null;
+    messaging = null;
+
+    try {
+        if (app && typeof firebase.messaging !== 'undefined' && firebase.messaging.isSupported()) {
+            messaging = firebase.messaging();
+
+            // Foreground Message Handler
+            messaging.onMessage((payload) => {
+                console.log("Foreground FCM Message:", payload);
+                const title = payload.notification.title || "Folkpresso";
+                const body = payload.notification.body || "";
+                window.triggerNotify(title, body, 'fcm-' + Date.now());
+            });
+        }
+    } catch (e) {
+        console.warn("FCM Support Check Failed:", e);
+    }
+
+    if (auth) {
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .then(() => console.log("✅ Auth Persistence set to LOCAL"))
+            .catch((error) => console.error("❌ Auth Persistence Error:", error));
     }
 } catch (e) {
     console.error("❌ Firebase Core Init Failed:", e);
@@ -122,17 +142,7 @@ window.triggerNotify = (title, body, tag) => {
     }
 };
 
-// Foreground Message Handler
-messaging.onMessage((payload) => {
-    console.log("Foreground FCM Message:", payload);
-    const title = payload.notification.title || "Folkpresso";
-    const body = payload.notification.body || "";
-    window.triggerNotify(title, body, 'fcm-' + Date.now());
-});
-
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-    .then(() => console.log("✅ Auth Persistence set to LOCAL"))
-    .catch((error) => console.error("❌ Auth Persistence Error:", error));
+// Messaging handler moved into safety block above
 
 // ==========================================
 // 2. SUPABASE & GLOBAL VARIABLES
@@ -295,7 +305,7 @@ async function initMessaging() {
                     vapidKey: 'BIFxetjXyNIQSdbF9hNSjOnNK1lxhEperjC7g7WqzsKtIZOawA_UlW8P8t36WgBm2SJdZaUEafz-OctAXULkMEE'
                 });
 
-                if (token) {
+                if (token && auth) {
                     console.log("✅ FCM Token Generated:", token);
                     // Langsung simpan begitu user login atau token berubah
                     auth.onAuthStateChanged(user => {
@@ -3299,56 +3309,69 @@ window.confirmMapLocation = function () {
 // ==========================================
 // 10. AUTH INITIALIZATION (BOTTOM OF FILE)
 // ==========================================
-auth.onAuthStateChanged((user) => {
-    const loginScreen = document.getElementById('login-screen');
-    const mainApp = document.getElementById('main-app');
-    const splashScreen = document.getElementById('splash-screen');
+// ==========================================
+// 10. AUTH INITIALIZATION (BOTTOM OF FILE)
+// ==========================================
+if (auth) {
+    auth.onAuthStateChanged((user) => {
+        const loginScreen = document.getElementById('login-screen');
+        const mainApp = document.getElementById('main-app');
+        const splashScreen = document.getElementById('splash-screen');
 
-    if (user) {
-        // --- LOGGED IN FLOW ---
-        // HAPUS LOADING SCREEN DULUAN (Biar user gak nunggu)
-        if (splashScreen) {
-            splashScreen.classList.remove('opacity-100');
-            splashScreen.classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => splashScreen.classList.add('hidden'), 700);
-        }
+        if (user) {
+            // --- LOGGED IN FLOW ---
+            // HAPUS LOADING SCREEN DULUAN (Biar user gak nunggu)
+            if (splashScreen) {
+                splashScreen.classList.remove('opacity-100');
+                splashScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => splashScreen.classList.add('hidden'), 700);
+            }
 
-        if (loginScreen) {
-            loginScreen.classList.add('hidden', 'opacity-0');
-        }
+            if (loginScreen) {
+                loginScreen.classList.add('hidden', 'opacity-0');
+            }
 
-        if (mainApp) {
-            mainApp.classList.remove('hidden');
-            mainApp.classList.add('opacity-100');
-        }
+            if (mainApp) {
+                mainApp.classList.remove('hidden');
+                mainApp.classList.add('opacity-100');
+            }
 
-        startFolkSync(user.uid);
+            startFolkSync(user.uid);
 
-        setTimeout(() => {
-            try {
-                if (typeof showWelcomeScreen === 'function') {
-                    showWelcomeScreen(user);
-                }
-            } catch (err) { console.error("Welcome Error:", err); }
-        }, 1000);
-
-    } else {
-        // --- LOGGED OUT FLOW ---
-        // Tetap hapus splash screen buat nunjukin login
-        if (splashScreen) {
-            splashScreen.classList.remove('opacity-100');
-            splashScreen.classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => splashScreen.classList.add('hidden'), 700);
-        }
-
-        if (mainApp) mainApp.classList.add('hidden');
-
-        if (loginScreen) {
-            loginScreen.classList.remove('hidden');
             setTimeout(() => {
-                loginScreen.classList.remove('opacity-0');
-                loginScreen.classList.add('opacity-100');
-            }, 100);
+                try {
+                    if (typeof showWelcomeScreen === 'function') {
+                        showWelcomeScreen(user);
+                    }
+                } catch (err) { console.error("Welcome Error:", err); }
+            }, 1000);
+
+        } else {
+            // --- LOGGED OUT FLOW ---
+            // Tetap hapus splash screen buat nunjukin login
+            if (splashScreen) {
+                splashScreen.classList.remove('opacity-100');
+                splashScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => splashScreen.classList.add('hidden'), 700);
+            }
+
+            if (mainApp) mainApp.classList.add('hidden');
+
+            if (loginScreen) {
+                loginScreen.classList.remove('hidden');
+                setTimeout(() => {
+                    loginScreen.classList.remove('opacity-0');
+                    loginScreen.classList.add('opacity-100');
+                }, 100);
+            }
         }
-    }
-});
+    });
+} else {
+    // If Auth completely fails to load, still hide splash
+    setTimeout(() => {
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.classList.add('hidden');
+        const login = document.getElementById('login-screen');
+        if (login) login.classList.remove('hidden', 'opacity-0');
+    }, 2000);
+}
