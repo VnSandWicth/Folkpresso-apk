@@ -490,7 +490,6 @@ function startFolkSync(uid) {
             updateMemberUI();
             checkPointsReset(data);
             loadUserVouchers();
-            loadUserVouchers();
             updatePassportStatus(); // Tambahin update status paspor
 
             // PENTING: Jangan langsung cek Profile Completion di sini
@@ -551,12 +550,27 @@ window.registerWithEmail = async function () {
     const email = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
     const phoneRaw = document.getElementById('reg-phone').value.trim();
+
     if (!email || !password || !phoneRaw) return alert('Isi semua data!');
+    if (password.length < 6) return alert('Kata sandi minimal 6 karakter!');
 
     let phone = '+62' + phoneRaw.replace(/[\s\-]/g, '').replace(/^0+/, '');
 
     try {
+        const btn = document.getElementById('reg-text');
+        btn.innerText = "Mengecek...";
+
+        // 1. CEK APAKAH NOMOR HP SUDAH TERDAFTAR (Firestore)
+        const checkPhone = await db.collection('users').where('phone', '==', phone).get();
+        if (!checkPhone.empty) {
+            btn.innerText = "Daftar Sekarang";
+            return alert('❌ Nomor HP ini sudah terdaftar dengan akun lain! Silakan gunakan nomor lain.');
+        }
+
+        // 2. LANJUT DAFTAR KE FIREBASE AUTH
         const result = await auth.createUserWithEmailAndPassword(email, password);
+
+        // 3. SIMPAN DATA KE FIRESTORE
         await db.collection('users').doc(result.user.uid).set({
             username: email.split('@')[0],
             customName: email.split('@')[0],
@@ -566,7 +580,13 @@ window.registerWithEmail = async function () {
             caffeine: 0,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-    } catch (err) { alert(err.message); }
+
+        console.log("✅ Pendaftaran Berhasil!");
+    } catch (err) {
+        alert("Gagal Daftar: " + err.message);
+        const btn = document.getElementById('reg-text');
+        if (btn) btn.innerText = "Daftar Sekarang";
+    }
 };
 
 window.logout = function () {
@@ -834,9 +854,8 @@ function loadVoucherPanel() {
         var isActive = window.activeVoucher && window.activeVoucher.id === v.id;
         var btnClass = isActive ? 'bg-green-500 text-white' : 'bg-white border border-amber-500 text-amber-600';
 
+        // Hanya tampilkan label & diskon
         let infoStr = `Diskon Rp ${v.discount.toLocaleString()}`;
-        if (v.expiry) infoStr += ` • Exp: ${v.expiry.split('-').reverse().join('/')}`;
-        if (v.max) infoStr += ` • Sisa: ${v.max - v.used} User`;
 
         return `
         <div class="flex items-center justify-between p-3 rounded-xl border ${btnClass} mb-2 transition-all">
@@ -1761,11 +1780,10 @@ async function handleMidtransReturn() {
                         console.warn("⚠️ totalPoin is 0 for order:", orderId);
                     }
 
-                    // Tandai sudah diproses
                     localStorage.setItem('processed_' + orderId, 'true');
 
                     window.history.replaceState({}, document.title, window.location.pathname);
-                    showPage('profile');
+                    showPage('home');
                 }
             } catch (err) {
                 console.error("Return Handler Error:", err);
@@ -2562,6 +2580,21 @@ window.saveMissingData = async function () {
         if (!phoneRaw || phoneRaw.length < 8) return alert("Nomor WhatsApp wajib diisi dengan benar!");
 
         let phone = '+62' + phoneRaw.replace(/[\s\-]/g, '').replace(/^0+/, '');
+
+        // --- CEK DUPLIKAT NOMOR HP ---
+        try {
+            const checkPhone = await db.collection('users').where('phone', '==', phone).get();
+            if (!checkPhone.empty) {
+                // Pastikan bukan milik user sendiri (walaupun harusnya ini missing)
+                const exists = checkPhone.docs.some(doc => doc.id !== user.uid);
+                if (exists) {
+                    return alert('❌ Nomor HP ini sudah terdaftar dengan akun lain! Silakan gunakan nomor lain.');
+                }
+            }
+        } catch (err) {
+            console.error("Cek Phone Error:", err);
+        }
+
         updateData.phone = phone; // Save Phone
     }
 
