@@ -21,6 +21,11 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const messaging = firebase.messaging();
 
+// STORE LOCATION (Parung Area - Placeholder)
+const STORE_LAT = -6.425;
+const STORE_LNG = 106.732;
+const MAX_FREE_RADIUS = 15; // 15 KM Radius for 1 cup order
+
 // 1. GLOBAL HELPERS FOR NOTIFICATIONS
 window.showInAppBanner = (title, body) => {
     const existing = document.getElementById('wa-banner');
@@ -524,9 +529,19 @@ function startFolkSync(uid) {
             if (data.address) {
                 window.userAddress = data.address;
                 const addrInput = document.getElementById('input-address');
+                const addrDetailInput = document.getElementById('input-address-detail');
                 const cartAddr = document.getElementById('cart-address-display');
+
                 if (addrInput) addrInput.value = data.address;
-                if (cartAddr) cartAddr.innerText = data.address + (data.addressDetail ? ` (${data.addressDetail})` : '');
+                if (addrDetailInput) addrDetailInput.value = data.addressDetail || '';
+
+                window.userLat = data.lat || null;
+                window.userLng = data.lng || null;
+
+                if (cartAddr) {
+                    const fullAddr = data.address + (data.addressDetail ? `, ${data.addressDetail}` : '');
+                    cartAddr.innerText = fullAddr;
+                }
             }
 
             if (data.phone) {
@@ -1143,12 +1158,61 @@ window.openPayment = function () {
 window.showDeliveryPopup = function () {
     const popup = document.getElementById('universal-popup');
     const content = document.getElementById('popup-content');
-    if (!popup || !content) return openActualPaymentModal(); // Fallback
+    if (!popup || !content) return openActualPaymentModal();
 
+    // --- CHECK RADIUS GPS ---
+    let totalQty = cart.reduce((a, b) => a + b.quantity, 0);
+    let distance = 0;
+    let isInside = true;
+
+    if (window.userLat && window.userLng) {
+        distance = calculateDistance(STORE_LAT, STORE_LNG, window.userLat, window.userLng);
+        isInside = distance <= MAX_FREE_RADIUS;
+        console.log("📏 Distance to Store:", distance.toFixed(2), "km");
+    } else {
+        // Fallback: Jika koordinat tidak ditemukan (Login lama), paksa pakai manual confirm
+        return showManualDeliveryPopup();
+    }
+
+    if (isInside) {
+        // Otomatis Lanjut jika di dalam radius
+        openActualPaymentModal();
+    } else {
+        // Di luar radius, cek Qty
+        if (totalQty >= 10) {
+            openActualPaymentModal();
+        } else {
+            // Tampilkan Peringatan Radius
+            document.getElementById('popup-icon').innerText = '🛵';
+            document.getElementById('popup-title').innerText = 'Luar Area Pengiriman';
+            document.getElementById('popup-message').innerHTML = `
+                <div class="text-left text-[11px] bg-orange-50 dark:bg-slate-800 p-4 rounded-2xl border border-orange-100 dark:border-slate-700 mb-4 leading-relaxed">
+                    <p class="font-bold text-orange-800 dark:text-orange-400 mb-1">📍 Jarak Kamu: ${distance.toFixed(1)} KM</p>
+                    <p class="mb-3 text-slate-600 dark:text-slate-300">Kamu berada di luar radius pengiriman standar Folkpresso (max ${MAX_FREE_RADIUS} KM).</p>
+
+                    <p class="font-bold text-blue-600 dark:text-blue-400 mb-1">💡 Solusi:</p>
+                    <p class="text-slate-600 dark:text-slate-300">Untuk area ini, minimal order adalah <b class="text-slate-900 dark:text-white">10 Cup</b> agar kurir kami bisa jalan. 😊</p>
+                </div>
+            `;
+            document.getElementById('popup-actions').innerHTML = `
+                <button onclick="closeUniversalPopup()" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-600 py-3.5 rounded-xl font-bold active:scale-95 transition-all text-xs">OKE, SAYA TAMBAH ORDER</button>
+            `;
+            popup.classList.remove('hidden');
+            popup.classList.add('flex');
+            setTimeout(() => {
+                content.classList.remove('scale-50', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+    }
+};
+
+function showManualDeliveryPopup() {
+    const popup = document.getElementById('universal-popup');
+    const content = document.getElementById('popup-content');
     document.getElementById('popup-icon').innerText = '🛵';
     document.getElementById('popup-title').innerText = 'Konfirmasi Area';
 
-    // Info Area
     document.getElementById('popup-message').innerHTML = `
         <div class="text-left text-[11px] bg-blue-50 dark:bg-slate-800 p-4 rounded-2xl border border-blue-100 dark:border-slate-700 mb-4 leading-relaxed">
             <p class="font-bold text-blue-800 dark:text-blue-300 mb-1">📍 Area Pengiriman Standar:</p>
@@ -1169,11 +1233,29 @@ window.showDeliveryPopup = function () {
 
     popup.classList.remove('hidden');
     popup.classList.add('flex');
+
     setTimeout(() => {
         content.classList.remove('scale-50', 'opacity-0');
         content.classList.add('scale-100', 'opacity-100');
     }, 10);
-};
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        ;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+}
+
+function deg2rad(deg) {
+    return deg * (Math.PI / 180);
+}
 
 window.handleDeliveryConfirm = function (isInside) {
     if (isInside) {
@@ -1196,14 +1278,17 @@ window.handleDeliveryConfirm = function (isInside) {
 };
 
 window.openActualPaymentModal = function () {
+    // Tutup popup universal jika ada biar gak tumpang tindih
+    if (typeof closeUniversalPopup === 'function') closeUniversalPopup();
+
     const modal = document.getElementById('payment-modal');
     if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         setTimeout(() => {
             modal.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
-            modal.classList.add('opacity-100', 'scale-100');
-        }, 10);
+            modal.classList.add('opacity-100', 'scale-100', 'pointer-events-auto');
+        }, 50);
     }
 };
 
@@ -1623,8 +1708,18 @@ window.saveBiodata = function () {
     if (!user) return showToast('Silakan login!');
     const name = document.getElementById('bio-name').value.trim();
     const address = document.getElementById('input-address').value.trim();
+    const addressDetail = document.getElementById('input-address-detail').value.trim();
+
     if (!name) return showToast('Nama tidak boleh kosong!');
-    db.collection('users').doc(user.uid).update({ customName: name, address: address }).then(() => {
+
+    db.collection('users').doc(user.uid).update({
+        customName: name,
+        address: address,
+        addressDetail: addressDetail,
+        lat: window.userLat || null,
+        lng: window.userLng || null,
+        lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
         window.userAddress = address;
         showToast('✅ Biodata disimpan!');
     });
@@ -2850,19 +2945,36 @@ window.showWelcomeScreen = function (user) {
     // No more points or motivation text updates here
 
 
-    // 4. Recommendation Logic (Rotasi Tiap 3 Jam - Slide 3)
-    // Jam 0-2: Index 0, Jam 3-5: Index 1, dst.
-    const hourBlock = Math.floor(new Date().getHours() / 3);
+    // 4. Recommendation Logic (Smart Time-Based Recommendations)
+    let recProd;
 
     if (products.length > 0) {
-        // Pastikan index valid, modulo dengan panjang produk
-        const prodIndex = hourBlock % products.length;
-        const recProd = products[prodIndex];
+        let filtered;
+        if (hour >= 5 && hour < 11) {
+            // Pagi: Kopi Strong / Signature (Fokus ke kafein tinggi)
+            filtered = products.filter(p => p.type === 'signature' || p.mg > 85);
+        } else if (hour >= 11 && hour < 17) {
+            // Siang: Kopi Manis & Segar (Mood Booster)
+            filtered = products.filter(p => p.name.includes('Caramel') || p.name.includes('Vanilla') || p.name.includes('Hazelnut') || p.name.includes('Sweet'));
+        } else if (hour >= 17 && hour < 21) {
+            // Sore: Latte / Matcha / Spanish (Relaksasi Sore)
+            filtered = products.filter(p => p.name.includes('Latte') || p.name.includes('Spanish') || p.name.includes('Matcha'));
+        } else {
+            // Malam: Non-Coffee atau yang lembut (Nyaman buat Tidur)
+            filtered = products.filter(p => p.type === 'non-coffee' || p.name.includes('Chocolate') || p.name.includes('Milk'));
+        }
+
+        // Fallback jika filter kosong
+        if (!filtered || filtered.length === 0) filtered = products;
+
+        // Variety: Gunakan menit untuk rotasi agar tidak bosan dalam 1 jam
+        const minute = new Date().getMinutes();
+        recProd = filtered[minute % filtered.length];
 
         const recName = document.getElementById('welcome-rec-name-slide');
         const recImg = document.getElementById('welcome-rec-img-slide');
-        if (recName) recName.innerText = recProd.name;
-        if (recImg) recImg.src = recProd.image || 'img/gula aren.png';
+        if (recName && recProd) recName.innerText = recProd.name;
+        if (recImg && recProd) recImg.src = recProd.image || 'img/gula aren.png';
     }
 
     // Reset to Slide 1
@@ -3086,4 +3198,122 @@ window.closeUniversalPopup = function () {
         popup.classList.add('hidden');
         popup.classList.remove('flex');
     }, 300);
+};
+
+// ==========================================
+// 10. MAP PICKER SYSTEM (FREE OPENSTREETMAP)
+// ==========================================
+let mapleaf = null;
+let currentCoords = [-6.2088, 106.8456]; // Default: Jakarta
+let selectedAddress = "";
+
+window.openMapPicker = function () {
+    document.getElementById('map-modal').classList.remove('hidden');
+    document.getElementById('map-modal').classList.add('flex');
+    setTimeout(() => {
+        if (!mapleaf) {
+            initLeafletMap();
+        } else {
+            mapleaf.invalidateSize();
+        }
+    }, 300);
+};
+
+window.closeMapPicker = function () {
+    document.getElementById('map-modal').classList.add('hidden');
+    document.getElementById('map-modal').classList.remove('flex');
+};
+
+function initLeafletMap() {
+    // 1. Create Map
+    mapleaf = L.map('map-container', {
+        zoomControl: false,
+        attributionControl: false
+    }).setView(currentCoords, 18);
+
+    // 2. Add OpenStreetMap Tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+    }).addTo(mapleaf);
+
+    // 3. Handle Move Event (Center Pin Logic)
+    mapleaf.on('move', () => {
+        const center = mapleaf.getCenter();
+        document.getElementById('map-center-pin').style.transform = 'translateY(-15px)';
+    });
+
+    mapleaf.on('moveend', () => {
+        const center = mapleaf.getCenter();
+        document.getElementById('map-center-pin').style.transform = 'translateY(0)';
+        reverseGeocode(center.lat, center.lng);
+    });
+
+    // Initial Geocode
+    reverseGeocode(currentCoords[0], currentCoords[1]);
+
+    // Auto-locate on first open
+    getMapCurrentLocation();
+}
+
+window.getMapCurrentLocation = function () {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            mapleaf.setView([lat, lng], 18);
+            reverseGeocode(lat, lng);
+        }, (err) => {
+            console.warn("GPS Failed:", err);
+            if (window.showToast) window.showToast("Duh, GPS HP-nya mati Bang!");
+        }, { enableHighAccuracy: true });
+    }
+};
+
+async function reverseGeocode(lat, lng) {
+    const addrText = document.getElementById('map-addr-text');
+    if (!addrText) return;
+
+    addrText.innerText = "🔍 Mencari alamat...";
+    addrText.classList.add('animate-pulse');
+
+    try {
+        // We use Nominatim (OpenStreetMap's free geocoder)
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`);
+        const data = await response.json();
+
+        if (data && data.display_name) {
+            const parts = data.display_name.split(',');
+            // Ambil 6 bagian awal (biasanya: Jalan, RT/RW, Kecamatan, Kota, Provinsi)
+            // Kita hilangkan bagian paling akhir (biasanya Kode Pos & Negara Indonesia)
+            const meaningfulParts = parts.length > 2 ? parts.slice(0, Math.min(parts.length - 1, 6)) : parts;
+            selectedAddress = meaningfulParts.join(',').trim();
+            addrText.innerText = selectedAddress;
+        } else {
+            addrText.innerText = "Alamat tidak ditemukan.";
+        }
+    } catch (err) {
+        addrText.innerText = "Gagal memuat alamat. Cek internet!";
+    } finally {
+        addrText.classList.remove('animate-pulse');
+    }
+}
+
+window.confirmMapLocation = function () {
+    if (!selectedAddress) {
+        if (window.showToast) window.showToast("Geser dulu petanya Bang!");
+        return;
+    }
+
+    // Set to fields
+    const addrInput = document.getElementById('input-address');
+    if (addrInput) {
+        addrInput.value = selectedAddress;
+        // Save Coordinates
+        const center = mapleaf.getCenter();
+        window.userLat = center.lat;
+        window.userLng = center.lng;
+    }
+
+    if (window.showToast) window.showToast("✅ Alamat terpilih!");
+    closeMapPicker();
 };
