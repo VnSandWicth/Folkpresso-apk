@@ -26,36 +26,40 @@ setTimeout(() => {
     }
 }, 6000);
 
+// 🚀 SAFER INITIALIZATION (Prevents whole script crash)
+let app, auth, db, messaging;
 try {
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
+    app = firebase.app();
+    auth = firebase.auth();
+    db = firebase.firestore();
+    if (typeof firebase.messaging !== 'undefined' && firebase.messaging.isSupported()) {
+        messaging = firebase.messaging();
+    }
 } catch (e) {
-    console.error("❌ Firebase Init Error:", e);
-    alert("Koneksi Firebase gagal! Cek internet kamu.");
+    console.error("❌ Firebase Core Init Failed:", e);
+    // Masih lanjut biar failsafe di bawah bisa hapus loading screen
 }
 
-// Add a "Repair" button if stuck too long
+// Add a "Repair" button if stuck too long (Aggressive)
 setTimeout(() => {
     const splash = document.getElementById('splash-screen');
     if (splash && !splash.classList.contains('hidden')) {
+        console.warn("🛡️ Emergency Button Added");
         const repairBtn = document.createElement('button');
-        repairBtn.innerText = "Tombol Perbaikan (Klik jika Stuck)";
-        repairBtn.style = "position:fixed; bottom:120px; z-index:10001; background:rgba(255,255,255,0.1); color:white; border:1px solid white; padding:10px; border-radius:10px; font-size:10px;";
+        repairBtn.innerHTML = "<b>STUCK? KLIK DISINI</b>";
+        repairBtn.style = "position:fixed; bottom:120px; left:50%; transform:translateX(-50%); z-index:10001; background:#ef4444; color:white; border:none; padding:15px; border-radius:20px; font-size:12px; font-weight:black; shadow:0 10px 20px rgba(0,0,0,0.5);";
         repairBtn.onclick = () => {
-            if (confirm("Bersihkan cache & reload?")) {
+            if (confirm("Bersihkan cache & reload aplikasi?")) {
                 localStorage.clear();
                 window.location.reload(true);
             }
         };
         document.body.appendChild(repairBtn);
     }
-}, 10000);
-
-const app = firebase.app();
-const auth = firebase.auth();
-const db = firebase.firestore();
-const messaging = firebase.messaging();
+}, 8000);
 
 // STORE LOCATION (Parung Area - Placeholder)
 const STORE_LAT = -6.425;
@@ -277,11 +281,18 @@ async function initMessaging() {
         if (permission === 'granted') {
             console.log("✅ Notification permission granted.");
             if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.ready;
-                // Pakai VAPID Key dari Admin Dashboard biar singkron
+                // Failsafe 5 detik buat SW ready biar gak gantung selamanya di HP
+                const reg = await Promise.race([
+                    navigator.serviceWorker.ready,
+                    new Promise(resolve => setTimeout(() => resolve(null), 5000))
+                ]);
+
+                if (!reg) throw new Error("Service Worker took too long to be ready.");
+
+                // FIX VAPID KEY (Must match exactly with Admin Case Sensitive)
                 const token = await firebase.messaging().getToken({
                     serviceWorkerRegistration: reg,
-                    vapidKey: 'BIFxetjxyNIQSdbF9hNsJonNK1lXhEperjC7g7WqzsKtIZOAWA_UlW8P8t36WgBm2SJdZaUEafz-OctAXULKMEE'
+                    vapidKey: 'BIFxetjXyNIQSdbF9hNSjOnNK1lxhEperjC7g7WqzsKtIZOawA_UlW8P8t36WgBm2SJdZaUEafz-OctAXULkMEE'
                 });
 
                 if (token) {
@@ -314,10 +325,11 @@ async function initMessaging() {
 // Fungsi bantu buat Abang liat token di console (pencet F12)
 window.getFCMToken = async function () {
     try {
+        if (!('serviceWorker' in navigator)) return;
         const reg = await navigator.serviceWorker.ready;
         const token = await firebase.messaging().getToken({
             serviceWorkerRegistration: reg,
-            vapidKey: 'BNtdaF__a0FXy_zFkc3YZe75wqr2HCpGQ19IF56rit-IEsjZR7d6gFoLV5e5uJq5dy8bOHyTpVJvI8OUU6D9wz4'
+            vapidKey: 'BIFxetjXyNIQSdbF9hNSjOnNK1lxhEperjC7g7WqzsKtIZOawA_UlW8P8t36WgBm2SJdZaUEafz-OctAXULkMEE'
         });
         console.log("Current Token:", token);
         return token;
@@ -3294,71 +3306,49 @@ auth.onAuthStateChanged((user) => {
 
     if (user) {
         // --- LOGGED IN FLOW ---
+        // HAPUS LOADING SCREEN DULUAN (Biar user gak nunggu)
+        if (splashScreen) {
+            splashScreen.classList.remove('opacity-100');
+            splashScreen.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => splashScreen.classList.add('hidden'), 700);
+        }
+
         if (loginScreen) {
-            loginScreen.classList.add('hidden');
-            loginScreen.classList.add('opacity-0');
+            loginScreen.classList.add('hidden', 'opacity-0');
         }
 
         if (mainApp) {
             mainApp.classList.remove('hidden');
-            mainApp.classList.add('opacity-0');
-        }
-
-        if (splashScreen) {
-            splashScreen.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
-            splashScreen.classList.add('opacity-100');
+            mainApp.classList.add('opacity-100');
         }
 
         startFolkSync(user.uid);
 
         setTimeout(() => {
-            if (mainApp) {
-                mainApp.classList.remove('opacity-0');
-                mainApp.classList.add('opacity-100');
-            }
-
             try {
                 if (typeof showWelcomeScreen === 'function') {
                     showWelcomeScreen(user);
                 }
             } catch (err) { console.error("Welcome Error:", err); }
-
-            if (splashScreen) {
-                splashScreen.classList.remove('opacity-100');
-                splashScreen.classList.add('opacity-0', 'pointer-events-none');
-                setTimeout(() => splashScreen.classList.add('hidden'), 700);
-            }
-        }, 2000);
-
-        // SECONDARY SAFETY NET (Per-Login)
-        setTimeout(() => {
-            if (splashScreen && !splashScreen.classList.contains('hidden')) {
-                splashScreen.classList.add('hidden');
-                if (mainApp) {
-                    mainApp.classList.remove('hidden', 'opacity-0');
-                    mainApp.classList.add('opacity-100');
-                }
-            }
-        }, 5000);
+        }, 1000);
 
     } else {
         // --- LOGGED OUT FLOW ---
+        // Tetap hapus splash screen buat nunjukin login
+        if (splashScreen) {
+            splashScreen.classList.remove('opacity-100');
+            splashScreen.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => splashScreen.classList.add('hidden'), 700);
+        }
+
         if (mainApp) mainApp.classList.add('hidden');
 
-        setTimeout(() => {
-            if (splashScreen) {
-                splashScreen.classList.remove('opacity-100');
-                splashScreen.classList.add('opacity-0', 'pointer-events-none');
-                setTimeout(() => splashScreen.classList.add('hidden'), 700);
-            }
-
-            if (loginScreen) {
-                loginScreen.classList.remove('hidden');
-                setTimeout(() => {
-                    loginScreen.classList.remove('opacity-0');
-                    loginScreen.classList.add('opacity-100');
-                }, 100);
-            }
-        }, 1500);
+        if (loginScreen) {
+            loginScreen.classList.remove('hidden');
+            setTimeout(() => {
+                loginScreen.classList.remove('opacity-0');
+                loginScreen.classList.add('opacity-100');
+            }, 100);
+        }
     }
 });
