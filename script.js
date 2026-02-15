@@ -58,23 +58,78 @@ window.lastNotifiedTier = "";
 // 3. PRODUCT DATA & RENDERING UTILS
 // ==========================================
 var manualProducts = [
-    { name: "Aren", price: 100, type: "signature", image: "img/gula aren.png", mg: 80, cost: 9000 },
-    { name: "Salted Caramel ", price: 15000, type: "signature", image: "img/salted.png", mg: 85, cost: 9000 },
-    { name: "Spanish Coffee", price: 15000, type: "signature", image: "img/spanish.png", mg: 85, cost: 9000 },
-    { name: "Pistachio", price: 15000, type: "signature", image: "img/pistacio.png", mg: 85, cost: 9000 },
-    { name: "Caramel Macchiato", price: 15000, type: "Signature", image: "img/maciato.png", mg: 85, cost: 9000 },
-    { name: "Americano", price: 15000, type: "classic", image: "img/biji kopi.png", mg: 120, cost: 9000 },
-    { name: "Caffe Latte", price: 15000, type: "classic", image: "img/maciato.png", mg: 80, cost: 9000 },
-    { name: "Caramel", price: 15000, type: "classic", image: "img/maciato.png", mg: 80, cost: 9000 },
-    { name: "Butterscotch", price: 15000, type: "classic", image: "img/maciato.png", mg: 80, cost: 9000 },
-    { name: "Hazelnut", price: 15000, type: "classic", image: "img/hazelnut.png", mg: 80, cost: 9000 },
-    { name: "Vanilla", price: 15000, type: "classic", image: "img/vanilla.png", mg: 80, cost: 9000 },
-    { name: "Rumbullion", price: 15000, type: "classic", image: "img/vanilla.png", mg: 80, cost: 9000 },
-    { name: "Tiramisu", price: 15000, type: "classic", image: "img/tiramisu.png", mg: 80, cost: 9000 },
-    { name: "Matcha Latte", price: 15000, type: "non-coffee", image: "img/matcha.png", mg: 0, cost: 9000 },
-    { name: "Chocolate", price: 15000, type: "non-coffee", image: "img/coklat.png", mg: 5, cost: 9000 },
+    { index: 1, name: "Aren Coffee", price: 100, type: "signature", image: "img/gula aren.png", mg: 80, cost: 9000, desc: "Kopi susu gula aren khas Folkpresso dengan rasa yang creamy dan otentik." },
+    { index: 2, name: "Salted Caramel ", price: 15000, type: "signature", image: "img/salted.png", mg: 85, cost: 9000, desc: "Perpaduan espresso, susu, dan sirup salted caramel yang gurih manis." },
+    { index: 3, name: "Spanish Coffee", price: 15000, type: "signature", image: "img/spanish.png", mg: 85, cost: 9000, desc: "Kopi susu ala Spanyol dengan foam yang tebal dan rasa yang bold." },
+    { index: 4, name: "Pistachio", price: 15000, type: "signature", image: "img/pistacio.png", mg: 85, cost: 9000, desc: "Kopi unik dengan sentuhan rasa kacang pistachio yang gurih & harum." },
+    { index: 5, name: "Caramel Macchiato", price: 15000, type: "signature", image: "img/maciato.png", mg: 85, cost: 9000, desc: "Lapisan espresso dan susu dingin dengan topping sirup caramel yang manis." },
+    { index: 6, name: "Americano", price: 15000, type: "classic", image: "img/biji kopi.png", mg: 120, cost: 9000, desc: "Ekstraksi espresso murni dengan air panas, cocok untuk pecinta kopi hitam." },
+    { index: 7, name: "Caffe Latte", price: 15000, type: "classic", image: "img/maciato.png", mg: 80, cost: 9000, desc: "Kopi dengan dominasi susu yang lembut, pilihan tepat untuk mengawali hari." },
+    { index: 8, name: "Caramel", price: 15000, type: "classic", image: "img/maciato.png", mg: 80, cost: 9000, desc: "Kopi susu klasik dengan aroma caramel yang menggoda selera." },
+    { index: 9, name: "Butterscotch", price: 15000, type: "classic", image: "img/maciato.png", mg: 80, cost: 9000, desc: "Kopi dengan cita rasa permen mentega nan lembut yang memanjakan lidah." },
+    { index: 10, name: "Hazelnut", price: 15000, type: "classic", image: "img/hazelnut.png", mg: 80, cost: 9000, desc: "Favorit sepanjang masa, kopi susu dengan sentuhan nutty dari kacang hazelnut." },
+    { index: 11, name: "Vanilla", price: 15000, type: "classic", image: "img/vanilla.png", mg: 80, cost: 9000, desc: "Cita rasa kopi susu yang lembut dengan wangi vanilla yang menenangkan." },
+    { index: 12, name: "Rumbullion", price: 15000, type: "classic", image: "img/vanilla.png", mg: 80, cost: 9000, desc: "Sensasi kopi unik dengan aroma rum (non-alkohol) yang kuat dan berkarakter." },
+    { index: 13, name: "Tiramisu", price: 15000, type: "classic", image: "img/tiramisu.png", mg: 80, cost: 9000, desc: "Menikmati kue tiramisu dalam segelas kopi susu yang legit dan lezat." },
+    { index: 14, name: "Matcha Latte", price: 15000, type: "non-coffee", image: "img/matcha.png", mg: 0, cost: 9000, desc: "Teh hijau Jepang grade premium dicampur susu segar, pas untuk relaksasi." },
+    { index: 15, name: "Chocolate", price: 15000, type: "non-coffee", image: "img/coklat.png", mg: 5, cost: 9000, desc: "Cokelat pekat pilihan dengan susu creamy, disukai semua kalangan." },
 ];
 var products = manualProducts;
+
+async function fetchProducts() {
+    try {
+        if (!window.supabaseClient) return;
+        const { data, error } = await window.supabaseClient
+            .from('products')
+            .select('*');
+
+        if (error) throw error;
+        if (data && data.length > 0) {
+            // MERGE LOGIC: Update existing products or add new ones
+            data.forEach(dbItem => {
+                const dbName = (dbItem.name || '').trim().toLowerCase();
+
+                // 1. Cari kecocokan (Exact atau Fuzzy)
+                let matchIndex = products.findIndex(p => {
+                    const localName = (p.name || '').trim().toLowerCase();
+                    return dbName === localName || dbName.includes(localName) || localName.includes(dbName);
+                });
+
+                if (matchIndex >= 0) {
+                    // Update data DB (Harga, Desc, dll) tapi JAGA Type asli & Index
+                    products[matchIndex].price = dbItem.price || products[matchIndex].price;
+                    products[matchIndex].cost = dbItem.cost || products[matchIndex].cost;
+                    products[matchIndex].desc = dbItem.desc || products[matchIndex].desc;
+                    products[matchIndex].mg = dbItem.mg || products[matchIndex].mg;
+
+                    // JANGAN timpa gambar lokal kalau gambar di database kosong/invalid
+                    if (dbItem.image && (dbItem.image.startsWith('http') || dbItem.image.includes('/'))) {
+                        products[matchIndex].image = dbItem.image;
+                    }
+                } else {
+                    // Produk baru dari Admin Dashboard: Kasih index tinggi biar di bawah
+                    dbItem.index = 999;
+                    if (dbItem.type) dbItem.type = dbItem.type.toLowerCase();
+                    products.push(dbItem);
+                }
+            });
+
+            // SORTIR: Kategori (Signature > Classic > Non-Coffee), lalu urutan Index asli
+            products.sort((a, b) => {
+                const catOrder = { 'signature': 1, 'classic': 2, 'non-coffee': 3 };
+                const orderA = catOrder[(a.type || '').toLowerCase()] || 99;
+                const orderB = catOrder[(b.type || '').toLowerCase()] || 99;
+
+                if (orderA !== orderB) return orderA - orderB;
+                return (a.index || 999) - (b.index || 999);
+            });
+
+            console.log("✅ Products Synced (Respecting Manual Order):", products);
+        }
+    } catch (err) {
+        console.error("❌ Error Syncing Products:", err);
+    }
+}
 
 // === 3. STARTUP LOGIC (Consolidated) ===
 window.addEventListener('load', async () => {
@@ -93,6 +148,7 @@ window.addEventListener('load', async () => {
     setupAnnouncementRealtime();
 
     // D. Initial Load
+    await fetchProducts(); // Ambil produk terbaru dari DB
     loadPopularProducts();
     if (typeof renderMenuGrid === 'function') renderMenuGrid(products);
 
@@ -124,6 +180,7 @@ async function initMessaging() {
 
                 if (token) {
                     console.log("✅ FCM Token:", token);
+                    // Simpan ke Firestore
                     auth.onAuthStateChanged(user => {
                         if (user) {
                             db.collection('users').doc(user.uid).set({
@@ -135,7 +192,30 @@ async function initMessaging() {
                 }
             }
         }
+
+        // --- HANDLER NOTIF SAAT APLIKASI DIBUKA (FOREGROUND) ---
+        messaging.onMessage((payload) => {
+            console.log("📢 Pesan masuk pas app kebuka:", payload);
+            if (window.showToast) {
+                // Munculin Toast kalo app lagi standby
+                window.showToast(`${payload.notification.title}: ${payload.notification.body}`);
+            }
+        });
+
     } catch (e) { console.warn("⚠️ Messaging Init Failed:", e); }
+}
+
+// Fungsi bantu buat Abang liat token di console (pencet F12)
+window.getFCMToken = async function () {
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const token = await firebase.messaging().getToken({
+            serviceWorkerRegistration: reg,
+            vapidKey: 'BNtdaF__a0FXy_zFkc3YZe75wqr2HCpGQ19IF56rit-IEsjZR7d6gFoLV5e5uJq5dy8bOHyTpVJvI8OUU6D9wz4'
+        });
+        console.log("Current Token:", token);
+        return token;
+    } catch (err) { console.error(err); }
 }
 
 
@@ -164,29 +244,39 @@ function setupAnnouncementRealtime() {
 async function loadPopularProducts() {
     try {
         if (!window.supabaseClient) return;
-        // 1. Ambil data 5 besar dari SQL View
+
+        // 1. Ambil TOP 5 Penjualan dari View (Realtime)
         const { data: popularData, error } = await window.supabaseClient
             .from('popular_products')
             .select('*');
 
-        if (error) throw error;
-
-        if (popularData && popularData.length > 0) {
-            console.log("📊 Data Jualan Kopi dari DB:", popularData);
-
-            const topProducts = popularData.map(soldItem => {
-                const match = products.find(p => {
-                    const dbName = soldItem.name.trim().toLowerCase();
-                    const localName = p.name.trim().toLowerCase();
-                    return dbName === localName || dbName.includes(localName) || localName.includes(dbName);
-                });
-                return match;
-            }).filter(p => p !== undefined);
-
-            renderProducts(topProducts);
-        } else {
+        if (error) {
+            console.warn("⚠️ View popular_products maybe not created yet, using fallback.");
             renderProducts(products.slice(0, 5));
+            return;
         }
+
+        // 2. Mapping: Cari data lengkap produk (foto, harga, dll) berdasarkan nama
+        let topProducts = [];
+        if (popularData && popularData.length > 0) {
+            popularData.forEach(item => {
+                const found = products.find(p => (p.name || '').trim().toLowerCase() === (item.name || '').trim().toLowerCase());
+                if (found) topProducts.push(found);
+            });
+        }
+
+        // 3. Render: Ambil Top Products, lalu lengkapi sisanya sampai 5 item agar tidak kosong
+        let listToRender = [...topProducts];
+
+        // Jika kurang dari 5, ambil sisanya dari produk lain (yang belum masuk list)
+        if (listToRender.length < 5) {
+            const others = products.filter(p => !listToRender.some(tp => (tp.name || '').trim().toLowerCase() === (p.name || '').trim().toLowerCase()));
+            listToRender = listToRender.concat(others.slice(0, 5 - listToRender.length));
+        }
+
+        renderProducts(listToRender);
+        console.log("🔥 Popular Products synced (Always 5 Items):", listToRender.map(p => p.name));
+
     } catch (err) {
         console.error("❌ Error Sinkronisasi Produk Populer:", err);
         renderProducts(products.slice(0, 5));
@@ -207,7 +297,7 @@ function renderProducts(list) {
         <div class="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center gap-4">
             <div class="w-16 h-16 shrink-0"><img src="${imgSrc}" class="w-full h-full object-cover rounded-2xl shadow-sm bg-slate-50" onerror="this.src='img/gula aren.png'"></div>
             <div class="flex-1 min-w-0"><h4 class="font-bold text-sm dark:text-white truncate">${p.name}</h4><p class="text-blue-600 dark:text-blue-400 font-black text-xs">Rp ${p.price.toLocaleString()}</p></div>
-            <button onclick="openProductModal('${safeName}', ${p.price}, ${p.mg}, ${p.cost}, '${imgSrc}', '', '${safeType}')" class="bg-blue-900 dark:bg-blue-600 text-white w-10 h-10 rounded-xl font-bold shrink-0 shadow-lg active:scale-90 transition-transform">+</button>
+            <button onclick="openProductModal('${safeName}', ${p.price}, ${p.mg}, ${p.cost}, '${imgSrc}', '${p.desc || ''}', '${safeType}')" class="bg-blue-900 dark:bg-blue-600 text-white w-10 h-10 rounded-xl font-bold shrink-0 shadow-lg active:scale-90 transition-transform">+</button>
         </div>`;
     });
 }
@@ -228,7 +318,7 @@ function renderMenuGrid(list) {
             <div class="p-3 bg-white dark:bg-slate-900 rounded-b-2xl border border-t-0 border-slate-100 dark:border-slate-800">
                 <h4 class="font-bold text-sm dark:text-white truncate">${p.name}</h4>
                 <p class="text-blue-600 font-extrabold text-xs mt-1">Rp ${p.price.toLocaleString()}</p>
-                <button onclick="openProductModal('${safeName}', ${p.price}, ${p.mg}, ${p.cost}, '${imgSrc}', '', '${safeType}')" class="mt-2 w-full bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold py-2 rounded-xl active:scale-95 transition-all">Add to Cart</button>
+                <button onclick="openProductModal('${safeName}', ${p.price}, ${p.mg}, ${p.cost}, '${imgSrc}', '${p.desc || ''}', '${safeType}')" class="mt-2 w-full bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold py-2 rounded-xl active:scale-95 transition-all">Add to Cart</button>
             </div>
         </div>`;
     });
@@ -251,25 +341,84 @@ window.searchMenu = function (query) {
 // ==========================================
 // 4. AUTH & USER DATA SYNC
 // ==========================================
+// ==========================================
+// 4. AUTH & USER DATA SYNC
+// ==========================================
 auth.onAuthStateChanged((user) => {
     const loginScreen = document.getElementById('login-screen');
     const mainApp = document.getElementById('main-app');
+    const splashScreen = document.getElementById('splash-screen');
 
     if (user) {
+        // --- LOGGED IN FLOW ---
+        // 1. Matikan Login Screen SEPENUHNYA
         loginScreen.classList.add('hidden');
+        loginScreen.classList.add('opacity-0');
+
+        // 2. Tampilkan Main App di background (nanti akan tertutup Splash & Welcome)
         mainApp.classList.remove('hidden');
+        mainApp.classList.add('opacity-0'); // Sembunyikan dulu opasitasnya biar gak flash
+
+        // 3. Pastikan Splash Screen Paling Atas & Muncul
+        if (splashScreen) {
+            splashScreen.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            splashScreen.classList.add('opacity-100');
+        }
+
+        // 4. Start Sync Data
         startFolkSync(user.uid);
 
+        // DELAY TO SIMULATE LOADING & WAIT FOR SYNC
         setTimeout(() => {
-            if ('Notification' in window && Notification.permission === 'default') {
-                const modal = document.getElementById('notif-modal');
-                if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+            // 4.5 Pastikan Main App Muncul di Belakang
+            mainApp.classList.remove('opacity-0');
+            mainApp.classList.add('opacity-100');
+
+            try {
+                // 5. Munculkan Welcome Screen (Card)
+                showWelcomeScreen(user);
+            } catch (err) {
+                console.error("Welcome Screen Error:", err);
+            }
+
+            // 7. Hilangkan Splash Screen Pelan-pelan
+            if (splashScreen) {
+                splashScreen.classList.remove('opacity-100');
+                splashScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => splashScreen.classList.add('hidden'), 700);
             }
         }, 2000);
+
+        // SAFETY NET: Force remove splash after 5 seconds if stuck
+        setTimeout(() => {
+            if (splashScreen && !splashScreen.classList.contains('hidden')) {
+                splashScreen.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+            }
+        }, 5000);
+
     } else {
-        // Handle Logout
-        loginScreen.classList.remove('hidden');
+        // --- LOGGED OUT FLOW ---
+        // 1. Main App Hidden
         mainApp.classList.add('hidden');
+
+        // 2. Splash Screen Muncul Sebentar
+        setTimeout(() => {
+            // Hide Splash
+            if (splashScreen) {
+                splashScreen.classList.remove('opacity-100');
+                splashScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => splashScreen.classList.add('hidden'), 700);
+            }
+
+            // 3. Show Login Screen Pelan-pelan
+            loginScreen.classList.remove('hidden');
+            setTimeout(() => {
+                loginScreen.classList.remove('opacity-0');
+                loginScreen.classList.add('opacity-100');
+            }, 100);
+
+        }, 1500);
     }
 });
 
@@ -300,7 +449,14 @@ function startFolkSync(uid) {
             if (data.phone) {
                 window.userPhone = data.phone;
                 var bioPhone = document.getElementById('bio-phone');
-                if (bioPhone) bioPhone.value = data.phone.replace('+62', '');
+                if (bioPhone) {
+                    bioPhone.value = data.phone.replace('+62', '');
+                    // === LOCK PHONE LOGIC ===
+                    bioPhone.setAttribute('readonly', true);
+                    bioPhone.classList.add('cursor-not-allowed', 'opacity-60', 'bg-slate-200', 'dark:bg-slate-800');
+                    bioPhone.classList.remove('bg-slate-50', 'dark:bg-slate-900');
+                    // Add lock icon or indicator if needed, but styling is enough
+                }
             }
 
             // Check GoPay Binding Status
@@ -334,7 +490,12 @@ function startFolkSync(uid) {
             updateMemberUI();
             checkPointsReset(data);
             loadUserVouchers();
+            loadUserVouchers();
             updatePassportStatus(); // Tambahin update status paspor
+
+            // PENTING: Jangan langsung cek Profile Completion di sini
+            // Biar Welcome Screen muncul duluan.
+            // checkProfileCompletion(data); --> Dipindah ke dismissWelcome()
         }
     });
 }
@@ -349,13 +510,15 @@ window.switchAuthTab = function (tab) {
     if (tab === 'register') {
         tabLogin.classList.add('hidden');
         tabRegister.classList.remove('hidden');
-        btnLogin.className = 'flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 text-slate-400';
-        btnRegister.className = 'flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 bg-white text-emerald-600 shadow-sm';
+
+        btnLogin.className = 'flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 text-white/50';
+        btnRegister.className = 'flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 bg-white text-blue-900 shadow-xl';
     } else {
         tabLogin.classList.remove('hidden');
         tabRegister.classList.add('hidden');
-        btnLogin.className = 'flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 bg-white text-blue-700 shadow-sm';
-        btnRegister.className = 'flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 text-slate-400';
+
+        btnLogin.className = 'flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 bg-white text-blue-900 shadow-xl';
+        btnRegister.className = 'flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 text-white/50';
     }
 };
 
@@ -407,9 +570,7 @@ window.registerWithEmail = async function () {
 };
 
 window.logout = function () {
-    if (confirm("Yakin mau keluar?")) {
-        auth.signOut().then(() => location.reload());
-    }
+    window.openExitModal('logout');
 };
 
 // ==========================================
@@ -529,7 +690,7 @@ window.claimQuest = function () {
                 showToast("🎉 +50 Poin Quest!");
                 // BROADCAST GLOBAL
                 if (window.insertAnnouncement) {
-                    window.insertAnnouncement("⚔️ " + (currentUser || user.displayName || "User") + " berhasil menyelesaikan Daily Quest (+50 Poin)!");
+                    window.insertAnnouncement("⚔️ " + (currentUser || user.displayName || "User") + " berhasil menyelesaikan Daily Reward!");
                 }
             }).catch(err => {
                 console.error("❌ Gagal claim quest (Firestore):", err);
@@ -549,10 +710,10 @@ function checkQuestStatus(lastDate) {
     if (!btn) return;
     if (lastDate === today) {
         btn.classList.add('opacity-50');
-        if (status) status.innerText = "Terklaim ✅";
+        if (status) status.innerText = "Claimed";
     } else {
         btn.classList.remove('opacity-50');
-        if (status) status.innerText = "Klaim +50 Poin";
+        if (status) status.innerText = "Claim +50 Poin";
     }
 }
 
@@ -615,7 +776,7 @@ async function loadUserVouchers() {
 
         if (!error && sbVouchers) {
             sbVouchers.forEach(v => {
-                // Filter: 
+                // Filter:
                 // - Target untuk 'all' atau cocok dengan UID
                 // - Belum Expired
                 // - Belum pernah dipakai sama user ini (cek used_by)
@@ -727,13 +888,14 @@ window.openProductModal = function (name, price, mg, cost, image, desc, type) {
         return;
     }
 
-    currentProduct = { name, price, mg, cost, image, type };
+    currentProduct = { name, price, mg, cost, image, desc, type };
     window.modalQty = 1;
     currentSugar = 'Normal';
 
     document.getElementById('pm-image').src = image;
     document.getElementById('pm-name').innerText = name;
     document.getElementById('pm-price').innerText = 'Rp ' + price.toLocaleString();
+    document.getElementById('pm-desc').innerText = desc || 'Nikmati kelezatan khas Folkpresso.';
     document.getElementById('pm-qty').innerText = '1';
 
     // Reset Sugar UI
@@ -748,7 +910,7 @@ window.openProductModal = function (name, price, mg, cost, image, desc, type) {
     }
 
     const sweetnessSection = document.getElementById('opt-sweetness');
-    if (sweetnessSection) sweetnessSection.style.display = type === 'non-coffee' ? 'none' : 'block';
+    if (sweetnessSection) sweetnessSection.style.display = 'block';
 
     updateModalTotal();
     document.getElementById('product-modal').classList.remove('hidden');
@@ -884,7 +1046,7 @@ window.showDeliveryPopup = function () {
         <div class="text-left text-[11px] bg-blue-50 dark:bg-slate-800 p-4 rounded-2xl border border-blue-100 dark:border-slate-700 mb-4 leading-relaxed">
             <p class="font-bold text-blue-800 dark:text-blue-300 mb-1">📍 Area Pengiriman Standar:</p>
             <p class="mb-3 text-slate-600 dark:text-slate-300">• Parung, Depok, Pamulang<br>• Sawangan, Ciputat</p>
-            
+
             <p class="font-bold text-orange-600 dark:text-orange-400 mb-1">⚠️ Luar Area Di Atas?</p>
             <p class="text-slate-600 dark:text-slate-300">Wajib Minimal Order <b class="text-slate-900 dark:text-white">10 Cup</b> ya kak! 😊</p>
         </div>
@@ -1133,7 +1295,7 @@ function renderMarqueeMessages() {
         };
     } else {
         // --- MODE DEFAULT (LOOPING TERUS) ---
-        textEl.innerHTML = window.isStoreOpen ? defaultMarquee : "🔴 MAAF, FOLKPRESSO SEDANG TUTUP • KEMBALI LAGI BESOK YA! 🔴";
+        textEl.innerHTML = window.isStoreOpen ? defaultMarquee : "Fuel Your Day With a Perfect Blend! • Folkpresso Closed";
 
         // Reset animasi CSS biar looping mulus dari awal
         textEl.classList.remove('animate-marquee');
@@ -1436,8 +1598,8 @@ async function syncInitialStoreStatus() {
 function updateStoreUI() {
     // 1. Update teks Marquee
     defaultMarquee = window.isStoreOpen
-        ? `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Open!`
-        : `🔥 Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; ☕ Folkpresso Closed!`;
+        ? ` Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; Folkpresso Open!`
+        : ` Fuel Your Day With a Perfect Blend! &nbsp;&nbsp; •  &nbsp;&nbsp; Folkpresso Closed!`;
 
     if (typeof renderMarqueeMessages === 'function') renderMarqueeMessages();
 
@@ -1666,7 +1828,7 @@ function showPaymentConfirmation(orderId, finalAmount, method) {
                     closeUniversalPopup();
 
                     // BROADCAST MARQUEE SEBELUM RELOAD & SET PENDING MSG
-                    // Kita bisa ambil detail dari mana? Polling cuma balikin status. 
+                    // Kita bisa ambil detail dari mana? Polling cuma balikin status.
                     // TAPI di fungsi ini 'cart' masih ada karena halaman belum reload!
                     const orderDetails = cart.map(item => `${item.name} (${item.quantity})`).join(', ');
                     const msg = `🛒 ${(currentUser || 'Guest')} baru saja memesan ${orderDetails} via Online Pay!`;
@@ -1832,8 +1994,6 @@ window.confirmManualPayment = async function (orderId, finalAmount, method) {
     const qrisModal = document.getElementById('qris-modal');
     if (qrisModal) qrisModal.classList.add('hidden');
 
-    showToast("⏳ Mengirim data ke Admin...");
-
     try {
         // Hapus data pending biar gak dobel
         await window.supabaseClient.from('transactions').delete().eq('order_id', orderId);
@@ -1951,7 +2111,7 @@ async function savePendingTransaction(orderId, method, total) {
 
 // === 3. FUNGSI PEMBAYARAN MIDTRANS CORE API (GoPay & QRIS) ===
 window.processPayment = async function (method) {
-    if (!auth.currentUser) return showToast("Login dulu ya, bb!");
+    if (!auth.currentUser) return showToast("Login dulu ya!");
     if (cart.length === 0) return showToast("Keranjang kosong!");
 
     // Generate Order ID Unik
@@ -1967,7 +2127,6 @@ window.processPayment = async function (method) {
         potentialDiscount = subtotal - 1; // Kurangi diskon biar total tetap 1
     }
 
-    showToast('⏳ Menghubungkan ke Midtrans...');
 
     // KITA PAKAI SNAP POPUP (Gak butuh aktivasi Core API ribet)
     // Jadi requestedPaymentType kita set null biar backend manggil SNAP API
@@ -2069,7 +2228,7 @@ window.processPayment = async function (method) {
             window.location.href = data.redirect_url;
             showPaymentConfirmation(orderId, finalAmount, paymentMethodLabel);
         } else {
-            throw new Error("Gagal mendapatkan akses pembayaran dari Midtrans.");
+            throw new Error("Gagal mendapatkan akses pembayaran ");
         }
 
     } catch (err) {
@@ -2091,7 +2250,7 @@ window.bindGoPay = async function () {
     const user = auth.currentUser;
     if (!user) return showToast("Login dulu!");
 
-    if (!window.userPhone) return alert("Lengkapi nomor HP dulu di profil (Wajib untuk GoPay)!");
+    if (!window.userPhone) return alert("Lengkapi nomor HP dulu di profil !");
 
     // Format nomor HP
     let cleanPhone = window.userPhone.replace(/[^0-9]/g, '');
@@ -2333,6 +2492,9 @@ window.openPassport = async function () {
     // Render Stamps (Premium Dark Theme - Blue Edition)
     list.innerHTML = '';
     products.forEach(p => {
+        var imgSrc = p.image || "img/gula aren.png";
+        if (imgSrc && !imgSrc.startsWith('http') && !imgSrc.startsWith('img/')) imgSrc = 'img/' + imgSrc;
+
         const isCollected = purchasedNames.has(p.name.trim().toLowerCase());
         const opacity = isCollected ? 'opacity-100' : 'opacity-10 grayscale';
         const stampOverlay = isCollected ? `
@@ -2345,7 +2507,7 @@ window.openPassport = async function () {
         list.innerHTML += `
             <div class="relative flex flex-col items-center p-2 aspect-square justify-center transition-all duration-500 ${isCollected ? 'scale-110' : 'opacity-40 hover:opacity-100'}">
                 <div class="w-20 h-20 flex items-center justify-center relative bg-transparent">
-                    <img src="${p.image}" class="w-full h-full object-contain ${opacity} drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]" onerror="this.src='img/gula aren.png'">
+                    <img src="${imgSrc}" class="w-full h-full object-contain ${opacity} drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]" onerror="this.src='img/gula aren.png'">
                     ${stampOverlay}
                 </div>
                 <p class="text-[8px] font-black text-blue-100/30 mt-1 text-center leading-tight truncate w-full uppercase tracking-tighter">${p.name}</p>
@@ -2353,3 +2515,389 @@ window.openPassport = async function () {
         `;
     });
 };
+
+// ==========================================
+// 13. DATA COMPLETION & PROFILE LOGIC
+// ==========================================
+
+window.checkProfileCompletion = function (data) {
+    // Cek apakah Phone ATAU Address kosong
+    const isPhoneMissing = !data.phone || data.phone.length < 5;
+    const isAddressMissing = !data.address || data.address.trim().length === 0;
+
+    const modal = document.getElementById('complete-profile-modal');
+    const phoneContainer = document.getElementById('cp-phone-container');
+    const addressContainer = document.getElementById('cp-address-container');
+
+    if (isPhoneMissing || isAddressMissing) {
+        // Tampilkan Modal
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        // Toggle Field Visibility
+        if (isPhoneMissing) phoneContainer.classList.remove('hidden');
+        else phoneContainer.classList.add('hidden');
+
+        if (isAddressMissing) addressContainer.classList.remove('hidden');
+        else addressContainer.classList.add('hidden');
+    } else {
+        // Semua lengkap, tutup modal
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.saveMissingData = async function () {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const phoneContainer = document.getElementById('cp-phone-container');
+    const addressContainer = document.getElementById('cp-address-container');
+
+    let updateData = {};
+
+    // 1. Validasi & Ambil Phone (Jika diminta)
+    if (!phoneContainer.classList.contains('hidden')) {
+        const phoneRaw = document.getElementById('cp-phone').value.trim();
+        if (!phoneRaw || phoneRaw.length < 8) return alert("Nomor WhatsApp wajib diisi dengan benar!");
+
+        let phone = '+62' + phoneRaw.replace(/[\s\-]/g, '').replace(/^0+/, '');
+        updateData.phone = phone; // Save Phone
+    }
+
+    // 2. Validasi & Ambil Address (Jika diminta)
+    if (!addressContainer.classList.contains('hidden')) {
+        const address = document.getElementById('cp-address').value.trim();
+        if (!address || address.length < 5) return alert("Alamat pengiriman wajib diisi!");
+
+        updateData.address = address; // Save Address
+    }
+
+    try {
+        await db.collection('users').doc(user.uid).update(updateData);
+        showToast("✅ Data berhasil disimpan!");
+        document.getElementById('complete-profile-modal').classList.add('hidden');
+        document.getElementById('complete-profile-modal').classList.remove('flex');
+    } catch (e) {
+        console.error("Save Error:", e);
+        alert("Gagal menyimpan: " + e.message);
+    }
+};
+
+window.getGPSAddressForModal = function () {
+    const status = document.getElementById('cp-gps-status');
+    const input = document.getElementById('cp-address');
+
+    status.classList.remove('hidden');
+    status.innerText = "🛰️ Mencari titik lokasi...";
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            status.innerText = "📍 Mendapatkan alamat...";
+            try {
+                // Reverse Geocoding (Nominatim OpenStreetMap - Free)
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+                const data = await res.json();
+
+                if (data && data.display_name) {
+                    input.value = data.display_name;
+                    status.innerText = "✅ Lokasi ditemukan!";
+                } else {
+                    input.value = `${lat}, ${lon}`;
+                    status.innerText = "⚠️ Nama jalan tidak detail, mohon lengkapi.";
+                }
+            } catch (e) {
+                input.value = `${lat}, ${lon}`;
+                status.innerText = "⚠️ Gagal ambil nama jalan, koordinat dipakai.";
+            }
+        }, () => {
+            status.innerText = "❌ Gagal mendeteksi lokasi. Pastikan GPS aktif.";
+        });
+    } else {
+        status.innerText = "❌ Browser tidak support GPS.";
+    }
+};
+
+// Override/Define saveBiodata to respect Phone Lock
+window.saveBiodata = async function () {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const name = document.getElementById('bio-name').value;
+    // Phone ambil dari input, TAPI nanti kita cek di DB apakah boleh update
+    const phoneRaw = document.getElementById('bio-phone').value;
+    const address = document.getElementById('input-address').value;
+    const addressDetail = document.getElementById('input-address-detail').value;
+
+    if (!name || !address) return showToast("Nama & Alamat wajib diisi!");
+
+    // Cek dulu data lama di DB buat mastiin Phone Logic
+    const doc = await db.collection('users').doc(user.uid).get();
+    if (!doc.exists) return;
+    const oldData = doc.data();
+
+    let finalData = {
+        customName: name,
+        address: address,
+        addressDetail: addressDetail
+    };
+
+    // LOGIKA PENTING:
+    // Kalau di DB belum ada no HP, baru boleh simpan no HP dari input.
+    // Kalau di DB SUDAH ada, hiraukan input (pakai data lama), biar gak bisa di-hack lewat inspect element.
+    if (!oldData.phone) {
+        let phone = '+62' + phoneRaw.replace(/[\s\-]/g, '').replace(/^0+/, '');
+        finalData.phone = phone;
+    }
+
+    db.collection('users').doc(user.uid).update(finalData).then(() => {
+        showToast("✅ Biodata Berhasil Disimpan!");
+    }).catch(e => {
+        showToast("❌ Gagal: " + e.message);
+    });
+};
+
+// Helper GPS for Main Profile (re-implementation if missing or simple link)
+window.getGPSAddress = function () {
+    const status = document.getElementById('gps-status');
+    const input = document.getElementById('input-address');
+
+    status.classList.remove('hidden');
+    status.innerText = "🛰️ Mencari titik lokasi...";
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            status.innerText = "📍 Mendapatkan alamat...";
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+                const data = await res.json();
+
+                if (data && data.display_name) {
+                    input.value = data.display_name;
+                    status.innerText = "✅ Lokasi ditemukan!";
+                } else {
+                    input.value = `${lat}, ${lon}`;
+                    status.innerText = "⚠️ Nama jalan tidak detail.";
+                }
+            } catch (e) {
+                input.value = `${lat}, ${lon}`;
+                status.innerText = "⚠️ Gagal ambil nama jalan.";
+            }
+        }, () => {
+            status.innerText = "❌ Gagal. Pastikan GPS aktif.";
+        });
+    }
+};
+
+// ==========================================
+// 14. SPLASH & WELCOME SCREEN HELPER
+// ==========================================
+
+window.showWelcomeScreen = function (user) {
+    const welcomeScreen = document.getElementById('welcome-screen');
+    if (!welcomeScreen) return;
+
+    // 1. Time Based Greeting
+    const hour = new Date().getHours();
+    let greeting = "Selamat Pagi,";
+    if (hour >= 11 && hour < 15) greeting = "Selamat Siang,";
+    else if (hour >= 15 && hour < 18) greeting = "Selamat Sore,";
+    else if (hour >= 18) greeting = "Selamat Malam,";
+
+    // Fix: ID harus sesuai dengan HTML Popup Card (welcome-greeting-text)
+    const greetEl = document.getElementById('welcome-greeting-text');
+    if (greetEl) greetEl.innerText = greeting;
+
+    // 2. User Name & Points
+    const displayName = currentUser === "Guest" ? (user.displayName || "Friend") : currentUser;
+    // Fix: ID harus sesuai (welcome-username-text & welcome-points-text)
+    const userEl = document.getElementById('welcome-username-text');
+    if (userEl) userEl.innerText = displayName;
+
+    // 3. Dynamic Message (Slide 2 is now static)
+    // No more points or motivation text updates here
+
+
+    // 4. Recommendation Logic (Rotasi Tiap 3 Jam - Slide 3)
+    // Jam 0-2: Index 0, Jam 3-5: Index 1, dst.
+    const hourBlock = Math.floor(new Date().getHours() / 3);
+
+    if (products.length > 0) {
+        // Pastikan index valid, modulo dengan panjang produk
+        const prodIndex = hourBlock % products.length;
+        const recProd = products[prodIndex];
+
+        const recName = document.getElementById('welcome-rec-name-slide');
+        const recImg = document.getElementById('welcome-rec-img-slide');
+        if (recName) recName.innerText = recProd.name;
+        if (recImg) recImg.src = recProd.image || 'img/gula aren.png';
+    }
+
+    // Reset to Slide 1
+    if (typeof window.nextWelcomeSlide === 'function') {
+        window.nextWelcomeSlide(1);
+    } else {
+        // Fallback simple if function not ready (though order should guarantee it)
+        document.querySelectorAll('.welcome-slide').forEach(el => el.classList.add('hidden'));
+        const s1 = document.getElementById('welcome-slide-1');
+        if (s1) s1.classList.remove('hidden');
+    }
+
+    // Show Screen with Smooth Animation
+    welcomeScreen.classList.remove('hidden');
+    welcomeScreen.classList.add('flex');
+
+    // Trigger Scale & Opacity Transition
+    setTimeout(() => {
+        welcomeScreen.classList.remove('opacity-0');
+        welcomeScreen.classList.add('opacity-100');
+        if (welcomeScreen.firstElementChild) {
+            welcomeScreen.firstElementChild.classList.remove('scale-95'); // Scale Up Card
+            welcomeScreen.firstElementChild.classList.add('scale-100');
+        }
+    }, 50);
+};
+
+window.nextWelcomeSlide = function (slideNum) {
+    // Hide all slides
+    document.querySelectorAll('.welcome-slide').forEach(el => el.classList.add('hidden'));
+
+    // Show target slide
+    const target = document.getElementById('welcome-slide-' + slideNum);
+    if (target) {
+        target.classList.remove('hidden');
+        target.classList.add('fade-in');
+    }
+
+    // Update Dots
+    document.querySelectorAll('[id^="dot-"]').forEach(d => {
+        d.classList.remove('bg-blue-500', 'w-4');
+        d.classList.add('bg-slate-200', 'dark:bg-slate-700', 'w-2');
+    });
+    const activeDot = document.getElementById('dot-' + slideNum);
+    if (activeDot) {
+        activeDot.classList.remove('bg-slate-200', 'dark:bg-slate-700', 'w-2');
+        activeDot.classList.add('bg-blue-500', 'w-4');
+    }
+};
+
+window.dismissWelcome = function () {
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const mainApp = document.getElementById('main-app');
+
+    if (welcomeScreen) {
+        // Fade Out Welcome
+        welcomeScreen.classList.remove('opacity-100');
+        welcomeScreen.classList.add('opacity-0', 'pointer-events-none');
+
+        // Scale Down Card slightly
+        if (welcomeScreen.firstElementChild) {
+            welcomeScreen.firstElementChild.classList.remove('scale-100');
+            welcomeScreen.firstElementChild.classList.add('scale-95');
+        }
+
+        setTimeout(() => {
+            welcomeScreen.classList.add('hidden');
+            welcomeScreen.classList.remove('flex');
+        }, 500); // Tunggu durasi transisi CSS
+    }
+
+    // Show Main App with Fade In
+    if (mainApp) {
+        mainApp.classList.remove('hidden');
+        mainApp.classList.add('fade-in');
+    }
+
+    // Trigger Notification Permission Prompt
+    setTimeout(() => {
+        if (window.Notification && Notification.permission === 'default') {
+            const modal = document.getElementById('notif-modal');
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }
+    }, 1500);
+
+    // BARU CEK PROFIL SETELAH WELCOME DITUTUP
+    if (auth.currentUser) {
+        db.collection('users').doc(auth.currentUser.uid).get().then(doc => {
+            if (doc.exists) {
+                checkProfileCompletion(doc.data());
+            }
+        });
+    }
+};
+
+// ==========================================
+// 15. EXIT APP LOGIC
+// ==========================================
+
+window.openExitModal = function (type = 'exit') {
+    const modal = document.getElementById('exit-modal');
+    const title = document.getElementById('exit-modal-title');
+    const msg = document.getElementById('exit-modal-msg');
+    const btn = document.getElementById('exit-modal-confirm-btn');
+
+    if (modal) {
+        if (type === 'logout') {
+            title.innerText = "Keluar Akun?";
+            msg.innerText = "Yakin mau logout? Nanti harus login lagi loh... 🥺";
+            btn.setAttribute('onclick', 'confirmLogout()');
+        } else {
+            title.innerText = "Mau Keluar?";
+            msg.innerText = "Yakin nih mau ninggalin Folkpresso? Nanti kangen loh... 🥺";
+            btn.setAttribute('onclick', 'confirmExitApp()');
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.classList.add('opacity-100');
+            if (modal.firstElementChild) {
+                modal.firstElementChild.classList.remove('scale-90');
+                modal.firstElementChild.classList.add('scale-100');
+            }
+        }, 50);
+    }
+};
+
+window.closeExitModal = function () {
+    const modal = document.getElementById('exit-modal');
+    if (modal) {
+        modal.classList.remove('opacity-100');
+        modal.classList.add('opacity-0');
+        if (modal.firstElementChild) {
+            modal.firstElementChild.classList.remove('scale-100');
+            modal.firstElementChild.classList.add('scale-90');
+        }
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+    }
+};
+
+window.confirmLogout = function () {
+    auth.signOut().then(() => location.reload());
+};
+
+window.confirmExitApp = function () {
+    if (navigator.app) {
+        navigator.app.exitApp();
+    } else if (navigator.device) {
+        navigator.device.exitApp();
+    } else {
+        window.close();
+    }
+};
+
+// Handle Back Button (Cordova)
+document.addEventListener('backbutton', function (e) {
+    e.preventDefault();
+    window.openExitModal('exit');
+}, false);
