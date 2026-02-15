@@ -21,6 +21,22 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const messaging = firebase.messaging();
 
+// Foreground Message Handler
+messaging.onMessage((payload) => {
+    console.log("Foreground FCM Message:", payload);
+    const title = payload.notification.title || "Folkpresso";
+    const body = payload.notification.body || "";
+
+    // Trigger notification & banner
+    if (typeof window.triggerNotify === 'function') {
+        window.triggerNotify(title, body, 'fcm-' + Date.now());
+    }
+
+    if (window.showInAppBanner) {
+        window.showInAppBanner(title, body);
+    }
+});
+
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .then(() => console.log("✅ Auth Persistence set to LOCAL"))
     .catch((error) => console.error("❌ Auth Persistence Error:", error));
@@ -1817,7 +1833,7 @@ async function handleMidtransReturn() {
 
                     // Construct Message Detail
                     const itemsStr = txData.map(t => `${t.name} (${t.qty || t.quantity})`).join(', ');
-                    const broadcastMsg = `🛒 ${currentUser || 'Guest'} baru saja memesan ${itemsStr} via Online Pay!`;
+                    const broadcastMsg = `${currentUser || 'Guest'} baru saja memesan ${itemsStr} via Online Pay!`;
 
                     // BROADCAST DISINI (Setelah dapet detail)
                     if (window.insertAnnouncement) {
@@ -2045,7 +2061,7 @@ window.confirmManualPayment = async function (orderId, finalAmount, method) {
 
     // OPTIMISTIC MARQUEE DENGAN DETAIL
     const orderDetails = cart.map(item => `${item.name} (${item.quantity})`).join(', ');
-    const msg = `🛒 ${(currentUser || 'Guest')} baru saja memesan ${orderDetails} via ${method}!`;
+    const msg = `${(currentUser || 'Guest')} baru saja memesan ${orderDetails} via ${method}!`;
 
     // SAFE MARQUEE: Dibungkus try-catch biar gak ngerusak logic poin
     try {
